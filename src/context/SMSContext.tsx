@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, ReactNode } from 'react';
 
 type RequestStatus = 'pending' | 'activated' | 'sms_requested' | 'completed';
@@ -24,6 +23,7 @@ interface SMSContextType {
   activateRequest: (phone: string) => void;
   requestSMS: (phone: string) => void;
   submitSMSCode: (phone: string, smsCode: string) => void;
+  resetSMSCode: (phone: string) => void;
   getCurrentUserStatus: () => RequestStatus | null;
   // Phone number management functions
   createPhoneNumber: (phone: string, accessCode: string) => void;
@@ -108,6 +108,25 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const resetSMSCode = (phone: string) => {
+    if (requests[phone]) {
+      const updatedRequest = {
+        ...requests[phone],
+        status: 'activated' as RequestStatus,
+        smsCode: undefined,
+      };
+      
+      setRequests((prev) => ({
+        ...prev,
+        [phone]: updatedRequest,
+      }));
+      
+      if (currentRequest && currentRequest.phone === phone) {
+        setCurrentRequest(updatedRequest);
+      }
+    }
+  };
+
   const getCurrentUserStatus = () => {
     return currentRequest ? currentRequest.status : null;
   };
@@ -165,6 +184,7 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
         activateRequest,
         requestSMS,
         submitSMSCode,
+        resetSMSCode,
         getCurrentUserStatus,
         createPhoneNumber,
         updatePhoneNumber,

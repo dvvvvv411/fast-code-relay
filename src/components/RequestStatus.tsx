@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useSMS } from '../context/SMSContext';
 import { Button } from '@/components/ui/button';
@@ -6,7 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const RequestStatus = () => {
-  const { currentRequest, requestSMS } = useSMS();
+  const { currentRequest, requestSMS, resetSMSCode } = useSMS();
   const [smsCode, setSmsCode] = useState<string | null>(null);
   const [progressValue, setProgressValue] = useState(0);
   
@@ -75,7 +76,8 @@ const RequestStatus = () => {
                 <div className="w-8 h-8 rounded-full bg-green-400"></div>
               </div>
             </div>
-            <h3 className="text-xl font-medium mb-4">Nummer aktiviert</h3>
+            <h3 className="text-xl font-medium mb-2">Nummer aktiviert</h3>
+            <p className="text-gray-500 mb-4">Sie können den SMS Code nun senden</p>
             <Button 
               onClick={() => requestSMS(currentRequest.phone)}
               className="bg-orange hover:bg-orange-dark"
@@ -110,7 +112,22 @@ const RequestStatus = () => {
             <div className="bg-gray-100 p-4 rounded-lg mb-4">
               <p className="text-2xl font-bold text-orange">{smsCode}</p>
             </div>
-            <p className="text-gray-500">Vorgang abgeschlossen</p>
+            <p className="text-gray-500 mb-4">Vorgang abgeschlossen</p>
+            <div className="flex flex-col space-y-2">
+              <Button 
+                onClick={() => requestSMS(currentRequest.phone)}
+                className="bg-orange hover:bg-orange-dark"
+              >
+                Neue SMS anfordern
+              </Button>
+              <Button 
+                onClick={() => resetSMSCode(currentRequest.phone)}
+                variant="outline" 
+                className="border-orange text-orange hover:bg-orange-50"
+              >
+                Falscher Code erhalten
+              </Button>
+            </div>
           </div>
         );
       
