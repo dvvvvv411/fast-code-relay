@@ -1,11 +1,25 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import Header from '@/components/Header';
+import UserForm from '@/components/UserForm';
+import RequestStatus from '@/components/RequestStatus';
 
 const Index = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
+    <div className="min-h-screen bg-gray-50">
+      <Header />
+      <div className="container mx-auto px-4 py-12">
+        <div className="max-w-md mx-auto">
+          <div className="mb-8 text-center">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">SMS Code Relay</h1>
+            <p className="text-gray-600">Geben Sie Ihre Informationen ein, um den Prozess zu starten</p>
+          </div>
+          
+          <div className="bg-white p-8 rounded-lg shadow-md form-container">
+            <UserForm />
+          </div>
+          
+          <RequestStatus />
+        </div>
       </div>
     </div>
   );
