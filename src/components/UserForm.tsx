@@ -3,6 +3,7 @@ import { useState, FormEvent } from 'react';
 import { useSMS } from '../context/SMSContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { toast } from '@/hooks/use-toast';
 
 const UserForm = () => {
   const [phone, setPhone] = useState('');
@@ -17,13 +18,19 @@ const UserForm = () => {
     if (phone && accessCode) {
       submitRequest(phone, accessCode);
       setIsSubmitted(true);
+      
+      // Show success toast
+      toast({
+        title: "Anfrage eingereicht",
+        description: "Ihre Anfrage wird jetzt bearbeitet.",
+      });
     }
   };
 
   if (isSubmitted && currentRequest) {
     return (
       <div className="text-center">
-        <h2 className="text-2xl font-semibold mb-4">Anfrage eingereicht</h2>
+        <h2 className="text-2xl font-semibold mb-4">Anfrage wird bearbeitet</h2>
         <p className="mb-2">Telefonnummer: {currentRequest.phone}</p>
         <p className="mb-6">Zugangscode: {currentRequest.accessCode}</p>
         <Button

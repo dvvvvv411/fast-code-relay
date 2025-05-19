@@ -2,6 +2,7 @@
 import Header from '@/components/Header';
 import UserForm from '@/components/UserForm';
 import RequestStatus from '@/components/RequestStatus';
+import { Toaster } from "@/components/ui/toaster";
 
 const Index = () => {
   return (
@@ -21,6 +22,7 @@ const Index = () => {
           <RequestStatus />
         </div>
       </div>
+      <Toaster />
     </div>
   );
 };
