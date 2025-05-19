@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useSMS } from '../context/SMSContext';
 import { Button } from '@/components/ui/button';
@@ -9,12 +8,33 @@ import { Skeleton } from '@/components/ui/skeleton';
 const RequestStatus = () => {
   const { currentRequest, requestSMS } = useSMS();
   const [smsCode, setSmsCode] = useState<string | null>(null);
+  const [progressValue, setProgressValue] = useState(0);
   
   useEffect(() => {
     if (currentRequest?.status === 'completed' && currentRequest.smsCode) {
       setSmsCode(currentRequest.smsCode);
     }
   }, [currentRequest]);
+
+  // Animation effect for the progress bar
+  useEffect(() => {
+    if (currentRequest?.status === 'pending') {
+      const interval = setInterval(() => {
+        setProgressValue((prev) => {
+          // Keep progress between 10-90% during pending state to show activity
+          // but avoid looking complete
+          const newValue = prev + (Math.random() * 5);
+          return newValue > 90 ? 10 : newValue;
+        });
+      }, 2000);
+      
+      return () => clearInterval(interval);
+    }
+    
+    if (currentRequest?.status === 'activated') {
+      setProgressValue(100);
+    }
+  }, [currentRequest?.status]);
 
   if (!currentRequest) {
     return null;
@@ -24,15 +44,18 @@ const RequestStatus = () => {
     return (
       <div className="text-center py-10">
         <div className="flex justify-center mb-6">
-          <div className="w-20 h-20 rounded-full bg-orange-light/20 flex items-center justify-center">
+          <div className="w-20 h-20 rounded-full bg-orange-light/20 flex items-center justify-center animate-pulse">
             <Clock className="w-10 h-10 text-orange animate-pulse" />
           </div>
         </div>
         <h3 className="text-xl font-medium mb-2">Nummer wird aktiviert...</h3>
+        <p className="text-gray-500 mb-8">Dies kann bis zu 5 Minuten dauern</p>
         
         <div className="w-full max-w-xs mx-auto mt-8">
-          <div className="h-1.5 w-full bg-gray-200 rounded-full overflow-hidden">
-            <div className="h-full bg-orange rounded-full animate-pulse" style={{ width: '100%' }}></div>
+          <Progress value={progressValue} className="h-2" />
+          <div className="flex justify-between mt-2 text-xs text-gray-500">
+            <span>Aktivierung läuft</span>
+            <span>{Math.round(progressValue)}%</span>
           </div>
         </div>
       </div>

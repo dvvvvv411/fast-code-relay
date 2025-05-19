@@ -21,8 +21,8 @@ const UserForm = () => {
       
       // Show success toast
       toast({
-        title: "Anfrage eingereicht",
-        description: "Ihre Anfrage wird jetzt bearbeitet.",
+        title: "Nummer wird aktiviert",
+        description: "Ihre Nummer wird jetzt aktiviert.",
       });
     }
   };
@@ -30,7 +30,7 @@ const UserForm = () => {
   if (isSubmitted && currentRequest) {
     return (
       <div className="text-center">
-        <h2 className="text-2xl font-semibold mb-4">Anfrage wird bearbeitet</h2>
+        <h2 className="text-2xl font-semibold mb-4">Nummer wird aktiviert</h2>
         <p className="mb-2">Telefonnummer: {currentRequest.phone}</p>
         <p className="mb-6">Zugangscode: {currentRequest.accessCode}</p>
         <Button
@@ -38,7 +38,7 @@ const UserForm = () => {
           variant="outline"
           className="mt-4"
         >
-          Neue Anfrage
+          Neue Nummer
         </Button>
       </div>
     );
@@ -77,7 +77,7 @@ const UserForm = () => {
       </div>
       
       <Button type="submit" className="w-full bg-orange hover:bg-orange-dark">
-        Anfrage einreichen
+        Nummer aktivieren
       </Button>
     </form>
   );
