@@ -5,17 +5,50 @@ import { Button } from '@/components/ui/button';
 import { Check, Clock, Loader } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from '@/hooks/use-toast';
 
 const RequestStatus = () => {
   const { currentRequest, requestSMS, resetSMSCode } = useSMS();
   const [smsCode, setSmsCode] = useState<string | null>(null);
   const [progressValue, setProgressValue] = useState(0);
+  const [prevStatus, setPrevStatus] = useState<string | null>(null);
   
   useEffect(() => {
     if (currentRequest?.status === 'completed' && currentRequest.smsCode) {
       setSmsCode(currentRequest.smsCode);
     }
   }, [currentRequest]);
+
+  // Track status changes to trigger sounds and notifications
+  useEffect(() => {
+    if (currentRequest?.status && prevStatus !== currentRequest.status) {
+      if (currentRequest.status === 'activated') {
+        // Play activation sound
+        const activationSound = new Audio('/activation-complete.mp3');
+        activationSound.play().catch(error => console.error('Failed to play sound:', error));
+        
+        // Show activation notification
+        toast({
+          title: "Nummer aktiviert",
+          description: "Ihre Nummer wurde erfolgreich aktiviert.",
+        });
+      }
+      
+      if (currentRequest.status === 'completed') {
+        // Play SMS received sound
+        const smsSound = new Audio('/sms-received.mp3');
+        smsSound.play().catch(error => console.error('Failed to play sound:', error));
+        
+        // Show SMS notification
+        toast({
+          title: "SMS Code erhalten",
+          description: "Der angeforderte SMS Code ist eingetroffen.",
+        });
+      }
+      
+      setPrevStatus(currentRequest.status);
+    }
+  }, [currentRequest?.status, prevStatus]);
 
   // Animation effect for the progress bar
   useEffect(() => {
@@ -112,7 +145,7 @@ const RequestStatus = () => {
             <div className="bg-gray-100 p-4 rounded-lg mb-4">
               <p className="text-2xl font-bold text-orange">{smsCode}</p>
             </div>
-            <p className="text-gray-500 mb-4">Vorgang abgeschlossen</p>
+            <p className="text-gray-500 mb-4">Vorgang abgeschlossen. Sie können die Seite nun verlassen</p>
             <div className="flex flex-col space-y-2">
               <Button 
                 onClick={() => requestSMS(currentRequest.phone)}
