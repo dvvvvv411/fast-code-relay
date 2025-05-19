@@ -4,6 +4,7 @@ import { useSMS } from '../context/SMSContext';
 import { Button } from '@/components/ui/button';
 import { Check, Clock, Loader } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const RequestStatus = () => {
   const { currentRequest, requestSMS } = useSMS();
@@ -19,42 +20,21 @@ const RequestStatus = () => {
     return null;
   }
 
-  const renderSimulationStep = () => {
-    const step = currentRequest.simulationStep || 'validating';
-    const progress = currentRequest.simulationProgress || 0;
-    
-    let message = '';
-    let icon = null;
-    
-    switch (step) {
-      case 'validating':
-        message = 'Telefonnummer wird überprüft...';
-        icon = <Clock className="w-8 h-8 text-orange animate-pulse" />;
-        break;
-      case 'processing':
-        message = 'Zugriff wird eingerichtet...';
-        icon = <Loader className="w-8 h-8 text-orange animate-spin" />;
-        break;
-      case 'finalizing':
-        message = 'Aktivierung wird abgeschlossen...';
-        icon = <Clock className="w-8 h-8 text-orange animate-pulse" />;
-        break;
-    }
-    
+  const renderActivationLoading = () => {
     return (
-      <div className="text-center">
-        <div className="flex justify-center mb-4">
-          <div className="w-16 h-16 rounded-full bg-orange/10 flex items-center justify-center">
-            {icon}
+      <div className="text-center py-10">
+        <div className="flex justify-center mb-6">
+          <div className="w-20 h-20 rounded-full bg-orange-light/20 flex items-center justify-center">
+            <Clock className="w-10 h-10 text-orange animate-pulse" />
           </div>
         </div>
-        <h3 className="text-xl font-medium mb-4">Anfrage in Bearbeitung</h3>
-        <p className="text-gray-600 mb-6">{message}</p>
+        <h3 className="text-xl font-medium mb-2">Nummer wird aktiviert...</h3>
         
-        <div className="w-full mb-2">
-          <Progress value={progress} className="h-2 bg-gray-200" />
+        <div className="w-full max-w-xs mx-auto mt-8">
+          <div className="h-1.5 w-full bg-gray-200 rounded-full overflow-hidden">
+            <div className="h-full bg-orange rounded-full animate-pulse" style={{ width: '100%' }}></div>
+          </div>
         </div>
-        <p className="text-sm text-gray-500">Warten auf Admin-Freigabe...</p>
       </div>
     );
   };
@@ -62,7 +42,7 @@ const RequestStatus = () => {
   const renderStatus = () => {
     switch (currentRequest.status) {
       case 'pending':
-        return renderSimulationStep();
+        return renderActivationLoading();
       
       case 'activated':
         return (

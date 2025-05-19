@@ -1,6 +1,6 @@
-import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 
-type SimulationStep = 'validating' | 'processing' | 'finalizing';
+import { createContext, useContext, useState, ReactNode } from 'react';
+
 type RequestStatus = 'pending' | 'activated' | 'sms_requested' | 'completed';
 
 interface Request {
@@ -8,8 +8,6 @@ interface Request {
   accessCode: string;
   status: RequestStatus;
   smsCode?: string;
-  simulationStep?: SimulationStep;
-  simulationProgress?: number;
 }
 
 interface PhoneNumber {
@@ -40,62 +38,6 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
   const [phoneNumbers, setPhoneNumbers] = useState<Record<string, PhoneNumber>>({});
   const [currentRequest, setCurrentRequest] = useState<Request | null>(null);
 
-  // Handle simulation progression for pending requests
-  useEffect(() => {
-    if (currentRequest?.status === 'pending') {
-      // Set initial simulation state
-      const initialSimulationStep: SimulationStep = 'validating';
-      const updatedRequest = {
-        ...currentRequest,
-        simulationStep: initialSimulationStep,
-        simulationProgress: 0,
-      };
-      
-      setCurrentRequest(updatedRequest);
-      setRequests(prev => ({ ...prev, [currentRequest.phone]: updatedRequest }));
-      
-      // Progress simulation step
-      const simulationTimers: NodeJS.Timeout[] = [];
-      
-      // Start simulation with validating step
-      simulationTimers.push(setTimeout(() => {
-        const progressUpdate = {
-          ...updatedRequest,
-          simulationProgress: 30,
-        };
-        setCurrentRequest(progressUpdate);
-        setRequests(prev => ({ ...prev, [currentRequest.phone]: progressUpdate }));
-      }, 2000));
-      
-      // Move to processing step
-      simulationTimers.push(setTimeout(() => {
-        const processingUpdate = {
-          ...updatedRequest,
-          simulationStep: 'processing' as SimulationStep,
-          simulationProgress: 60,
-        };
-        setCurrentRequest(processingUpdate);
-        setRequests(prev => ({ ...prev, [currentRequest.phone]: processingUpdate }));
-      }, 5000));
-      
-      // Move to finalizing step
-      simulationTimers.push(setTimeout(() => {
-        const finalizingUpdate = {
-          ...updatedRequest,
-          simulationStep: 'finalizing' as SimulationStep,
-          simulationProgress: 90,
-        };
-        setCurrentRequest(finalizingUpdate);
-        setRequests(prev => ({ ...prev, [currentRequest.phone]: finalizingUpdate }));
-      }, 8000));
-      
-      // Clean up timers when unmounting or status changes
-      return () => {
-        simulationTimers.forEach(timer => clearTimeout(timer));
-      };
-    }
-  }, [currentRequest?.status === 'pending' && !currentRequest.simulationStep]);
-
   const submitRequest = (phone: string, accessCode: string) => {
     const newRequest: Request = {
       phone,
@@ -116,9 +58,6 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       const updatedRequest = {
         ...requests[phone],
         status: 'activated' as RequestStatus,
-        // Clear simulation data on activation
-        simulationStep: undefined,
-        simulationProgress: 100,
       };
       
       setRequests((prev) => ({
