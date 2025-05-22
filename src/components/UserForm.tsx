@@ -1,5 +1,5 @@
 
-import { useState, FormEvent, useRef } from 'react';
+import { useState, FormEvent, useRef, useEffect } from 'react';
 import { useSMS } from '../context/SMSContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,13 @@ const UserForm = () => {
   
   const { submitRequest, currentRequest, isLoading } = useSMS();
   const phoneInputRef = useRef<HTMLInputElement>(null);
+
+  // Restore submitted state from current request
+  useEffect(() => {
+    if (currentRequest) {
+      setIsSubmitted(true);
+    }
+  }, [currentRequest]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -48,6 +55,10 @@ const UserForm = () => {
     }
   };
 
+  const handleReset = () => {
+    setIsSubmitted(false);
+  };
+
   if (isSubmitted && currentRequest) {
     return (
       <div className="text-center">
@@ -55,7 +66,7 @@ const UserForm = () => {
         <p className="mb-2">Telefonnummer: {currentRequest.phone}</p>
         <p className="mb-6">Zugangscode: {currentRequest.accessCode}</p>
         <Button
-          onClick={() => setIsSubmitted(false)}
+          onClick={handleReset}
           variant="outline"
           className="mt-4"
         >

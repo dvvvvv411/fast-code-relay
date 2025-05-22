@@ -1,7 +1,8 @@
+
 import { useEffect, useState } from 'react';
 import { useSMS } from '../context/SMSContext';
 import { Button } from '@/components/ui/button';
-import { Check, Clock, Loader } from 'lucide-react';
+import { Check, Clock, Loader, Activity, Zap, Signal } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -9,6 +10,14 @@ const RequestStatus = () => {
   const { currentRequest, requestSMS, resetSMSCode, isLoading } = useSMS();
   const [progressValue, setProgressValue] = useState(0);
   const [prevStatus, setPrevStatus] = useState<string | null>(null);
+  const [activationStep, setActivationStep] = useState(0);
+  const [activationMessages, setActivationMessages] = useState<string[]>([
+    'Verbindung wird hergestellt...',
+    'Nummer wird überprüft...',
+    'Server wird kontaktiert...',
+    'Aktivierung in Bearbeitung...',
+    'Warte auf Bestätigung...'
+  ]);
   
   // Track status changes to trigger sounds and notifications
   useEffect(() => {
@@ -32,22 +41,31 @@ const RequestStatus = () => {
   // Animation effect for the progress bar
   useEffect(() => {
     if (currentRequest?.status === 'pending') {
-      const interval = setInterval(() => {
+      // For progress bar animation
+      const progressInterval = setInterval(() => {
         setProgressValue((prev) => {
           // Keep progress between 10-90% during pending state to show activity
           // but avoid looking complete
-          const newValue = prev + (Math.random() * 5);
+          const newValue = prev + (Math.random() * 3 + 0.5);
           return newValue > 90 ? 10 : newValue;
         });
-      }, 2000);
+      }, 800);
       
-      return () => clearInterval(interval);
+      // For cycling through activation messages
+      const messageInterval = setInterval(() => {
+        setActivationStep(prev => (prev + 1) % activationMessages.length);
+      }, 3000);
+      
+      return () => {
+        clearInterval(progressInterval);
+        clearInterval(messageInterval);
+      };
     }
     
     if (currentRequest?.status === 'activated') {
       setProgressValue(100);
     }
-  }, [currentRequest?.status]);
+  }, [currentRequest?.status, activationMessages.length]);
 
   if (!currentRequest) {
     return null;
@@ -65,16 +83,35 @@ const RequestStatus = () => {
     }
   };
 
+  const renderActivationIcon = () => {
+    const icons = [
+      <Signal className="w-10 h-10 text-orange animate-pulse" key="signal" />,
+      <Activity className="w-10 h-10 text-orange animate-pulse" key="activity" />,
+      <Zap className="w-10 h-10 text-orange animate-pulse" key="zap" />,
+      <Clock className="w-10 h-10 text-orange animate-pulse" key="clock" />,
+      <Loader className="w-10 h-10 text-orange animate-spin" key="loader" />
+    ];
+    
+    return icons[activationStep % icons.length];
+  };
+
   const renderActivationLoading = () => {
     return (
       <div className="text-center py-10">
         <div className="flex justify-center mb-6">
-          <div className="w-20 h-20 rounded-full bg-orange-light/20 flex items-center justify-center animate-pulse">
-            <Clock className="w-10 h-10 text-orange animate-pulse" />
+          <div className="w-20 h-20 rounded-full bg-orange-light/20 flex items-center justify-center">
+            {renderActivationIcon()}
           </div>
         </div>
         <h3 className="text-xl font-medium mb-2">Nummer wird aktiviert...</h3>
-        <p className="text-gray-500 mb-8">Dies kann bis zu 5 Minuten dauern</p>
+        <p className="text-gray-500 mb-4">Dies kann bis zu 5 Minuten dauern</p>
+        
+        <div className="relative my-8 bg-gray-100 p-4 rounded-lg">
+          <p className="text-gray-700 animate-fade-in">{activationMessages[activationStep]}</p>
+          <div className="absolute -bottom-1 left-0 w-full h-1 overflow-hidden">
+            <div className="h-full bg-orange animate-pulse-slow" style={{ width: '30%' }}></div>
+          </div>
+        </div>
         
         <div className="w-full max-w-xs mx-auto mt-8">
           <Progress value={progressValue} className="h-2" />
