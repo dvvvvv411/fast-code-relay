@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useSMS } from '../context/SMSContext';
 import { Button } from '@/components/ui/button';
-import { Check, Clock, Loader, Activity, Zap, Signal } from 'lucide-react';
+import { Check, Clock, Loader, Activity, Zap, Signal, Send } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -154,17 +154,17 @@ const RequestStatus = () => {
           <div className="text-center">
             <div className="flex justify-center mb-4">
               <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
-                <div className="w-8 h-8 rounded-full bg-green-400"></div>
+                <Check className="w-8 h-8 text-green-500" />
               </div>
             </div>
             <h3 className="text-xl font-medium mb-2">Nummer aktiviert</h3>
-            <p className="text-gray-500 mb-4">Sie können den SMS Code nun senden</p>
+            <p className="text-gray-500 mb-4">Sie können den SMS Code nun anfordern</p>
             <Button 
               onClick={handleRequestSMS}
-              className="bg-orange hover:bg-orange-dark"
+              className="bg-orange hover:bg-orange-dark flex items-center gap-2"
               disabled={isLoading}
             >
-              SMS anfordern
+              <Send className="h-4 w-4" /> SMS anfordern
             </Button>
           </div>
         );

@@ -7,12 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PhoneNumberManager from './PhoneNumberManager';
-import { List, Phone, MessageSquare, Loader, AlertTriangle } from 'lucide-react';
+import { List, Phone, MessageSquare, Loader, AlertTriangle, Send } from 'lucide-react';
 import SupportTickets from './SupportTickets';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const AdminPanel = () => {
-  const { requests, activateRequest, submitSMSCode, isLoading } = useSMS();
+  const { requests, activateRequest, submitSMSCode, isLoading, requestSMS } = useSMS();
   const { user, isLoading: authLoading, isAdmin } = useAuth();
   const [smsCode, setSmsCode] = useState('');
   const [selectedRequest, setSelectedRequest] = useState<string | null>(null);
@@ -25,6 +25,11 @@ const AdminPanel = () => {
   const handleSendSMS = (requestId: string) => {
     console.log('Preparing to send SMS for request:', requestId);
     setSelectedRequest(requestId);
+  };
+
+  const handleRequestSMS = (requestId: string) => {
+    console.log('User requested SMS for request:', requestId);
+    requestSMS(requestId);
   };
   
   const submitSMS = () => {
@@ -144,6 +149,19 @@ const AdminPanel = () => {
                       Aktivieren
                     </Button>
                   )}
+                  
+                  {request.status === 'activated' && (
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => handleRequestSMS(request.id)}
+                        size="sm"
+                        className="bg-blue-500 hover:bg-blue-600"
+                      >
+                        <Send className="h-4 w-4 mr-1" /> SMS Anfordern
+                      </Button>
+                    </div>
+                  )}
+                  
                   {request.status === 'sms_requested' && (
                     <Button 
                       onClick={() => handleSendSMS(request.id)}
@@ -153,6 +171,7 @@ const AdminPanel = () => {
                       SMS Code eingeben
                     </Button>
                   )}
+                  
                   {request.status === 'completed' && (
                     <div className="text-sm text-gray-500">
                       SMS Code: <span className="font-medium">{request.smsCode}</span>
