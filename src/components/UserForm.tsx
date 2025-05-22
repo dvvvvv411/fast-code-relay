@@ -1,5 +1,5 @@
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useRef, useEffect } from 'react';
 import { useSMS } from '../context/SMSContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,7 @@ const UserForm = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   
   const { submitRequest, currentRequest } = useSMS();
+  const phoneInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -37,6 +38,13 @@ const UserForm = () => {
         title: "Nummer wird aktiviert",
         description: "Ihre Nummer wird jetzt aktiviert.",
       });
+    }
+  };
+
+  const handlePhoneFieldFocus = () => {
+    // If the field is empty, add +49 when focused
+    if (!phone) {
+      setPhone('+49');
     }
   };
 
@@ -72,12 +80,13 @@ const UserForm = () => {
             type="text"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
+            onFocus={handlePhoneFieldFocus}
             placeholder="+49"
             className="pl-10 w-full"
+            ref={phoneInputRef}
             required
           />
         </div>
-        <p className="text-xs text-gray-500">+49 wird automatisch hinzugefügt</p>
       </div>
       
       <div className="space-y-2">
