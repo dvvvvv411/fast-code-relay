@@ -1,3 +1,4 @@
+
 import Header from '@/components/Header';
 import UserForm from '@/components/UserForm';
 import RequestStatus from '@/components/RequestStatus';
@@ -38,7 +39,7 @@ const Index = () => {
                 </div>
                 
                 {/* Show either the UserForm or RequestStatus based on request state */}
-                {(!currentRequest || currentRequest.status === 'completed') ? (
+                {!currentRequest || currentRequest.status === 'completed' ? (
                   <UserForm />
                 ) : (
                   <RequestStatus />
