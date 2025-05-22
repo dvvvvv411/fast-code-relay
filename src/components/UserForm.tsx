@@ -59,16 +59,18 @@ const UserForm = () => {
     setIsSubmitted(false);
   };
 
+  // If submitted, don't show the form anymore - let the RequestStatus component handle the display
   if (isSubmitted && currentRequest) {
     return (
-      <div className="text-center">
-        <h2 className="text-2xl font-semibold mb-4">Nummer wird aktiviert</h2>
-        <p className="mb-2">Telefonnummer: {currentRequest.phone}</p>
-        <p className="mb-6">Zugangscode: {currentRequest.accessCode}</p>
+      <div className="bg-white p-6 rounded-lg border border-gray-200 text-center mb-4">
+        <p className="text-gray-700 mb-4">Ihre Anfrage wurde erfolgreich eingereicht.</p>
+        <p className="text-sm text-gray-500 mb-2">Telefonnummer: {currentRequest.phone}</p>
+        <p className="text-sm text-gray-500 mb-4">Zugangscode: {currentRequest.accessCode}</p>
         <Button
           onClick={handleReset}
           variant="outline"
-          className="mt-4"
+          className="mt-2"
+          size="sm"
         >
           Neue Nummer
         </Button>
