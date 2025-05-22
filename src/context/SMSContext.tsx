@@ -56,6 +56,13 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user, isAdmin]);
 
+  // Fetch requests for admin users
+  useEffect(() => {
+    if (user && isAdmin) {
+      fetchRequests();
+    }
+  }, [user, isAdmin]);
+
   // Set up real-time subscription for requests
   useEffect(() => {
     const requestsChannel = supabase
