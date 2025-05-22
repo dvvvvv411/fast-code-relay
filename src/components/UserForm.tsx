@@ -1,21 +1,23 @@
 
-import { useState, FormEvent, useRef, useEffect } from 'react';
+import { useState, FormEvent, useRef } from 'react';
 import { useSMS } from '../context/SMSContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { toast } from '@/hooks/use-toast';
 import { Phone, Lock } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const UserForm = () => {
   const [phone, setPhone] = useState('');
   const [accessCode, setAccessCode] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
-  const { submitRequest, currentRequest } = useSMS();
+  const { submitRequest, currentRequest, isLoading } = useSMS();
   const phoneInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    setError(null);
     
     // Ensure phone number has the +49 prefix
     let formattedPhone = phone;
@@ -30,14 +32,12 @@ const UserForm = () => {
     }
     
     if (formattedPhone && accessCode) {
-      submitRequest(formattedPhone, accessCode);
-      setIsSubmitted(true);
-      
-      // Show success toast
-      toast({
-        title: "Nummer wird aktiviert",
-        description: "Ihre Nummer wird jetzt aktiviert.",
-      });
+      const success = await submitRequest(formattedPhone, accessCode);
+      if (success) {
+        setIsSubmitted(true);
+      }
+    } else {
+      setError('Bitte geben Sie eine Telefonnummer und einen Zugangscode ein.');
     }
   };
 
@@ -67,6 +67,12 @@ const UserForm = () => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      
       <div className="space-y-2">
         <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
           Telefonnummer
@@ -85,6 +91,7 @@ const UserForm = () => {
             className="pl-10 w-full"
             ref={phoneInputRef}
             required
+            disabled={isLoading}
           />
         </div>
       </div>
@@ -105,12 +112,17 @@ const UserForm = () => {
             placeholder="Ihr Zugangscode"
             className="pl-10 w-full"
             required
+            disabled={isLoading}
           />
         </div>
       </div>
       
-      <Button type="submit" className="w-full bg-orange hover:bg-orange-dark">
-        Nummer aktivieren
+      <Button 
+        type="submit" 
+        className="w-full bg-orange hover:bg-orange-dark"
+        disabled={isLoading}
+      >
+        {isLoading ? 'Verarbeite...' : 'Nummer aktivieren'}
       </Button>
     </form>
   );

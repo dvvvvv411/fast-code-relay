@@ -1,3 +1,4 @@
+
 import Header from '@/components/Header';
 import UserForm from '@/components/UserForm';
 import RequestStatus from '@/components/RequestStatus';
@@ -5,8 +6,14 @@ import { Toaster } from "@/components/ui/toaster";
 import Footer from '@/components/Footer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Check, Shield, MessageSquare, Clock } from 'lucide-react';
+import ProblemReportForm from '@/components/ProblemReportForm';
+import { useSMS } from '@/context/SMSContext';
+
 const Index = () => {
-  return <div className="min-h-screen bg-gray-50 flex flex-col">
+  const { currentRequest } = useSMS();
+  
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
       <div className="container mx-auto px-4 py-8 flex-grow">
         <div className="max-w-5xl mx-auto">
@@ -19,18 +26,16 @@ const Index = () => {
             <p className="text-gray-600 mb-6">
               Geben Sie die Informationen, die Sie in der E-Mail erhalten haben, ein und aktivieren Sie Ihre Nummer
             </p>
-            
-            {/* Hero Image */}
-            <div className="relative max-w-md mx-auto mb-8">
-              
-            </div>
           </div>
           
           {/* Form and Status Container */}
           <div className="grid md:grid-cols-5 gap-8 mb-16">
             <div className="md:col-span-3">
               <div className="bg-white p-8 rounded-lg shadow-md form-container">
-                <h2 className="text-xl font-semibold mb-4">Nummer aktivieren</h2>
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-semibold">Nummer aktivieren</h2>
+                  <ProblemReportForm phone={currentRequest?.phone} />
+                </div>
                 <UserForm />
               </div>
               
@@ -67,9 +72,6 @@ const Index = () => {
                   </ul>
                 </CardContent>
               </Card>
-              
-              {/* Testimonial */}
-              
             </div>
           </div>
           
@@ -111,7 +113,7 @@ const Index = () => {
               </div>
               <div className="bg-white p-6 rounded-lg shadow-md">
                 <h3 className="font-medium mb-2">Was passiert, wenn ich keinen Code erhalte?</h3>
-                <p className="text-gray-600 text-sm">Sie können den Code erneut anfordern. Falls weiterhin Probleme bestehen, melden Sie diese über per Email.</p>
+                <p className="text-gray-600 text-sm">Sie können den Code erneut anfordern. Falls weiterhin Probleme bestehen, melden Sie diese über den "Problem melden" Button.</p>
               </div>
               <div className="bg-white p-6 rounded-lg shadow-md">
                 <h3 className="font-medium mb-2">Muss ich mich registrieren?</h3>
@@ -127,6 +129,8 @@ const Index = () => {
       </div>
       <Footer />
       <Toaster />
-    </div>;
+    </div>
+  );
 };
+
 export default Index;

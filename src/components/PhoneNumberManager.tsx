@@ -4,7 +4,7 @@ import { useSMS } from '../context/SMSContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Edit, Trash } from 'lucide-react';
+import { Plus, Edit, Trash, Loader } from 'lucide-react';
 import { 
   Table, 
   TableBody, 
@@ -13,59 +13,87 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const PhoneNumberManager = () => {
-  const { phoneNumbers, createPhoneNumber, updatePhoneNumber, deletePhoneNumber } = useSMS();
+  const { phoneNumbers, createPhoneNumber, updatePhoneNumber, deletePhoneNumber, isLoading } = useSMS();
   const [phone, setPhone] = useState('');
   const [accessCode, setAccessCode] = useState('');
-  const [editingPhone, setEditingPhone] = useState<string | null>(null);
-  const [originalPhone, setOriginalPhone] = useState<string>('');
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (phone && accessCode) {
-      if (editingPhone) {
-        updatePhoneNumber(originalPhone, phone, accessCode);
-        toast.success('Telefonnummer erfolgreich aktualisiert');
-        setEditingPhone(null);
-        setOriginalPhone('');
+      if (editingId) {
+        updatePhoneNumber(editingId, phone, accessCode);
+        setEditingId(null);
       } else {
         createPhoneNumber(phone, accessCode);
-        toast.success('Telefonnummer erfolgreich erstellt');
       }
       setPhone('');
       setAccessCode('');
     }
   };
 
-  const handleEdit = (phoneNumber: string, accessCode: string) => {
+  const handleEdit = (phoneNumber: string, accessCode: string, id: string) => {
     setPhone(phoneNumber);
     setAccessCode(accessCode);
-    setEditingPhone(phoneNumber);
-    setOriginalPhone(phoneNumber);
+    setEditingId(id);
   };
 
-  const handleDelete = (phoneNumber: string) => {
-    deletePhoneNumber(phoneNumber);
-    toast.success('Telefonnummer erfolgreich gelöscht');
+  const handleDelete = (id: string) => {
+    if (window.confirm('Sind Sie sicher, dass Sie diese Telefonnummer löschen möchten?')) {
+      deletePhoneNumber(id);
+    }
   };
 
   const cancelEdit = () => {
     setPhone('');
     setAccessCode('');
-    setEditingPhone(null);
-    setOriginalPhone('');
+    setEditingId(null);
   };
 
   const phoneNumbersList = Object.values(phoneNumbers);
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto p-6 space-y-8">
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-48" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-32" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-64" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-16 w-full" />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-6 space-y-8">
       <Card>
         <CardHeader>
           <CardTitle className="text-xl font-medium">
-            {editingPhone ? 'Telefonnummer bearbeiten' : 'Neue Telefonnummer erstellen'}
+            {editingId ? 'Telefonnummer bearbeiten' : 'Neue Telefonnummer erstellen'}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -99,9 +127,9 @@ const PhoneNumberManager = () => {
             <div className="flex space-x-2">
               <Button type="submit" className="bg-orange hover:bg-orange-dark">
                 <Plus className="mr-1" size={18} />
-                {editingPhone ? 'Aktualisieren' : 'Telefonnummer hinzufügen'}
+                {editingId ? 'Aktualisieren' : 'Telefonnummer hinzufügen'}
               </Button>
-              {editingPhone && (
+              {editingId && (
                 <Button type="button" variant="outline" onClick={cancelEdit}>
                   Abbrechen
                 </Button>
@@ -132,7 +160,7 @@ const PhoneNumberManager = () => {
               </TableHeader>
               <TableBody>
                 {phoneNumbersList.map((item) => (
-                  <TableRow key={item.phone}>
+                  <TableRow key={item.id}>
                     <TableCell className="font-medium">{item.phone}</TableCell>
                     <TableCell>{item.accessCode}</TableCell>
                     <TableCell>{item.createdAt.toLocaleDateString()}</TableCell>
@@ -141,14 +169,14 @@ const PhoneNumberManager = () => {
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          onClick={() => handleEdit(item.phone, item.accessCode)}
+                          onClick={() => handleEdit(item.phone, item.accessCode, item.id)}
                         >
                           <Edit size={16} />
                         </Button>
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          onClick={() => handleDelete(item.phone)}
+                          onClick={() => handleDelete(item.id)}
                         >
                           <Trash size={16} />
                         </Button>

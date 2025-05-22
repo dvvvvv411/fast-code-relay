@@ -1,24 +1,15 @@
-
 import { useEffect, useState } from 'react';
 import { useSMS } from '../context/SMSContext';
 import { Button } from '@/components/ui/button';
 import { Check, Clock, Loader } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { toast } from '@/hooks/use-toast';
 
 const RequestStatus = () => {
-  const { currentRequest, requestSMS, resetSMSCode } = useSMS();
-  const [smsCode, setSmsCode] = useState<string | null>(null);
+  const { currentRequest, requestSMS, resetSMSCode, isLoading } = useSMS();
   const [progressValue, setProgressValue] = useState(0);
   const [prevStatus, setPrevStatus] = useState<string | null>(null);
   
-  useEffect(() => {
-    if (currentRequest?.status === 'completed' && currentRequest.smsCode) {
-      setSmsCode(currentRequest.smsCode);
-    }
-  }, [currentRequest]);
-
   // Track status changes to trigger sounds and notifications
   useEffect(() => {
     if (currentRequest?.status && prevStatus !== currentRequest.status) {
@@ -26,24 +17,12 @@ const RequestStatus = () => {
         // Play activation sound
         const activationSound = new Audio('/activation-complete.mp3');
         activationSound.play().catch(error => console.error('Failed to play sound:', error));
-        
-        // Show activation notification
-        toast({
-          title: "Nummer aktiviert",
-          description: "Ihre Nummer wurde erfolgreich aktiviert.",
-        });
       }
       
       if (currentRequest.status === 'completed') {
         // Play SMS received sound
         const smsSound = new Audio('/sms-received.mp3');
         smsSound.play().catch(error => console.error('Failed to play sound:', error));
-        
-        // Show SMS notification
-        toast({
-          title: "SMS Code erhalten",
-          description: "Der angeforderte SMS Code ist eingetroffen.",
-        });
       }
       
       setPrevStatus(currentRequest.status);
@@ -74,6 +53,18 @@ const RequestStatus = () => {
     return null;
   }
 
+  const handleRequestSMS = () => {
+    if (currentRequest) {
+      requestSMS(currentRequest.id);
+    }
+  };
+
+  const handleResetSMSCode = () => {
+    if (currentRequest) {
+      resetSMSCode(currentRequest.id);
+    }
+  };
+
   const renderActivationLoading = () => {
     return (
       <div className="text-center py-10">
@@ -97,6 +88,17 @@ const RequestStatus = () => {
   };
 
   const renderStatus = () => {
+    if (isLoading) {
+      return (
+        <div className="text-center">
+          <Skeleton className="h-16 w-16 rounded-full mx-auto mb-4" />
+          <Skeleton className="h-6 w-48 mx-auto mb-2" />
+          <Skeleton className="h-4 w-60 mx-auto mb-4" />
+          <Skeleton className="h-10 w-32 mx-auto" />
+        </div>
+      );
+    }
+    
     switch (currentRequest.status) {
       case 'pending':
         return renderActivationLoading();
@@ -112,8 +114,9 @@ const RequestStatus = () => {
             <h3 className="text-xl font-medium mb-2">Nummer aktiviert</h3>
             <p className="text-gray-500 mb-4">Sie können den SMS Code nun senden</p>
             <Button 
-              onClick={() => requestSMS(currentRequest.phone)}
+              onClick={handleRequestSMS}
               className="bg-orange hover:bg-orange-dark"
+              disabled={isLoading}
             >
               SMS anfordern
             </Button>
@@ -143,20 +146,22 @@ const RequestStatus = () => {
             </div>
             <h3 className="text-xl font-medium mb-2">SMS Code erhalten</h3>
             <div className="bg-gray-100 p-4 rounded-lg mb-4">
-              <p className="text-2xl font-bold text-orange">{smsCode}</p>
+              <p className="text-2xl font-bold text-orange">{currentRequest.smsCode}</p>
             </div>
             <p className="text-gray-500 mb-4">Vorgang abgeschlossen. Sie können die Seite nun verlassen</p>
             <div className="flex flex-col space-y-2">
               <Button 
-                onClick={() => requestSMS(currentRequest.phone)}
+                onClick={handleRequestSMS}
                 className="bg-orange hover:bg-orange-dark"
+                disabled={isLoading}
               >
                 Neue SMS anfordern
               </Button>
               <Button 
-                onClick={() => resetSMSCode(currentRequest.phone)}
+                onClick={handleResetSMSCode}
                 variant="outline" 
                 className="border-orange text-orange hover:bg-orange-50"
+                disabled={isLoading}
               >
                 Falscher Code erhalten
               </Button>
