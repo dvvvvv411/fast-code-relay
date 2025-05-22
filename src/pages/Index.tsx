@@ -1,16 +1,18 @@
+
 import Header from '@/components/Header';
 import UserForm from '@/components/UserForm';
 import RequestStatus from '@/components/RequestStatus';
 import { Toaster } from "@/components/ui/toaster";
 import Footer from '@/components/Footer';
 import { Card, CardContent } from '@/components/ui/card';
-import { Check, Shield, MessageSquare, Clock } from 'lucide-react';
+import { Check, Shield, MessageSquare, Clock, RefreshCw } from 'lucide-react';
 import ProblemReportForm from '@/components/ProblemReportForm';
 import { useSMS } from '@/context/SMSContext';
 import { useEffect } from 'react';
+import { Button } from '@/components/ui/button';
 
 const Index = () => {
-  const { currentRequest } = useSMS();
+  const { currentRequest, resetCurrentRequest } = useSMS();
   
   useEffect(() => {
     console.log('Index page - Current request:', currentRequest);
@@ -39,7 +41,19 @@ const Index = () => {
               <div className="bg-white p-8 rounded-lg shadow-md form-container transition-all duration-300">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-xl font-semibold">Nummer aktivieren</h2>
-                  <ProblemReportForm phone={currentRequest?.phone} />
+                  <div className="flex items-center gap-2">
+                    {currentRequest && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={resetCurrentRequest} 
+                        className="flex items-center gap-1"
+                      >
+                        <RefreshCw className="h-4 w-4" /> Neue Anfrage
+                      </Button>
+                    )}
+                    <ProblemReportForm phone={currentRequest?.phone} />
+                  </div>
                 </div>
                 
                 {/* Show either the UserForm or RequestStatus based on request state */}

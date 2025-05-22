@@ -34,6 +34,7 @@ interface SMSContextType {
   submitSMSCode: (requestId: string, smsCode: string) => Promise<boolean>;
   resetSMSCode: (requestId: string) => Promise<boolean>;
   getCurrentUserStatus: () => RequestStatus | null;
+  resetCurrentRequest: () => void;
   // Phone number management functions
   createPhoneNumber: (phone: string, accessCode: string) => Promise<boolean>;
   updatePhoneNumber: (id: string, phone: string, accessCode: string) => Promise<boolean>;
@@ -42,12 +43,29 @@ interface SMSContextType {
 
 const SMSContext = createContext<SMSContextType | undefined>(undefined);
 
+// Storage key for saving the request ID
+const CURRENT_REQUEST_ID_KEY = 'sms_current_request_id';
+
 export const SMSProvider = ({ children }: { children: ReactNode }) => {
   const [requests, setRequests] = useState<Record<string, Request>>({});
   const [phoneNumbers, setPhoneNumbers] = useState<Record<string, PhoneNumber>>({});
   const [currentRequest, setCurrentRequest] = useState<Request | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { user, isAdmin } = useAuth();
+
+  // On initial mount, check if we have a stored request ID
+  useEffect(() => {
+    const storedRequestId = localStorage.getItem(CURRENT_REQUEST_ID_KEY);
+    
+    if (storedRequestId) {
+      console.log('Found stored request ID:', storedRequestId);
+      fetchRequestDetails(storedRequestId, true).catch(err => {
+        console.error('Error loading stored request:', err);
+        // Clear the stored ID if we couldn't load the request
+        localStorage.removeItem(CURRENT_REQUEST_ID_KEY);
+      });
+    }
+  }, []);
 
   // Fetch phone numbers for admin users
   useEffect(() => {
@@ -92,6 +110,12 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
               delete newRequests[deletedId];
               return newRequests;
             });
+            
+            // If this is the current request that was deleted, reset current request
+            if (currentRequest && currentRequest.id === deletedId) {
+              setCurrentRequest(null);
+              localStorage.removeItem(CURRENT_REQUEST_ID_KEY);
+            }
           }
         }
       )
@@ -233,6 +257,18 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) {
         console.error('Error fetching request details:', error);
+        if (error.code === 'PGRST116') {
+          // Request not found, it may have been deleted
+          if (requestId === localStorage.getItem(CURRENT_REQUEST_ID_KEY)) {
+            localStorage.removeItem(CURRENT_REQUEST_ID_KEY);
+            setCurrentRequest(null);
+            toast({
+              title: "Anfrage nicht gefunden",
+              description: "Die gespeicherte Anfrage existiert nicht mehr.",
+              variant: "destructive",
+            });
+          }
+        }
         return;
       }
 
@@ -272,8 +308,11 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
           });
         }
       }
+
+      return request;
     } catch (error) {
       console.error('Error fetching request details:', error);
+      return null;
     }
   };
 
@@ -342,11 +381,13 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       
       if (requestError) throw requestError;
       
-      // Fetch the full request details
-      await fetchRequestDetails(requestData.id);
+      // Save the request ID to localStorage
+      localStorage.setItem(CURRENT_REQUEST_ID_KEY, requestData.id);
+      console.log('Saved request ID to localStorage:', requestData.id);
       
-      // Set current request if found
-      const request = requests[requestData.id];
+      // Fetch the full request details
+      const request = await fetchRequestDetails(requestData.id, true);
+      
       if (request) {
         setCurrentRequest(request);
       }
@@ -368,6 +409,15 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const resetCurrentRequest = () => {
+    localStorage.removeItem(CURRENT_REQUEST_ID_KEY);
+    setCurrentRequest(null);
+    toast({
+      title: "Anfrage zurückgesetzt",
+      description: "Sie können jetzt eine neue Nummer aktivieren.",
+    });
   };
 
   const activateRequest = async (requestId: string): Promise<boolean> => {
@@ -607,6 +657,7 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
         createPhoneNumber,
         updatePhoneNumber,
         deletePhoneNumber,
+        resetCurrentRequest,
       }}
     >
       {children}
