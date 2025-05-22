@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PhoneNumberManager from './PhoneNumberManager';
-import { List, Phone } from 'lucide-react';
+import SupportTicketsView from './SupportTicketsView';
+import { List, Phone, HeadphonesIcon } from 'lucide-react';
 
 const AdminPanel = () => {
   const { requests, activateRequest, submitSMSCode } = useSMS();
@@ -40,6 +41,10 @@ const AdminPanel = () => {
         <TabsTrigger value="phoneNumbers" className="flex items-center gap-2 data-[state=active]:bg-orange data-[state=active]:text-white">
           <Phone size={18} />
           Telefonnummer
+        </TabsTrigger>
+        <TabsTrigger value="supportTickets" className="flex items-center gap-2 data-[state=active]:bg-orange data-[state=active]:text-white">
+          <HeadphonesIcon size={18} />
+          Support Tickets
         </TabsTrigger>
       </TabsList>
       
@@ -141,6 +146,10 @@ const AdminPanel = () => {
       
       <TabsContent value="phoneNumbers" className="mt-0">
         <PhoneNumberManager />
+      </TabsContent>
+      
+      <TabsContent value="supportTickets" className="mt-0">
+        <SupportTicketsView />
       </TabsContent>
     </Tabs>
   );

@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
 
 type RequestStatus = 'pending' | 'activated' | 'sms_requested' | 'completed';
+type TicketStatus = 'new' | 'in_progress' | 'resolved';
 
 interface Request {
   phone: string;
@@ -15,10 +16,22 @@ interface PhoneNumber {
   createdAt: Date;
 }
 
+interface SupportTicket {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  message: string;
+  status: TicketStatus;
+  createdAt: Date;
+}
+
 interface SMSContextType {
   requests: Record<string, Request>;
   phoneNumbers: Record<string, PhoneNumber>;
   currentRequest: Request | null;
+  supportTickets: Record<string, SupportTicket>;
   submitRequest: (phone: string, accessCode: string) => void;
   activateRequest: (phone: string) => void;
   requestSMS: (phone: string) => void;
@@ -29,6 +42,9 @@ interface SMSContextType {
   createPhoneNumber: (phone: string, accessCode: string) => void;
   updatePhoneNumber: (oldPhone: string, newPhone: string, accessCode: string) => void;
   deletePhoneNumber: (phone: string) => void;
+  // Support ticket management functions
+  submitSupportTicket: (ticket: Omit<SupportTicket, 'id' | 'status' | 'createdAt'>) => string;
+  updateTicketStatus: (ticketId: string, status: TicketStatus) => void;
 }
 
 const SMSContext = createContext<SMSContextType | undefined>(undefined);
@@ -37,6 +53,7 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
   const [requests, setRequests] = useState<Record<string, Request>>({});
   const [phoneNumbers, setPhoneNumbers] = useState<Record<string, PhoneNumber>>({});
   const [currentRequest, setCurrentRequest] = useState<Request | null>(null);
+  const [supportTickets, setSupportTickets] = useState<Record<string, SupportTicket>>({});
 
   const submitRequest = (phone: string, accessCode: string) => {
     const newRequest: Request = {
@@ -174,12 +191,43 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Support ticket management functions
+  const submitSupportTicket = (ticket: Omit<SupportTicket, 'id' | 'status' | 'createdAt'>) => {
+    const id = Date.now().toString();
+    const newTicket: SupportTicket = {
+      ...ticket,
+      id,
+      status: 'new',
+      createdAt: new Date(),
+    };
+    
+    setSupportTickets((prev) => ({
+      ...prev,
+      [id]: newTicket,
+    }));
+    
+    return id;
+  };
+
+  const updateTicketStatus = (ticketId: string, status: TicketStatus) => {
+    if (supportTickets[ticketId]) {
+      setSupportTickets((prev) => ({
+        ...prev,
+        [ticketId]: {
+          ...prev[ticketId],
+          status,
+        },
+      }));
+    }
+  };
+
   return (
     <SMSContext.Provider
       value={{
         requests,
         phoneNumbers,
         currentRequest,
+        supportTickets,
         submitRequest,
         activateRequest,
         requestSMS,
@@ -189,6 +237,8 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
         createPhoneNumber,
         updatePhoneNumber,
         deletePhoneNumber,
+        submitSupportTicket,
+        updateTicketStatus,
       }}
     >
       {children}
