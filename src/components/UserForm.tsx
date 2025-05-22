@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
 import { Phone, Lock } from 'lucide-react';
-import ProblemReportForm from './ProblemReportForm';
 
 const UserForm = () => {
   const [phone, setPhone] = useState('');
@@ -113,10 +112,6 @@ const UserForm = () => {
       <Button type="submit" className="w-full bg-orange hover:bg-orange-dark">
         Nummer aktivieren
       </Button>
-      
-      <div className="text-center mt-4">
-        <ProblemReportForm phoneNumber={phone} />
-      </div>
     </form>
   );
 };
