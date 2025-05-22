@@ -18,15 +18,18 @@ const AdminPanel = () => {
   const [selectedRequest, setSelectedRequest] = useState<string | null>(null);
   
   const handleActivate = (requestId: string) => {
+    console.log('Activating request:', requestId);
     activateRequest(requestId);
   };
   
   const handleSendSMS = (requestId: string) => {
+    console.log('Preparing to send SMS for request:', requestId);
     setSelectedRequest(requestId);
   };
   
   const submitSMS = () => {
     if (selectedRequest && smsCode) {
+      console.log('Submitting SMS code for request:', selectedRequest, 'Code:', smsCode);
       submitSMSCode(selectedRequest, smsCode);
       setSmsCode('');
       setSelectedRequest(null);
@@ -34,6 +37,10 @@ const AdminPanel = () => {
   };
   
   const requestsList = Object.values(requests);
+  
+  useEffect(() => {
+    console.log('Admin Panel requests:', requestsList);
+  }, [requests]);
   
   if (authLoading) {
     return (
@@ -107,7 +114,7 @@ const AdminPanel = () => {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {requestsList.map((request) => (
-              <tr key={request.id}>
+              <tr key={request.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">{request.phone}</div>
                 </td>
@@ -145,6 +152,11 @@ const AdminPanel = () => {
                     >
                       SMS Code eingeben
                     </Button>
+                  )}
+                  {request.status === 'completed' && (
+                    <div className="text-sm text-gray-500">
+                      SMS Code: <span className="font-medium">{request.smsCode}</span>
+                    </div>
                   )}
                 </td>
               </tr>
@@ -186,6 +198,7 @@ const AdminPanel = () => {
                   value={smsCode}
                   onChange={(e) => setSmsCode(e.target.value)}
                   placeholder="SMS Code eingeben"
+                  autoFocus
                 />
                 <Button onClick={submitSMS} className="bg-orange hover:bg-orange-dark">
                   Senden

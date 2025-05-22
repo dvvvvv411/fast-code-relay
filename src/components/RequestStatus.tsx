@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useSMS } from '../context/SMSContext';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,8 @@ const RequestStatus = () => {
   // Track status changes to trigger sounds and notifications
   useEffect(() => {
     if (currentRequest?.status && prevStatus !== currentRequest.status) {
+      console.log(`Status changed from ${prevStatus} to ${currentRequest.status}`);
+      
       if (currentRequest.status === 'activated') {
         // Play activation sound
         const activationSound = new Audio('/activation-complete.mp3');
@@ -75,12 +78,14 @@ const RequestStatus = () => {
 
   const handleRequestSMS = () => {
     if (currentRequest) {
+      console.log('Requesting SMS for', currentRequest.id);
       requestSMS(currentRequest.id);
     }
   };
 
   const handleResetSMSCode = () => {
     if (currentRequest) {
+      console.log('Resetting SMS code for', currentRequest.id);
       resetSMSCode(currentRequest.id);
     }
   };
@@ -137,6 +142,8 @@ const RequestStatus = () => {
         </div>
       );
     }
+    
+    console.log('Rendering status for:', currentRequest.status);
     
     switch (currentRequest.status) {
       case 'pending':

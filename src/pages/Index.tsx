@@ -1,4 +1,3 @@
-
 import Header from '@/components/Header';
 import UserForm from '@/components/UserForm';
 import RequestStatus from '@/components/RequestStatus';
@@ -8,9 +7,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Check, Shield, MessageSquare, Clock } from 'lucide-react';
 import ProblemReportForm from '@/components/ProblemReportForm';
 import { useSMS } from '@/context/SMSContext';
+import { useEffect } from 'react';
 
 const Index = () => {
   const { currentRequest } = useSMS();
+  
+  useEffect(() => {
+    console.log('Index page - Current request:', currentRequest);
+  }, [currentRequest]);
   
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -39,7 +43,7 @@ const Index = () => {
                 </div>
                 
                 {/* Show either the UserForm or RequestStatus based on request state */}
-                {!currentRequest || currentRequest.status === 'completed' ? (
+                {!currentRequest ? (
                   <UserForm />
                 ) : (
                   <RequestStatus />

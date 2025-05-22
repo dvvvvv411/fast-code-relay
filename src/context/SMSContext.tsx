@@ -65,6 +65,7 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
 
   // Set up real-time subscription for requests
   useEffect(() => {
+    console.log("Setting up real-time subscription for requests");
     const requestsChannel = supabase
       .channel('public:requests')
       .on(
@@ -75,9 +76,15 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
           table: 'requests'
         },
         (payload) => {
+          console.log('Realtime update received:', payload);
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
             const requestData = payload.new;
             fetchRequestDetails(requestData.id);
+            // If this is the current user's request, update it
+            if (currentRequest && currentRequest.id === requestData.id) {
+              console.log('Updating current request:', requestData);
+              fetchRequestDetails(requestData.id, true);
+            }
           } else if (payload.eventType === 'DELETE') {
             const deletedId = payload.old.id;
             setRequests((prev) => {
@@ -93,7 +100,7 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       supabase.removeChannel(requestsChannel);
     };
-  }, []);
+  }, [currentRequest]);
 
   // Set up real-time subscription for phone numbers
   useEffect(() => {
@@ -164,6 +171,7 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
   const fetchRequests = async () => {
     try {
       setIsLoading(true);
+      console.log('Fetching requests...');
       const { data, error } = await supabase
         .from('requests')
         .select(`
@@ -178,6 +186,7 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) throw error;
 
+      console.log('Fetched requests:', data);
       const requestsMap: Record<string, Request> = {};
       data.forEach((item) => {
         const phoneNumber = item.phone_numbers;
@@ -205,8 +214,9 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const fetchRequestDetails = async (requestId: string) => {
+  const fetchRequestDetails = async (requestId: string, updateCurrentRequest = false) => {
     try {
+      console.log(`Fetching details for request ${requestId}, updateCurrentRequest: ${updateCurrentRequest}`);
       const { data, error } = await supabase
         .from('requests')
         .select(`
@@ -221,7 +231,10 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
         .eq('id', requestId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching request details:', error);
+        return;
+      }
 
       const phoneNumber = data.phone_numbers;
       const request: Request = {
@@ -234,16 +247,31 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
         updatedAt: new Date(data.updated_at)
       };
 
+      console.log('Updated request:', request);
+      
       setRequests((prev) => ({
         ...prev,
         [data.id]: request
       }));
 
-      // If this is the current request, update it
-      if (currentRequest && currentRequest.id === requestId) {
+      // If this is the current user's request or we specifically want to update it
+      if ((currentRequest && currentRequest.id === requestId) || updateCurrentRequest) {
+        console.log('Updating current request state:', request);
         setCurrentRequest(request);
+        
+        // Show toast notification for status changes
+        if (request.status === 'activated') {
+          toast({
+            title: "Nummer aktiviert",
+            description: "Ihre Nummer wurde erfolgreich aktiviert.",
+          });
+        } else if (request.status === 'completed') {
+          toast({
+            title: "SMS Code erhalten",
+            description: "Der SMS Code ist jetzt verfügbar.",
+          });
+        }
       }
-
     } catch (error) {
       console.error('Error fetching request details:', error);
     }
