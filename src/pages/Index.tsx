@@ -31,15 +31,26 @@ const Index = () => {
           {/* Form and Status Container */}
           <div className="grid md:grid-cols-5 gap-8 mb-16">
             <div className="md:col-span-3">
-              <div className="bg-white p-8 rounded-lg shadow-md form-container">
+              {/* Form Container */}
+              <div className="bg-white p-8 rounded-lg shadow-md form-container mb-8">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-xl font-semibold">Nummer aktivieren</h2>
                   <ProblemReportForm phone={currentRequest?.phone} />
                 </div>
-                <UserForm />
+                {!currentRequest?.status || currentRequest.status === 'completed' ? (
+                  <UserForm />
+                ) : null}
+                
+                {/* Display RequestStatus if there's a current request */}
+                {currentRequest && (
+                  <div className={`mt-4 ${!currentRequest?.status || currentRequest.status === 'completed' ? 'hidden' : ''}`}>
+                    <RequestStatus />
+                  </div>
+                )}
               </div>
               
-              <RequestStatus />
+              {/* Always render RequestStatus separately for visibility when needed */}
+              {!currentRequest && <RequestStatus />}
             </div>
             
             {/* Features Card */}
