@@ -1,3 +1,4 @@
+
 import { useState, FormEvent, useRef, useEffect } from 'react';
 import { useSMS } from '../context/SMSContext';
 import { Button } from '@/components/ui/button';
@@ -11,11 +12,13 @@ const UserForm = () => {
   const [accessCode, setAccessCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [showSimulation, setShowSimulation] = useState(false);
-  const [progressValue, setProgressValue] = useState(10);
+  const [progressValue, setProgressValue] = useState(0);
   const [simulationStep, setSimulationStep] = useState(0);
   
   const { submitRequest, currentRequest, isLoading } = useSMS();
   const phoneInputRef = useRef<HTMLInputElement>(null);
+  const simulationStartTime = useRef<number | null>(null);
+  const totalSimulationTime = 240000; // 4 minutes in milliseconds
 
   // Messages that will rotate during the simulation
   const simulationMessages = [
@@ -36,14 +39,17 @@ const UserForm = () => {
   // Animation for the progress bar when simulation is shown
   useEffect(() => {
     if (showSimulation && !currentRequest) {
-      // For progress bar animation
+      // Set the start time when simulation begins
+      if (simulationStartTime.current === null) {
+        simulationStartTime.current = Date.now();
+      }
+      
+      // For progress bar animation - linear progress over 4 minutes
       const progressInterval = setInterval(() => {
-        setProgressValue((prev) => {
-          // Keep progress between 10-90% during pending state
-          const newValue = prev + (Math.random() * 3 + 0.5);
-          return newValue > 90 ? 10 : newValue;
-        });
-      }, 800);
+        const elapsedTime = Date.now() - (simulationStartTime.current || 0);
+        const newValue = Math.min((elapsedTime / totalSimulationTime) * 100, 100);
+        setProgressValue(newValue);
+      }, 100);
       
       // For cycling through activation messages
       const messageInterval = setInterval(() => {
@@ -59,6 +65,7 @@ const UserForm = () => {
     // If we now have a currentRequest, hide the simulation
     if (currentRequest) {
       setShowSimulation(false);
+      simulationStartTime.current = null;
     }
   }, [showSimulation, currentRequest, simulationMessages.length]);
 
@@ -79,6 +86,10 @@ const UserForm = () => {
     }
     
     if (formattedPhone && accessCode) {
+      // Reset the simulation start time and progress
+      simulationStartTime.current = Date.now();
+      setProgressValue(0);
+      
       // Show simulation before actual submission
       setShowSimulation(true);
       
@@ -170,7 +181,7 @@ const UserForm = () => {
               </div>
             </div>
             <h3 className="text-xl font-medium mb-2">Nummer wird aktiviert...</h3>
-            <p className="text-gray-500 mb-4">Dies kann bis zu 5 Minuten dauern</p>
+            <p className="text-gray-500 mb-4">Dies kann bis zu 4 Minuten dauern</p>
             
             <div className="relative my-8 bg-gray-100 p-4 rounded-lg">
               <p className="text-gray-700 animate-fade-in">{simulationMessages[simulationStep]}</p>
