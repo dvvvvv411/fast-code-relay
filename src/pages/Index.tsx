@@ -1,4 +1,3 @@
-
 import Header from '@/components/Header';
 import UserForm from '@/components/UserForm';
 import RequestStatus from '@/components/RequestStatus';
@@ -6,10 +5,8 @@ import { Toaster } from "@/components/ui/toaster";
 import Footer from '@/components/Footer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Check, Shield, MessageSquare, Clock } from 'lucide-react';
-
 const Index = () => {
-  return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+  return <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
       <div className="container mx-auto px-4 py-8 flex-grow">
         <div className="max-w-5xl mx-auto">
@@ -25,11 +22,7 @@ const Index = () => {
             
             {/* Hero Image */}
             <div className="relative max-w-md mx-auto mb-8">
-              <img 
-                src="https://ulbgpsjexsgcpivphrxq.supabase.co/storage/v1/object/public/branding/phone-messages.svg" 
-                alt="SMS Service Illustration" 
-                className="w-full h-auto"
-              />
+              
             </div>
           </div>
           
@@ -76,21 +69,7 @@ const Index = () => {
               </Card>
               
               {/* Testimonial */}
-              <Card className="bg-gradient-to-br from-orange-50 to-orange-100 shadow-md border-orange-200">
-                <CardContent className="pt-6">
-                  <h2 className="text-xl font-semibold mb-2">Kundenstimmen</h2>
-                  <div className="flex flex-col gap-4">
-                    <div className="relative p-4 bg-white rounded-lg shadow-sm border border-orange-200">
-                      <p className="text-sm italic text-gray-600">
-                        "Der SMS-Dienst funktioniert einwandfrei. Die Codes kommen schnell an und die Aktivierung war in wenigen Minuten erledigt."
-                      </p>
-                      <div className="mt-3 font-medium text-sm">
-                        — Michael S., München
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              
             </div>
           </div>
           
@@ -132,7 +111,7 @@ const Index = () => {
               </div>
               <div className="bg-white p-6 rounded-lg shadow-md">
                 <h3 className="font-medium mb-2">Was passiert, wenn ich keinen Code erhalte?</h3>
-                <p className="text-gray-600 text-sm">Sie können den Code erneut anfordern. Falls weiterhin Probleme bestehen, melden Sie diese über den "Problem melden" Button.</p>
+                <p className="text-gray-600 text-sm">Sie können den Code erneut anfordern. Falls weiterhin Probleme bestehen, melden Sie diese über per Email.</p>
               </div>
               <div className="bg-white p-6 rounded-lg shadow-md">
                 <h3 className="font-medium mb-2">Muss ich mich registrieren?</h3>
@@ -148,8 +127,6 @@ const Index = () => {
       </div>
       <Footer />
       <Toaster />
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
