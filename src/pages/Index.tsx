@@ -11,8 +11,12 @@ const Index = () => {
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-md mx-auto">
           <div className="mb-8 text-center">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">SMS Code Relay</h1>
-            <p className="text-gray-600">Geben Sie Ihre Informationen ein, um Ihre Nummer zu aktivieren</p>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Empfangen Sie jetzt Ihren <span className="text-orange-500">SMS</span> Code
+            </h1>
+            <p className="text-gray-600">
+              Geben Sie die Informationen, die Sie in der E-Mail erhalten haben, ein und aktivieren Sie Ihre Nummer
+            </p>
           </div>
           
           <div className="bg-white p-8 rounded-lg shadow-md form-container">
