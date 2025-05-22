@@ -1,4 +1,3 @@
-
 import Header from '@/components/Header';
 import UserForm from '@/components/UserForm';
 import RequestStatus from '@/components/RequestStatus';
@@ -32,25 +31,19 @@ const Index = () => {
           <div className="grid md:grid-cols-5 gap-8 mb-16">
             <div className="md:col-span-3">
               {/* Form Container */}
-              <div className="bg-white p-8 rounded-lg shadow-md form-container mb-8">
+              <div className="bg-white p-8 rounded-lg shadow-md form-container transition-all duration-300">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-xl font-semibold">Nummer aktivieren</h2>
                   <ProblemReportForm phone={currentRequest?.phone} />
                 </div>
-                {!currentRequest?.status || currentRequest.status === 'completed' ? (
-                  <UserForm />
-                ) : null}
                 
-                {/* Display RequestStatus if there's a current request */}
-                {currentRequest && (
-                  <div className={`mt-4 ${!currentRequest?.status || currentRequest.status === 'completed' ? 'hidden' : ''}`}>
-                    <RequestStatus />
-                  </div>
+                {/* Show either the UserForm or RequestStatus based on request state */}
+                {(!currentRequest || currentRequest.status === 'completed') ? (
+                  <UserForm />
+                ) : (
+                  <RequestStatus />
                 )}
               </div>
-              
-              {/* Always render RequestStatus separately for visibility when needed */}
-              {!currentRequest && <RequestStatus />}
             </div>
             
             {/* Features Card */}

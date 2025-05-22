@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useSMS } from '../context/SMSContext';
 import { Button } from '@/components/ui/button';
@@ -41,6 +40,9 @@ const RequestStatus = () => {
   // Animation effect for the progress bar
   useEffect(() => {
     if (currentRequest?.status === 'pending') {
+      // Reset progress value when entering pending state
+      setProgressValue(10);
+      
       // For progress bar animation
       const progressInterval = setInterval(() => {
         setProgressValue((prev) => {
@@ -212,7 +214,7 @@ const RequestStatus = () => {
   };
 
   return (
-    <div className="mt-8 p-6 border border-gray-200 rounded-lg bg-white">
+    <div className="p-6 animate-fade-in">
       {renderStatus()}
     </div>
   );

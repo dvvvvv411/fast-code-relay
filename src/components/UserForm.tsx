@@ -9,18 +9,17 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 const UserForm = () => {
   const [phone, setPhone] = useState('');
   const [accessCode, setAccessCode] = useState('');
-  const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   const { submitRequest, currentRequest, isLoading } = useSMS();
   const phoneInputRef = useRef<HTMLInputElement>(null);
 
-  // Restore submitted state from current request
   useEffect(() => {
-    if (currentRequest) {
-      setIsSubmitted(true);
+    // If the field is empty when component mounts, set default +49 prefix
+    if (!phone && phoneInputRef.current) {
+      setPhone('+49');
     }
-  }, [currentRequest]);
+  }, []);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -39,10 +38,7 @@ const UserForm = () => {
     }
     
     if (formattedPhone && accessCode) {
-      const success = await submitRequest(formattedPhone, accessCode);
-      if (success) {
-        setIsSubmitted(true);
-      }
+      await submitRequest(formattedPhone, accessCode);
     } else {
       setError('Bitte geben Sie eine Telefonnummer und einen Zugangscode ein.');
     }
@@ -55,17 +51,8 @@ const UserForm = () => {
     }
   };
 
-  const handleReset = () => {
-    setIsSubmitted(false);
-  };
-
-  // If submitted, simply hide the form completely to show the RequestStatus component below
-  if (isSubmitted && currentRequest) {
-    return null; // Return nothing so that RequestStatus is visible
-  }
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6 animate-fade-in">
       {error && (
         <Alert variant="destructive" className="mb-4">
           <AlertDescription>{error}</AlertDescription>
