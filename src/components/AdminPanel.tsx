@@ -147,27 +147,31 @@ const AdminPanel = () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   {request.status === 'pending' && (
-                    <Button 
-                      onClick={() => handleActivate(request.id)}
-                      size="sm"
-                      className="bg-orange hover:bg-orange-dark transition-all"
-                    >
-                      Aktivieren
-                    </Button>
+                    <div className="flex justify-center">
+                      <Button 
+                        onClick={() => handleActivate(request.id)}
+                        size="sm"
+                        className="bg-orange hover:bg-orange-dark transition-all"
+                      >
+                        Aktivieren
+                      </Button>
+                    </div>
                   )}
                   
                   {(request.status === 'activated' || request.status === 'sms_sent' || request.status === 'sms_requested') && (
-                    <Button 
-                      onClick={() => handleSendSMS(request.id)}
-                      size="sm" 
-                      className="bg-orange hover:bg-orange-dark transition-all"
-                    >
-                      📨 SMS Code eingeben
-                    </Button>
+                    <div className="flex justify-center">
+                      <Button 
+                        onClick={() => handleSendSMS(request.id)}
+                        size="sm" 
+                        className="bg-orange hover:bg-orange-dark transition-all"
+                      >
+                        📨 SMS Code eingeben
+                      </Button>
+                    </div>
                   )}
                   
                   {request.status === 'completed' && (
-                    <div className="text-sm text-gray-500 flex flex-col gap-2">
+                    <div className="text-sm text-gray-500 flex flex-col gap-2 items-center">
                       <div>
                         SMS Code: <span className="font-medium bg-green-100 px-2 py-1 rounded">{request.smsCode}</span>
                       </div>
