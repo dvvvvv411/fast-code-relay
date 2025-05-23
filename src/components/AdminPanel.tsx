@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useSMS } from '../context/SMSContext';
@@ -136,12 +135,14 @@ const AdminPanel = () => {
                     request.status === 'activated' ? 'bg-blue-100 text-blue-800' :
                     request.status === 'sms_sent' ? 'bg-orange-100 text-orange-800 animate-pulse' :
                     request.status === 'sms_requested' ? 'bg-orange-100 text-orange-800 animate-pulse' :
+                    request.status === 'additional_sms_requested' ? 'bg-purple-100 text-purple-800 animate-pulse' :
                     'bg-green-100 text-green-800'
                   }`}>
                     {request.status === 'pending' ? '⏳ In Bearbeitung' :
                      request.status === 'activated' ? '✅ Aktiviert' :
                      request.status === 'sms_sent' ? '📤 SMS unterwegs' :
                      request.status === 'sms_requested' ? '📤 SMS Code benötigt' :
+                     request.status === 'additional_sms_requested' ? '📤 Weitere SMS' :
                      '✅ Abgeschlossen'}
                   </span>
                 </td>
@@ -158,7 +159,7 @@ const AdminPanel = () => {
                     </div>
                   )}
                   
-                  {(request.status === 'activated' || request.status === 'sms_sent' || request.status === 'sms_requested') && (
+                  {(request.status === 'activated' || request.status === 'sms_sent' || request.status === 'sms_requested' || request.status === 'additional_sms_requested') && (
                     <div className="flex justify-center">
                       <Button 
                         onClick={() => handleSendSMS(request.id)}

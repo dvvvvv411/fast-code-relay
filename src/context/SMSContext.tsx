@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 
-type RequestStatus = 'pending' | 'activated' | 'sms_sent' | 'sms_requested' | 'completed';
+type RequestStatus = 'pending' | 'activated' | 'sms_sent' | 'sms_requested' | 'completed' | 'additional_sms_requested';
 
 interface Request {
   id: string;
@@ -347,6 +347,11 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
             title: "SMS als versendet markiert",
             description: "Wir werden Sie benachrichtigen, sobald der SMS-Code verfügbar ist.",
           });
+        } else if (request.status === 'additional_sms_requested') {
+          toast({
+            title: "Weiteren SMS Code angefordert",
+            description: "Ein weiterer SMS Code wurde angefordert.",
+          });
         }
       }
 
@@ -528,19 +533,27 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
   const requestSMS = async (requestId: string): Promise<boolean> => {
     try {
       setIsLoading(true);
-      console.log(`📤 Requesting new SMS for request: ${requestId}`);
+      console.log(`📤 Requesting additional SMS for request: ${requestId}`);
+      
+      // Check current status to determine new status
+      const currentRequestData = requests[requestId];
+      const newStatus = currentRequestData?.status === 'completed' ? 'additional_sms_requested' : 'sms_requested';
       
       const { error } = await supabase
         .from('requests')
-        .update({ status: 'sms_requested', sms_code: null })
+        .update({ status: newStatus, sms_code: null })
         .eq('id', requestId);
       
       if (error) throw error;
       
-      console.log(`✅ Successfully requested new SMS for request: ${requestId}`);
+      console.log(`✅ Successfully requested additional SMS for request: ${requestId} with status: ${newStatus}`);
+      
+      const toastMessage = newStatus === 'additional_sms_requested' 
+        ? 'Weiteren SMS Code angefordert'
+        : 'SMS angefordert';
       
       toast({
-        title: "SMS angefordert",
+        title: toastMessage,
         description: "Die SMS wurde angefordert.",
       });
       

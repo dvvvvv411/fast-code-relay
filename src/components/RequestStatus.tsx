@@ -1,5 +1,4 @@
 
-
 import { useState } from 'react';
 import { useSMS } from '../context/SMSContext';
 import { Button } from '@/components/ui/button';
@@ -66,10 +65,13 @@ const RequestStatus = () => {
       
       case 'sms_sent':
       case 'sms_requested':
+      case 'additional_sms_requested':
         return {
           icon: <Loader className="h-12 w-12 text-orange animate-spin mx-auto mb-4" />,
           title: 'Warten auf SMS Code',
-          description: 'Ihr SMS Code wird gerade verarbeitet. Dies kann einige Sekunden dauern.',
+          description: currentRequest.status === 'additional_sms_requested' 
+            ? 'Ihr weiterer SMS Code wird gerade verarbeitet. Dies kann einige Sekunden dauern.'
+            : 'Ihr SMS Code wird gerade verarbeitet. Dies kann einige Sekunden dauern.',
           showButton: false
         };
       
@@ -175,4 +177,3 @@ const RequestStatus = () => {
 };
 
 export default RequestStatus;
-
