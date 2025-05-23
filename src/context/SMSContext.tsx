@@ -621,7 +621,7 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       
       toast({
         title: "SMS als versendet markiert",
-        description: "Wir werden Sie benachrichtigen, sobald der SMS-Code verfügbar ist.",
+        description: "Der Admin wurde benachrichtigt, dass die SMS unterwegs ist.",
       });
       
       return true;
