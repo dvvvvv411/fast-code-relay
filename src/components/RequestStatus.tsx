@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSMS } from '../context/SMSContext';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, MessageSquare, Clock, Loader, RefreshCw, Timer, Check } from 'lucide-react';
@@ -10,6 +10,14 @@ const RequestStatus = () => {
   const [smsClickTimestamp, setSmsClickTimestamp] = useState<string>('');
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
+  // Log the current request status whenever it changes for debugging
+  useEffect(() => {
+    if (currentRequest) {
+      console.log('Current request status:', currentRequest.status);
+      console.log('Current request details:', currentRequest);
+    }
+  }, [currentRequest]);
+
   if (!currentRequest) {
     return (
       <div className="text-center p-8">
@@ -19,6 +27,7 @@ const RequestStatus = () => {
   }
 
   const handleSendSMS = () => {
+    console.log('📱 Marking SMS as sent for request:', currentRequest.id);
     markSMSSent(currentRequest.id);
     setHasSentSMS(true);
     
@@ -33,6 +42,7 @@ const RequestStatus = () => {
       second: '2-digit'
     });
     setSmsClickTimestamp(timestamp);
+    console.log('📱 SMS marked as sent at:', timestamp);
   };
 
   const handleRequestNewSMS = () => {
