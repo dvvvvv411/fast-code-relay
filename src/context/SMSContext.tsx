@@ -612,7 +612,7 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       
       const { error } = await supabase
         .from('requests')
-        .update({ status: 'sms_sent' })
+        .update({ status: 'sms_requested' })
         .eq('id', requestId);
       
       if (error) throw error;
@@ -620,8 +620,8 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       console.log(`✅ Successfully marked SMS as sent for request: ${requestId}`);
       
       toast({
-        title: "SMS als versendet markiert",
-        description: "Der Admin wurde benachrichtigt, dass die SMS unterwegs ist.",
+        title: "SMS Code angefordert",
+        description: "Der Admin wurde benachrichtigt, dass Sie einen SMS Code benötigen.",
       });
       
       return true;
