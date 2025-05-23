@@ -11,7 +11,7 @@ const RequestStatus = () => {
   const [progressValue, setProgressValue] = useState(0);
   const [prevStatus, setPrevStatus] = useState<string | null>(null);
   const [activationStep, setActivationStep] = useState(0);
-  const [activationMessages, setActivationMessages] = useState<string[]>([
+  const [activationMessages] = useState<string[]>([
     'Verbindung wird hergestellt...',
     'Nummer wird überprüft...',
     'Server wird kontaktiert...',
@@ -19,19 +19,18 @@ const RequestStatus = () => {
     'Warte auf Bestätigung...'
   ]);
   
-  // Track status changes to trigger sounds and notifications
+  // Enhanced status change tracking with real-time updates
   useEffect(() => {
     if (currentRequest?.status && prevStatus !== currentRequest.status) {
-      console.log(`Status changed from ${prevStatus} to ${currentRequest.status}`);
+      console.log(`🔄 Status changed from ${prevStatus} to ${currentRequest.status}`);
       
+      // Play sounds for important status changes
       if (currentRequest.status === 'activated') {
-        // Play activation sound
         const activationSound = new Audio('/activation-complete.mp3');
         activationSound.play().catch(error => console.error('Failed to play sound:', error));
       }
       
       if (currentRequest.status === 'completed') {
-        // Play SMS received sound
         const smsSound = new Audio('/sms-received.mp3');
         smsSound.play().catch(error => console.error('Failed to play sound:', error));
       }
@@ -40,23 +39,18 @@ const RequestStatus = () => {
     }
   }, [currentRequest?.status, prevStatus]);
 
-  // Animation effect for the progress bar
+  // Enhanced animation effect for the progress bar
   useEffect(() => {
     if (currentRequest?.status === 'pending') {
-      // Reset progress value when entering pending state
       setProgressValue(10);
       
-      // For progress bar animation
       const progressInterval = setInterval(() => {
         setProgressValue((prev) => {
-          // Keep progress between 10-90% during pending state to show activity
-          // but avoid looking complete
           const newValue = prev + (Math.random() * 3 + 0.5);
           return newValue > 90 ? 10 : newValue;
         });
       }, 800);
       
-      // For cycling through activation messages
       const messageInterval = setInterval(() => {
         setActivationStep(prev => (prev + 1) % activationMessages.length);
       }, 3000);
@@ -78,14 +72,14 @@ const RequestStatus = () => {
 
   const handleRequestSMS = () => {
     if (currentRequest) {
-      console.log('Requesting SMS for', currentRequest.id);
+      console.log('🚀 Requesting SMS for', currentRequest.id);
       requestSMS(currentRequest.id);
     }
   };
 
   const handleResetSMSCode = () => {
     if (currentRequest) {
-      console.log('Resetting SMS code for', currentRequest.id);
+      console.log('🔄 Resetting SMS code for', currentRequest.id);
       resetSMSCode(currentRequest.id);
     }
   };
@@ -143,7 +137,7 @@ const RequestStatus = () => {
       );
     }
     
-    console.log('Rendering status for:', currentRequest.status);
+    console.log('🎨 Rendering status for:', currentRequest.status);
     
     switch (currentRequest.status) {
       case 'pending':
@@ -153,15 +147,15 @@ const RequestStatus = () => {
         return (
           <div className="text-center">
             <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
+              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center animate-bounce">
                 <Check className="w-8 h-8 text-green-500" />
               </div>
             </div>
-            <h3 className="text-xl font-medium mb-2">Nummer aktiviert</h3>
+            <h3 className="text-xl font-medium mb-2">✅ Nummer aktiviert</h3>
             <p className="text-gray-500 mb-4">Sie können den SMS Code nun anfordern</p>
             <Button 
               onClick={handleRequestSMS}
-              className="bg-orange hover:bg-orange-dark flex items-center gap-2"
+              className="bg-orange hover:bg-orange-dark flex items-center gap-2 transition-all"
               disabled={isLoading}
             >
               <Send className="h-4 w-4" /> SMS anfordern
@@ -174,11 +168,16 @@ const RequestStatus = () => {
           <div className="text-center">
             <div className="flex justify-center mb-4">
               <div className="w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center">
-                <div className="w-8 h-8 rounded-full bg-orange animate-pulse-orange"></div>
+                <div className="w-8 h-8 rounded-full bg-orange animate-pulse"></div>
               </div>
             </div>
-            <h3 className="text-xl font-medium mb-2">SMS Code angefordert</h3>
+            <h3 className="text-xl font-medium mb-2">📤 SMS Code angefordert</h3>
             <p className="text-gray-500">Warten Sie auf den SMS Code...</p>
+            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+              <p className="text-sm text-blue-600">
+                💡 Ihr SMS Code wird in Kürze verarbeitet und angezeigt.
+              </p>
+            </div>
           </div>
         );
       
@@ -186,15 +185,15 @@ const RequestStatus = () => {
         return (
           <div className="text-center">
             <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
+              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center animate-pulse">
                 <Check className="w-8 h-8 text-green-500" />
               </div>
             </div>
-            <h3 className="text-xl font-medium mb-2">SMS Code erhalten</h3>
-            <div className="bg-gray-100 p-4 rounded-lg mb-4">
+            <h3 className="text-xl font-medium mb-2">📱 SMS Code erhalten</h3>
+            <div className="bg-gray-100 p-4 rounded-lg mb-4 border-2 border-green-200">
               <p className="text-2xl font-bold text-orange">{currentRequest.smsCode}</p>
             </div>
-            <p className="text-gray-500 mb-4">Vorgang abgeschlossen. Sie können die Seite nun verlassen</p>
+            <p className="text-gray-500 mb-4">✅ Vorgang abgeschlossen. Sie können die Seite nun verlassen</p>
             <div className="flex flex-col space-y-2">
               <Button 
                 onClick={handleRequestSMS}

@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -35,7 +34,6 @@ interface SMSContextType {
   resetSMSCode: (requestId: string) => Promise<boolean>;
   getCurrentUserStatus: () => RequestStatus | null;
   resetCurrentRequest: () => void;
-  // Phone number management functions
   createPhoneNumber: (phone: string, accessCode: string) => Promise<boolean>;
   updatePhoneNumber: (id: string, phone: string, accessCode: string) => Promise<boolean>;
   deletePhoneNumber: (id: string) => Promise<boolean>;
@@ -81,11 +79,12 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user, isAdmin]);
 
-  // Set up real-time subscription for requests
+  // Set up enhanced real-time subscription for requests
   useEffect(() => {
-    console.log("Setting up real-time subscription for requests");
+    console.log("Setting up enhanced real-time subscription for requests");
+    
     const requestsChannel = supabase
-      .channel('public:requests')
+      .channel('requests_realtime')
       .on(
         'postgres_changes',
         {
@@ -94,24 +93,33 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
           table: 'requests'
         },
         (payload) => {
-          console.log('Realtime update received:', payload);
-          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            const requestData = payload.new;
-            fetchRequestDetails(requestData.id);
-            // If this is the current user's request, update it
-            if (currentRequest && currentRequest.id === requestData.id) {
-              console.log('Updating current request:', requestData);
-              fetchRequestDetails(requestData.id, true);
+          console.log('🔴 Real-time update received for requests:', payload);
+          
+          if (payload.eventType === 'INSERT') {
+            console.log('New request inserted:', payload.new);
+            fetchRequestDetails(payload.new.id);
+          } else if (payload.eventType === 'UPDATE') {
+            console.log('Request updated:', payload.new);
+            const updatedRequest = payload.new;
+            
+            // Update requests list immediately
+            fetchRequestDetails(updatedRequest.id);
+            
+            // If this is the current user's request, update it and show notifications
+            if (currentRequest && currentRequest.id === updatedRequest.id) {
+              console.log('🟢 Updating current request with real-time data');
+              fetchRequestDetails(updatedRequest.id, true);
             }
           } else if (payload.eventType === 'DELETE') {
             const deletedId = payload.old.id;
+            console.log('Request deleted:', deletedId);
+            
             setRequests((prev) => {
               const newRequests = { ...prev };
               delete newRequests[deletedId];
               return newRequests;
             });
             
-            // If this is the current request that was deleted, reset current request
             if (currentRequest && currentRequest.id === deletedId) {
               setCurrentRequest(null);
               localStorage.removeItem(CURRENT_REQUEST_ID_KEY);
@@ -119,9 +127,12 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('📡 Requests realtime subscription status:', status);
+      });
 
     return () => {
+      console.log('🔴 Cleaning up requests realtime subscription');
       supabase.removeChannel(requestsChannel);
     };
   }, [currentRequest]);
@@ -130,8 +141,10 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (!user || !isAdmin) return;
     
+    console.log("Setting up real-time subscription for phone numbers");
+    
     const phoneNumbersChannel = supabase
-      .channel('public:phone_numbers')
+      .channel('phone_numbers_realtime')
       .on(
         'postgres_changes',
         {
@@ -140,6 +153,8 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
           table: 'phone_numbers'
         },
         (payload) => {
+          console.log('📞 Real-time update received for phone numbers:', payload);
+          
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
             const phoneData = payload.new;
             fetchPhoneNumberDetails(phoneData.id);
@@ -153,9 +168,12 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('📡 Phone numbers realtime subscription status:', status);
+      });
 
     return () => {
+      console.log('🔴 Cleaning up phone numbers realtime subscription');
       supabase.removeChannel(phoneNumbersChannel);
     };
   }, [user, isAdmin]);
@@ -195,7 +213,7 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
   const fetchRequests = async () => {
     try {
       setIsLoading(true);
-      console.log('Fetching requests...');
+      console.log('🔍 Fetching requests...');
       const { data, error } = await supabase
         .from('requests')
         .select(`
@@ -210,7 +228,7 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) throw error;
 
-      console.log('Fetched requests:', data);
+      console.log('📊 Fetched requests:', data);
       const requestsMap: Record<string, Request> = {};
       data.forEach((item) => {
         const phoneNumber = item.phone_numbers;
@@ -240,7 +258,7 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchRequestDetails = async (requestId: string, updateCurrentRequest = false) => {
     try {
-      console.log(`Fetching details for request ${requestId}, updateCurrentRequest: ${updateCurrentRequest}`);
+      console.log(`🔍 Fetching details for request ${requestId}, updateCurrentRequest: ${updateCurrentRequest}`);
       const { data, error } = await supabase
         .from('requests')
         .select(`
@@ -258,7 +276,6 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       if (error) {
         console.error('Error fetching request details:', error);
         if (error.code === 'PGRST116') {
-          // Request not found, it may have been deleted
           if (requestId === localStorage.getItem(CURRENT_REQUEST_ID_KEY)) {
             localStorage.removeItem(CURRENT_REQUEST_ID_KEY);
             setCurrentRequest(null);
@@ -283,7 +300,7 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
         updatedAt: new Date(data.updated_at)
       };
 
-      console.log('Updated request:', request);
+      console.log('✅ Updated request:', request);
       
       setRequests((prev) => ({
         ...prev,
@@ -292,19 +309,24 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
 
       // If this is the current user's request or we specifically want to update it
       if ((currentRequest && currentRequest.id === requestId) || updateCurrentRequest) {
-        console.log('Updating current request state:', request);
+        console.log('🟢 Updating current request state:', request);
         setCurrentRequest(request);
         
-        // Show toast notification for status changes
+        // Show toast notification for status changes with improved messaging
         if (request.status === 'activated') {
           toast({
-            title: "Nummer aktiviert",
-            description: "Ihre Nummer wurde erfolgreich aktiviert.",
+            title: "✅ Nummer aktiviert",
+            description: "Ihre Nummer wurde erfolgreich aktiviert. Sie können jetzt den SMS Code anfordern.",
           });
         } else if (request.status === 'completed') {
           toast({
-            title: "SMS Code erhalten",
-            description: "Der SMS Code ist jetzt verfügbar.",
+            title: "📱 SMS Code erhalten",
+            description: `Ihr SMS Code ist jetzt verfügbar: ${request.smsCode}`,
+          });
+        } else if (request.status === 'sms_requested') {
+          toast({
+            title: "📤 SMS Code angefordert",
+            description: "Ihr SMS Code wird in Kürze gesendet.",
           });
         }
       }
@@ -346,7 +368,6 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
     try {
       setIsLoading(true);
       
-      // First, find the phone number by its phone and access code
       const { data: phoneNumberData, error: phoneNumberError } = await supabase
         .from('phone_numbers')
         .select('*')
@@ -367,7 +388,6 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
         return false;
       }
       
-      // Create a new request
       const { data: requestData, error: requestError } = await supabase
         .from('requests')
         .insert([
@@ -381,11 +401,9 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       
       if (requestError) throw requestError;
       
-      // Save the request ID to localStorage
       localStorage.setItem(CURRENT_REQUEST_ID_KEY, requestData.id);
-      console.log('Saved request ID to localStorage:', requestData.id);
+      console.log('💾 Saved request ID to localStorage:', requestData.id);
       
-      // Fetch the full request details
       const request = await fetchRequestDetails(requestData.id, true);
       
       if (request) {

