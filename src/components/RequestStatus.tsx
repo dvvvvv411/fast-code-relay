@@ -1,8 +1,8 @@
+
 import { useState } from 'react';
 import { useSMS } from '../context/SMSContext';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, MessageSquare, Clock, Loader } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const RequestStatus = () => {
   const { currentRequest, markSMSSent, isLoading } = useSMS();
@@ -83,20 +83,6 @@ const RequestStatus = () => {
           {statusInfo.description}
         </p>
       </div>
-
-      {currentRequest.status === 'activated' && !hasSentSMS && (
-        <Alert className="mb-6 text-left">
-          <MessageSquare className="h-4 w-4" />
-          <AlertDescription>
-            <strong>Nächster Schritt:</strong> Senden Sie jetzt eine SMS an die angegebene Nummer: 
-            <span className="font-mono bg-gray-100 px-2 py-1 rounded ml-1">
-              {currentRequest.phone}
-            </span>
-            <br />
-            Klicken Sie danach auf "SMS versendet", um Ihren Code zu erhalten.
-          </AlertDescription>
-        </Alert>
-      )}
 
       {statusInfo.showButton && (
         <div className="flex justify-center">
