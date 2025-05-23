@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -608,16 +609,37 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
   const markSMSSent = async (requestId: string): Promise<boolean> => {
     try {
       setIsLoading(true);
-      console.log(`📤 Marking SMS as sent for request: ${requestId}`);
+      console.log(`📤 SMSContext - markSMSSent called for request: ${requestId}`);
+      console.log(`📤 SMSContext - Current requests state:`, requests);
+      console.log(`📤 SMSContext - Current request for ${requestId}:`, requests[requestId]);
       
-      const { error } = await supabase
+      // Check if request exists in our local state
+      const localRequest = requests[requestId];
+      if (localRequest) {
+        console.log(`📤 SMSContext - Local request status before update: ${localRequest.status}`);
+      }
+      
+      console.log(`📤 SMSContext - About to update database status to 'sms_requested' for request: ${requestId}`);
+      
+      const { data, error } = await supabase
         .from('requests')
         .update({ status: 'sms_requested' })
-        .eq('id', requestId);
+        .eq('id', requestId)
+        .select();
       
-      if (error) throw error;
+      console.log(`📤 SMSContext - Database update response:`, { data, error });
       
-      console.log(`✅ Successfully marked SMS as sent for request: ${requestId}`);
+      if (error) {
+        console.error(`❌ SMSContext - Database update failed:`, error);
+        throw error;
+      }
+      
+      console.log(`✅ SMSContext - Database update successful. Updated data:`, data);
+      console.log(`✅ SMSContext - Successfully marked SMS as sent for request: ${requestId}`);
+      
+      // Manually trigger a refetch of the request to ensure we have the latest data
+      console.log(`🔄 SMSContext - Manually fetching updated request details...`);
+      await fetchRequestDetails(requestId, true);
       
       toast({
         title: "SMS Code angefordert",
@@ -626,7 +648,7 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       
       return true;
     } catch (error) {
-      console.error('Error marking SMS as sent:', error);
+      console.error('❌ SMSContext - Error marking SMS as sent:', error);
       toast({
         title: "Fehler",
         description: "Die SMS konnte nicht als versendet markiert werden.",

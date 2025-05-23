@@ -13,8 +13,8 @@ const RequestStatus = () => {
   // Log the current request status whenever it changes for debugging
   useEffect(() => {
     if (currentRequest) {
-      console.log('Current request status:', currentRequest.status);
-      console.log('Current request details:', currentRequest);
+      console.log('🔍 RequestStatus - Current request status:', currentRequest.status);
+      console.log('🔍 RequestStatus - Current request details:', currentRequest);
     }
   }, [currentRequest]);
 
@@ -26,34 +26,53 @@ const RequestStatus = () => {
     );
   }
 
-  const handleSendSMS = () => {
-    console.log('📱 Marking SMS as sent for request:', currentRequest.id);
-    markSMSSent(currentRequest.id);
-    setHasSentSMS(true);
-    
-    // Zeitstempel erstellen
-    const now = new Date();
-    const timestamp = now.toLocaleString('de-DE', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
-    setSmsClickTimestamp(timestamp);
-    console.log('📱 SMS marked as sent at:', timestamp);
+  const handleSendSMS = async () => {
+    try {
+      console.log('🚀 RequestStatus - handleSendSMS called for request:', currentRequest.id);
+      console.log('🚀 RequestStatus - Current status before calling markSMSSent:', currentRequest.status);
+      
+      setHasSentSMS(true);
+      
+      // Zeitstempel erstellen
+      const now = new Date();
+      const timestamp = now.toLocaleString('de-DE', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+      setSmsClickTimestamp(timestamp);
+      
+      console.log('📱 RequestStatus - About to call markSMSSent with requestId:', currentRequest.id);
+      const result = await markSMSSent(currentRequest.id);
+      console.log('📱 RequestStatus - markSMSSent returned:', result);
+      
+      if (result) {
+        console.log('✅ RequestStatus - markSMSSent was successful');
+      } else {
+        console.error('❌ RequestStatus - markSMSSent failed');
+      }
+      
+    } catch (error) {
+      console.error('💥 RequestStatus - Error in handleSendSMS:', error);
+    }
   };
 
   const handleRequestNewSMS = () => {
+    console.log('🔄 RequestStatus - handleRequestNewSMS called for request:', currentRequest.id);
     requestSMS(currentRequest.id);
   };
 
   const handleCompleteProcess = () => {
+    console.log('✅ RequestStatus - handleCompleteProcess called for request:', currentRequest.id);
     completeRequest(currentRequest.id);
   };
 
   const getStatusDisplay = () => {
+    console.log('🎨 RequestStatus - getStatusDisplay called with status:', currentRequest.status);
+    
     switch (currentRequest.status) {
       case 'pending':
         return {
@@ -129,6 +148,11 @@ const RequestStatus = () => {
         <p className="text-gray-600 mb-6">
           {statusInfo.description}
         </p>
+        
+        {/* Debug Information - Remove this after debugging */}
+        <div className="bg-gray-100 p-2 text-xs text-gray-600 rounded mt-2">
+          Debug: Status = {currentRequest.status} | Request ID = {currentRequest.id}
+        </div>
       </div>
 
       {statusInfo.showButton && (
