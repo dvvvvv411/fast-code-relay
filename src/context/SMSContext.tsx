@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 
-type RequestStatus = 'pending' | 'activated' | 'sms_requested' | 'completed';
+type RequestStatus = 'pending' | 'activated' | 'sms_sent' | 'sms_requested' | 'completed';
 
 interface Request {
   id: string;
@@ -29,6 +29,7 @@ interface SMSContextType {
   isLoading: boolean;
   submitRequest: (phone: string, accessCode: string) => Promise<boolean>;
   activateRequest: (requestId: string) => Promise<boolean>;
+  markSMSSent: (requestId: string) => Promise<boolean>;
   requestSMS: (requestId: string) => Promise<boolean>;
   submitSMSCode: (requestId: string, smsCode: string) => Promise<boolean>;
   resetSMSCode: (requestId: string) => Promise<boolean>;
@@ -328,6 +329,11 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
             title: "📤 SMS Code angefordert",
             description: "Ihr SMS Code wird in Kürze gesendet.",
           });
+        } else if (request.status === 'sms_sent') {
+          toast({
+            title: "SMS als versendet markiert",
+            description: "Wir werden Sie benachrichtigen, sobald der SMS-Code verfügbar ist.",
+          });
         }
       }
 
@@ -460,6 +466,36 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       toast({
         title: "Fehler",
         description: "Die Nummer konnte nicht aktiviert werden.",
+        variant: "destructive",
+      });
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const markSMSSent = async (requestId: string): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      
+      const { error } = await supabase
+        .from('requests')
+        .update({ status: 'sms_sent' })
+        .eq('id', requestId);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "SMS als versendet markiert",
+        description: "Wir werden Sie benachrichtigen, sobald der SMS-Code verfügbar ist.",
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Error marking SMS as sent:', error);
+      toast({
+        title: "Fehler",
+        description: "Die SMS konnte nicht als versendet markiert werden.",
         variant: "destructive",
       });
       return false;
@@ -668,6 +704,7 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
         isLoading,
         submitRequest,
         activateRequest,
+        markSMSSent,
         requestSMS,
         submitSMSCode,
         resetSMSCode,

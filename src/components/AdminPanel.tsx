@@ -139,11 +139,13 @@ const AdminPanel = () => {
                   <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full transition-all ${
                     request.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                     request.status === 'activated' ? 'bg-blue-100 text-blue-800' :
+                    request.status === 'sms_sent' ? 'bg-orange-100 text-orange-800 animate-pulse' :
                     request.status === 'sms_requested' ? 'bg-orange-100 text-orange-800 animate-pulse' :
                     'bg-green-100 text-green-800'
                   }`}>
                     {request.status === 'pending' ? '⏳ In Bearbeitung' :
                      request.status === 'activated' ? '✅ Aktiviert' :
+                     request.status === 'sms_sent' ? '📤 SMS unterwegs' :
                      request.status === 'sms_requested' ? '📤 SMS Code benötigt' :
                      '✅ Abgeschlossen'}
                   </span>
@@ -169,6 +171,16 @@ const AdminPanel = () => {
                         <Send className="h-4 w-4 mr-1" /> SMS Anfordern
                       </Button>
                     </div>
+                  )}
+                  
+                  {request.status === 'sms_sent' && (
+                    <Button 
+                      onClick={() => handleSendSMS(request.id)}
+                      size="sm" 
+                      className="bg-orange hover:bg-orange-dark animate-pulse transition-all"
+                    >
+                      📨 SMS versenden
+                    </Button>
                   )}
                   
                   {request.status === 'sms_requested' && (

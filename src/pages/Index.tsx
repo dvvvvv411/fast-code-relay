@@ -113,8 +113,8 @@ const Index = () => {
                 <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <span className="text-orange-500 font-bold text-xl">2</span>
                 </div>
-                <h3 className="font-medium mb-2">Fordern Sie den SMS-Code an</h3>
-                <p className="text-gray-600 text-sm">Nach erfolgreicher Aktivierung können Sie mit einem Klick Ihren SMS-Code anfordern.</p>
+                <h3 className="font-medium mb-2">SMS versenden & bestätigen</h3>
+                <p className="text-gray-600 text-sm">Nach der Aktivierung senden Sie eine SMS an die Nummer und klicken auf "SMS versendet".</p>
               </div>
               <div className="bg-white p-6 rounded-lg shadow-md text-center">
                 <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">

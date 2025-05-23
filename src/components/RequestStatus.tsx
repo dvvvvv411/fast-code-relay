@@ -2,12 +2,12 @@
 import { useEffect, useState } from 'react';
 import { useSMS } from '../context/SMSContext';
 import { Button } from '@/components/ui/button';
-import { Check, Clock, Loader, Activity, Zap, Signal, Send } from 'lucide-react';
+import { Check, Clock, Loader, Activity, Zap, Signal, Send, MessageSquare } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const RequestStatus = () => {
-  const { currentRequest, requestSMS, resetSMSCode, isLoading } = useSMS();
+  const { currentRequest, markSMSSent, resetSMSCode, isLoading } = useSMS();
   const [progressValue, setProgressValue] = useState(0);
   const [prevStatus, setPrevStatus] = useState<string | null>(null);
   const [activationStep, setActivationStep] = useState(0);
@@ -70,10 +70,10 @@ const RequestStatus = () => {
     return null;
   }
 
-  const handleRequestSMS = () => {
+  const handleMarkSMSSent = () => {
     if (currentRequest) {
-      console.log('🚀 Requesting SMS for', currentRequest.id);
-      requestSMS(currentRequest.id);
+      console.log('📤 Marking SMS as sent for', currentRequest.id);
+      markSMSSent(currentRequest.id);
     }
   };
 
@@ -152,14 +152,32 @@ const RequestStatus = () => {
               </div>
             </div>
             <h3 className="text-xl font-medium mb-2">✅ Nummer aktiviert</h3>
-            <p className="text-gray-500 mb-4">Sie können den SMS Code nun anfordern</p>
+            <p className="text-gray-500 mb-4">Bitte senden Sie eine SMS an diese Nummer und drücken Sie anschließend auf "SMS versendet"</p>
             <Button 
-              onClick={handleRequestSMS}
+              onClick={handleMarkSMSSent}
               className="bg-orange hover:bg-orange-dark flex items-center gap-2 transition-all"
               disabled={isLoading}
             >
-              <Send className="h-4 w-4" /> SMS anfordern
+              <MessageSquare className="h-4 w-4" /> SMS versendet
             </Button>
+          </div>
+        );
+      
+      case 'sms_sent':
+        return (
+          <div className="text-center">
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-orange animate-pulse"></div>
+              </div>
+            </div>
+            <h3 className="text-xl font-medium mb-2">📤 SMS unterwegs</h3>
+            <p className="text-gray-500">Warten Sie auf den SMS Code, er wird in Kürze vom Admin versendet...</p>
+            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+              <p className="text-sm text-blue-600">
+                💡 Ihr SMS Code wird vom Administrator bearbeitet und in Kürze verfügbar sein.
+              </p>
+            </div>
           </div>
         );
       
@@ -196,11 +214,11 @@ const RequestStatus = () => {
             <p className="text-gray-500 mb-4">✅ Vorgang abgeschlossen. Sie können die Seite nun verlassen</p>
             <div className="flex flex-col space-y-2">
               <Button 
-                onClick={handleRequestSMS}
+                onClick={handleMarkSMSSent}
                 className="bg-orange hover:bg-orange-dark"
                 disabled={isLoading}
               >
-                Neue SMS anfordern
+                Neue SMS senden
               </Button>
               <Button 
                 onClick={handleResetSMSCode}
