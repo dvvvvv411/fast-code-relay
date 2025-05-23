@@ -12,17 +12,11 @@ import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 
 const Index = () => {
-  const { currentRequest, resetCurrentRequest, showSimulation } = useSMS();
+  const { currentRequest, resetCurrentRequest } = useSMS();
   
   useEffect(() => {
     console.log('Index page - Current request:', currentRequest);
-    console.log('Index page - Show simulation:', showSimulation);
-  }, [currentRequest, showSimulation]);
-  
-  // Show UserForm if no request OR if simulation is running
-  // Show RequestStatus if there's a request AND simulation is not running
-  const shouldShowUserForm = !currentRequest || (currentRequest && showSimulation && currentRequest.status === 'pending');
-  const shouldShowRequestStatus = currentRequest && !showSimulation;
+  }, [currentRequest]);
   
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -62,11 +56,12 @@ const Index = () => {
                   </div>
                 </div>
                 
-                {/* Show UserForm if no request OR if simulation is running */}
-                {shouldShowUserForm && <UserForm />}
-                
-                {/* Show RequestStatus if there's a request AND simulation is not running */}
-                {shouldShowRequestStatus && <RequestStatus />}
+                {/* Show either the UserForm or RequestStatus based on request state */}
+                {!currentRequest ? (
+                  <UserForm />
+                ) : (
+                  <RequestStatus />
+                )}
               </div>
             </div>
             
@@ -131,6 +126,7 @@ const Index = () => {
             </div>
           </div>
           
+          {/* FAQ Section */}
           <div className="mb-16">
             <h2 className="text-2xl font-bold text-center mb-8">Häufig gestellte Fragen</h2>
             <div className="grid md:grid-cols-2 gap-6">

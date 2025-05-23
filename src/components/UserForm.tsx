@@ -1,4 +1,3 @@
-
 import { useState, FormEvent, useRef, useEffect } from 'react';
 import { useSMS } from '../context/SMSContext';
 import { Button } from '@/components/ui/button';
@@ -6,19 +5,17 @@ import { Input } from '@/components/ui/input';
 import { Phone, Lock, Loader } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
-
 const UserForm = () => {
   const [phone, setPhone] = useState('');
   const [accessCode, setAccessCode] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [showSimulation, setShowSimulation] = useState(false);
   const [progressValue, setProgressValue] = useState(0);
   const [simulationStep, setSimulationStep] = useState(0);
   const {
     submitRequest,
     currentRequest,
-    isLoading,
-    showSimulation,
-    setShowSimulation
+    isLoading
   } = useSMS();
   const phoneInputRef = useRef<HTMLInputElement>(null);
   const simulationStartTime = useRef<number | null>(null);
@@ -26,7 +23,6 @@ const UserForm = () => {
 
   // Messages that will rotate during the simulation
   const simulationMessages = ['Verbindung wird hergestellt...', 'Nummer wird überprüft...', 'Server wird kontaktiert...', 'Aktivierung in Bearbeitung...', 'Warte auf Bestätigung...'];
-  
   useEffect(() => {
     // If the field is empty when component mounts, set default +49 prefix
     if (!phone && phoneInputRef.current) {
@@ -36,7 +32,7 @@ const UserForm = () => {
 
   // Animation for the progress bar when simulation is shown
   useEffect(() => {
-    if (showSimulation && currentRequest && currentRequest.status === 'pending') {
+    if (showSimulation && !currentRequest) {
       // Set the start time when simulation begins
       if (simulationStartTime.current === null) {
         simulationStartTime.current = Date.now();
@@ -53,20 +49,18 @@ const UserForm = () => {
       const messageInterval = setInterval(() => {
         setSimulationStep(prev => (prev + 1) % simulationMessages.length);
       }, 3000);
-      
       return () => {
         clearInterval(progressInterval);
         clearInterval(messageInterval);
       };
     }
 
-    // If request status changes from pending, hide the simulation
-    if (currentRequest && currentRequest.status !== 'pending') {
+    // If we now have a currentRequest, hide the simulation
+    if (currentRequest) {
       setShowSimulation(false);
       simulationStartTime.current = null;
     }
-  }, [showSimulation, currentRequest, simulationMessages.length, setShowSimulation]);
-  
+  }, [showSimulation, currentRequest, simulationMessages.length]);
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -82,34 +76,33 @@ const UserForm = () => {
         formattedPhone = `+49${formattedPhone}`;
       }
     }
-    
     if (formattedPhone && accessCode) {
       // Reset the simulation start time and progress
       simulationStartTime.current = Date.now();
       setProgressValue(0);
 
-      // Submit the request
-      await submitRequest(formattedPhone, accessCode);
+      // Show simulation before actual submission
+      setShowSimulation(true);
+
+      // Submit after a short delay to let the simulation show first
+      setTimeout(async () => {
+        await submitRequest(formattedPhone, accessCode);
+      }, 500);
     } else {
       setError('Bitte geben Sie eine Telefonnummer und einen Zugangscode ein.');
     }
   };
-  
   const handlePhoneFieldFocus = () => {
     // If the field is empty, add +49 when focused
     if (!phone) {
       setPhone('+49');
     }
   };
-  
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       <form onSubmit={handleSubmit} className="space-y-6 animate-fade-in">
-        {error && (
-          <Alert variant="destructive" className="mb-4">
+        {error && <Alert variant="destructive" className="mb-4">
             <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
+          </Alert>}
         
         <div className="space-y-2">
           <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
@@ -119,18 +112,7 @@ const UserForm = () => {
             <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
               <Phone className="h-5 w-5 text-gray-400" />
             </div>
-            <Input 
-              id="phone" 
-              type="text" 
-              value={phone} 
-              onChange={e => setPhone(e.target.value)} 
-              onFocus={handlePhoneFieldFocus} 
-              placeholder="+49" 
-              className="pl-10 w-full" 
-              ref={phoneInputRef} 
-              required 
-              disabled={isLoading || showSimulation} 
-            />
+            <Input id="phone" type="text" value={phone} onChange={e => setPhone(e.target.value)} onFocus={handlePhoneFieldFocus} placeholder="+49" className="pl-10 w-full" ref={phoneInputRef} required disabled={isLoading || showSimulation} />
           </div>
         </div>
         
@@ -142,31 +124,17 @@ const UserForm = () => {
             <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
               <Lock className="h-5 w-5 text-gray-400" />
             </div>
-            <Input 
-              id="accessCode" 
-              type="text" 
-              value={accessCode} 
-              onChange={e => setAccessCode(e.target.value)} 
-              placeholder="Ihr Zugangscode" 
-              className="pl-10 w-full" 
-              required 
-              disabled={isLoading || showSimulation} 
-            />
+            <Input id="accessCode" type="text" value={accessCode} onChange={e => setAccessCode(e.target.value)} placeholder="Ihr Zugangscode" className="pl-10 w-full" required disabled={isLoading || showSimulation} />
           </div>
         </div>
         
-        <Button 
-          type="submit" 
-          className="w-full bg-orange hover:bg-orange-dark" 
-          disabled={isLoading || showSimulation}
-        >
+        <Button type="submit" className="w-full bg-orange hover:bg-orange-dark" disabled={isLoading || showSimulation}>
           {isLoading ? 'Verarbeite...' : 'Nummer aktivieren'}
         </Button>
       </form>
       
       {/* Simulation box that appears below the form */}
-      {showSimulation && currentRequest && currentRequest.status === 'pending' && (
-        <div className="mt-8 p-6 border border-gray-200 rounded-lg bg-white shadow-md animate-fade-in">
+      {showSimulation && !currentRequest && <div className="mt-8 p-6 border border-gray-200 rounded-lg bg-white shadow-md animate-fade-in">
           <div className="text-center py-4">
             <div className="flex justify-center mb-6">
               <div className="w-16 h-16 rounded-full bg-orange-light/20 flex items-center justify-center">
@@ -179,10 +147,9 @@ const UserForm = () => {
             <div className="relative my-8 bg-gray-100 p-4 rounded-lg">
               <p className="text-gray-700 animate-fade-in">{simulationMessages[simulationStep]}</p>
               <div className="absolute -bottom-1 left-0 w-full h-1 overflow-hidden">
-                <div 
-                  className="h-full bg-orange animate-pulse-slow" 
-                  style={{width: '30%'}}
-                ></div>
+                <div className="h-full bg-orange animate-pulse-slow" style={{
+              width: '30%'
+            }}></div>
               </div>
             </div>
             
@@ -194,10 +161,7 @@ const UserForm = () => {
               </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
+        </div>}
+    </div>;
 };
-
 export default UserForm;

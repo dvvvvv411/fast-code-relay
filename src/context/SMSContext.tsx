@@ -27,8 +27,6 @@ interface SMSContextType {
   phoneNumbers: Record<string, PhoneNumber>;
   currentRequest: Request | null;
   isLoading: boolean;
-  showSimulation: boolean;
-  setShowSimulation: (show: boolean) => void;
   submitRequest: (phone: string, accessCode: string) => Promise<boolean>;
   activateRequest: (requestId: string) => Promise<boolean>;
   markSMSSent: (requestId: string) => Promise<boolean>;
@@ -53,7 +51,6 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
   const [phoneNumbers, setPhoneNumbers] = useState<Record<string, PhoneNumber>>({});
   const [currentRequest, setCurrentRequest] = useState<Request | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [showSimulation, setShowSimulation] = useState(false);
   const { user, isAdmin } = useAuth();
 
   // On initial mount, check if we have a stored request ID
@@ -117,11 +114,6 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
             if (currentRequest && currentRequest.id === updatedRequest.id) {
               console.log('🟢 Updating current request with real-time data');
               fetchRequestDetails(updatedRequest.id, true);
-              
-              // Hide simulation when request status changes from pending
-              if (updatedRequest.status !== 'pending') {
-                setShowSimulation(false);
-              }
             }
           } else if (payload.eventType === 'DELETE') {
             const deletedId = payload.old.id;
@@ -407,9 +399,6 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
         return false;
       }
       
-      // Show simulation before submitting
-      setShowSimulation(true);
-      
       const { data: requestData, error: requestError } = await supabase
         .from('requests')
         .insert([
@@ -440,7 +429,6 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       return true;
     } catch (error) {
       console.error('Error submitting request:', error);
-      setShowSimulation(false);
       toast({
         title: "Fehler",
         description: "Die Anfrage konnte nicht eingereicht werden.",
@@ -455,7 +443,6 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
   const resetCurrentRequest = () => {
     localStorage.removeItem(CURRENT_REQUEST_ID_KEY);
     setCurrentRequest(null);
-    setShowSimulation(false);
     toast({
       title: "Anfrage zurückgesetzt",
       description: "Sie können jetzt eine neue Nummer aktivieren.",
@@ -768,8 +755,6 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
         phoneNumbers,
         currentRequest,
         isLoading,
-        showSimulation,
-        setShowSimulation,
         submitRequest,
         activateRequest,
         markSMSSent,
