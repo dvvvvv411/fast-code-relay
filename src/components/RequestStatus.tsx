@@ -1,12 +1,14 @@
 
+
 import { useState } from 'react';
 import { useSMS } from '../context/SMSContext';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, MessageSquare, Clock, Loader } from 'lucide-react';
+import { CheckCircle, MessageSquare, Clock, Loader, RefreshCw, AlertTriangle } from 'lucide-react';
 
 const RequestStatus = () => {
-  const { currentRequest, markSMSSent, isLoading } = useSMS();
+  const { currentRequest, markSMSSent, requestSMS, isLoading } = useSMS();
   const [hasSentSMS, setHasSentSMS] = useState(false);
+  const [smsClickTimestamp, setSmsClickTimestamp] = useState<string>('');
 
   if (!currentRequest) {
     return (
@@ -19,6 +21,27 @@ const RequestStatus = () => {
   const handleSendSMS = () => {
     markSMSSent(currentRequest.id);
     setHasSentSMS(true);
+    
+    // Zeitstempel erstellen
+    const now = new Date();
+    const timestamp = now.toLocaleString('de-DE', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+    setSmsClickTimestamp(timestamp);
+  };
+
+  const handleRequestNewSMS = () => {
+    requestSMS(currentRequest.id);
+  };
+
+  const handleReportWrongCode = () => {
+    // This could open a modal or redirect to support
+    console.log('User reported wrong code for request:', currentRequest.id);
   };
 
   const getStatusDisplay = () => {
@@ -56,7 +79,8 @@ const RequestStatus = () => {
           title: 'SMS Code empfangen!',
           description: 'Ihr SMS Code wurde erfolgreich empfangen.',
           showButton: false,
-          smsCode: currentRequest.smsCode
+          smsCode: currentRequest.smsCode,
+          showActionButtons: true
         };
       
       default:
@@ -116,8 +140,39 @@ const RequestStatus = () => {
           </p>
         </div>
       )}
+
+      {hasSentSMS && smsClickTimestamp && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+          <p className="text-blue-800 text-sm">
+            <strong>SMS versendet:</strong> {smsClickTimestamp}
+          </p>
+        </div>
+      )}
+
+      {statusInfo.showActionButtons && (
+        <div className="flex justify-center gap-4 mt-6">
+          <Button 
+            onClick={handleRequestNewSMS}
+            variant="outline"
+            className="flex items-center gap-2"
+            disabled={isLoading}
+          >
+            <RefreshCw className="h-4 w-4" />
+            Weiteren Code
+          </Button>
+          <Button 
+            onClick={handleReportWrongCode}
+            variant="outline"
+            className="flex items-center gap-2 text-red-600 border-red-300 hover:bg-red-50"
+          >
+            <AlertTriangle className="h-4 w-4" />
+            Falscher Code
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
 
 export default RequestStatus;
+
