@@ -173,17 +173,7 @@ const AdminPanel = () => {
                     </div>
                   )}
                   
-                  {request.status === 'sms_sent' && (
-                    <Button 
-                      onClick={() => handleSendSMS(request.id)}
-                      size="sm" 
-                      className="bg-orange hover:bg-orange-dark animate-pulse transition-all"
-                    >
-                      📨 SMS versenden
-                    </Button>
-                  )}
-                  
-                  {request.status === 'sms_requested' && (
+                  {(request.status === 'sms_sent' || request.status === 'sms_requested') && (
                     <Button 
                       onClick={() => handleSendSMS(request.id)}
                       size="sm" 
@@ -194,8 +184,18 @@ const AdminPanel = () => {
                   )}
                   
                   {request.status === 'completed' && (
-                    <div className="text-sm text-gray-500">
-                      SMS Code: <span className="font-medium bg-green-100 px-2 py-1 rounded">{request.smsCode}</span>
+                    <div className="text-sm text-gray-500 flex flex-col gap-2">
+                      <div>
+                        SMS Code: <span className="font-medium bg-green-100 px-2 py-1 rounded">{request.smsCode}</span>
+                      </div>
+                      <Button 
+                        onClick={() => handleRequestSMS(request.id)}
+                        size="sm"
+                        variant="outline"
+                        className="text-blue-500 border-blue-500 hover:bg-blue-50"
+                      >
+                        Neue SMS senden
+                      </Button>
                     </div>
                   )}
                 </td>

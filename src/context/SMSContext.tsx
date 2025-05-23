@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -38,6 +39,7 @@ interface SMSContextType {
   createPhoneNumber: (phone: string, accessCode: string) => Promise<boolean>;
   updatePhoneNumber: (id: string, phone: string, accessCode: string) => Promise<boolean>;
   deletePhoneNumber: (id: string) => Promise<boolean>;
+  confirmSMSSuccess: (requestId: string) => Promise<boolean>;
 }
 
 const SMSContext = createContext<SMSContextType | undefined>(undefined);
@@ -514,13 +516,16 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
   const requestSMS = async (requestId: string): Promise<boolean> => {
     try {
       setIsLoading(true);
+      console.log(`📤 Requesting new SMS for request: ${requestId}`);
       
       const { error } = await supabase
         .from('requests')
-        .update({ status: 'sms_requested' })
+        .update({ status: 'sms_requested', sms_code: null })
         .eq('id', requestId);
       
       if (error) throw error;
+      
+      console.log(`✅ Successfully requested new SMS for request: ${requestId}`);
       
       toast({
         title: "SMS angefordert",
@@ -541,13 +546,46 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const confirmSMSSuccess = async (requestId: string): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      console.log(`✅ User confirming SMS success for request: ${requestId}`);
+      
+      const { error } = await supabase
+        .from('requests')
+        .update({ status: 'completed' })
+        .eq('id', requestId);
+      
+      if (error) throw error;
+      
+      console.log(`✅ Successfully confirmed SMS success for request: ${requestId}`);
+      
+      toast({
+        title: "SMS Empfang bestätigt",
+        description: "Vielen Dank für Ihre Bestätigung.",
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Error confirming SMS success:', error);
+      toast({
+        title: "Fehler",
+        description: "Der SMS-Empfang konnte nicht bestätigt werden.",
+        variant: "destructive",
+      });
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const submitSMSCode = async (requestId: string, smsCode: string): Promise<boolean> => {
     try {
       setIsLoading(true);
       
       const { error } = await supabase
         .from('requests')
-        .update({ status: 'completed', sms_code: smsCode })
+        .update({ sms_code: smsCode })
         .eq('id', requestId);
       
       if (error) throw error;
@@ -574,17 +612,20 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
   const resetSMSCode = async (requestId: string): Promise<boolean> => {
     try {
       setIsLoading(true);
+      console.log(`🔄 Resetting SMS code for request: ${requestId}`);
       
       const { error } = await supabase
         .from('requests')
-        .update({ status: 'activated', sms_code: null })
+        .update({ status: 'sms_requested', sms_code: null })
         .eq('id', requestId);
       
       if (error) throw error;
       
+      console.log(`✅ Successfully reset SMS code for request: ${requestId}`);
+      
       toast({
         title: "SMS Code zurückgesetzt",
-        description: "Der SMS Code wurde zurückgesetzt.",
+        description: "Ein neuer SMS Code wurde angefordert.",
       });
       
       return true;
@@ -720,6 +761,7 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
         updatePhoneNumber,
         deletePhoneNumber,
         resetCurrentRequest,
+        confirmSMSSuccess,
       }}
     >
       {children}
