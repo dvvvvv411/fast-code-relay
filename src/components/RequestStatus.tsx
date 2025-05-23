@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useSMS } from '../context/SMSContext';
 import { Button } from '@/components/ui/button';
@@ -7,6 +6,7 @@ import { CheckCircle, MessageSquare, Clock, Loader } from 'lucide-react';
 const RequestStatus = () => {
   const { currentRequest, markSMSSent, isLoading } = useSMS();
   const [hasSentSMS, setHasSentSMS] = useState(false);
+  const [smsClickTimestamp, setSmsClickTimestamp] = useState<string>('');
 
   if (!currentRequest) {
     return (
@@ -19,6 +19,18 @@ const RequestStatus = () => {
   const handleSendSMS = () => {
     markSMSSent(currentRequest.id);
     setHasSentSMS(true);
+    
+    // Zeitstempel erstellen
+    const now = new Date();
+    const timestamp = now.toLocaleString('de-DE', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+    setSmsClickTimestamp(timestamp);
   };
 
   const getStatusDisplay = () => {
@@ -100,6 +112,14 @@ const RequestStatus = () => {
               statusInfo.buttonText
             )}
           </Button>
+        </div>
+      )}
+
+      {hasSentSMS && smsClickTimestamp && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+          <p className="text-blue-800 text-sm">
+            <strong>SMS versendet bestätigt am:</strong> {smsClickTimestamp}
+          </p>
         </div>
       )}
 
