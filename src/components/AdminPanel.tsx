@@ -146,16 +146,16 @@ const AdminPanel = () => {
                   <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full transition-all ${
                     request.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                     request.status === 'activated' ? 'bg-blue-100 text-blue-800' :
+                    request.status === 'sms_requested' ? 'bg-red-100 text-red-800 animate-pulse ring-2 ring-red-300' :
                     request.status === 'sms_sent' ? 'bg-orange-100 text-orange-800 animate-pulse' :
-                    request.status === 'sms_requested' ? 'bg-orange-100 text-orange-800 animate-pulse' :
                     request.status === 'additional_sms_requested' ? 'bg-purple-100 text-purple-800 animate-pulse ring-2 ring-purple-300' :
                     request.status === 'waiting_for_additional_sms' ? 'bg-blue-100 text-blue-800 animate-pulse ring-1 ring-blue-300' :
                     'bg-green-100 text-green-800'
                   }`}>
                     {request.status === 'pending' ? '⏳ In Bearbeitung' :
                      request.status === 'activated' ? '✅ Aktiviert' :
+                     request.status === 'sms_requested' ? '🚨 SMS Code benötigt' :
                      request.status === 'sms_sent' ? '📤 SMS unterwegs' :
-                     request.status === 'sms_requested' ? '📤 SMS Code benötigt' :
                      request.status === 'additional_sms_requested' ? '📤 Weitere SMS' :
                      request.status === 'waiting_for_additional_sms' ? '⏱️ SMS gesendet (5 Min.)' :
                      '✅ Abgeschlossen'}
@@ -186,15 +186,17 @@ const AdminPanel = () => {
                   )}
                   
                   {(request.status === 'activated' || 
-                    request.status === 'sms_sent' || 
                     request.status === 'sms_requested' || 
+                    request.status === 'sms_sent' || 
                     request.status === 'additional_sms_requested') && (
                     <div className="flex justify-center">
                       <Button 
                         onClick={() => handleSendSMS(request.id)}
                         size="sm" 
                         className={`transition-all ${
-                          request.status === 'additional_sms_requested' 
+                          request.status === 'sms_requested' 
+                            ? 'bg-red-600 hover:bg-red-700 animate-pulse ring-2 ring-red-300' 
+                            : request.status === 'additional_sms_requested' 
                             ? 'bg-purple-600 hover:bg-purple-700 animate-pulse' 
                             : 'bg-orange hover:bg-orange-dark'
                         }`}

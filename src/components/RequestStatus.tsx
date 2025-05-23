@@ -92,8 +92,15 @@ const RequestStatus = () => {
           buttonAction: handleSendSMS
         };
       
-      case 'sms_sent':
       case 'sms_requested':
+        return {
+          icon: <Loader className="h-12 w-12 text-orange animate-spin mx-auto mb-4" />,
+          title: 'SMS Code angefordert',
+          description: 'Ihr SMS Code wurde angefordert und wird vom Admin bearbeitet. Bitte warten Sie einen Moment.',
+          showButton: false
+        };
+      
+      case 'sms_sent':
       case 'additional_sms_requested':
         return {
           icon: <Loader className="h-12 w-12 text-orange animate-spin mx-auto mb-4" />,

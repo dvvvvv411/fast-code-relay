@@ -1,10 +1,9 @@
-
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 
-type RequestStatus = 'pending' | 'activated' | 'sms_sent' | 'sms_requested' | 'completed' | 'additional_sms_requested' | 'waiting_for_additional_sms';
+type RequestStatus = 'pending' | 'activated' | 'sms_requested' | 'sms_sent' | 'completed' | 'additional_sms_requested' | 'waiting_for_additional_sms';
 
 interface Request {
   id: string;
@@ -635,7 +634,7 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       }
       
       console.log(`✅ SMSContext - Database update successful. Updated data:`, data);
-      console.log(`✅ SMSContext - Successfully marked SMS as sent for request: ${requestId}`);
+      console.log(`✅ SMSContext - Successfully marked SMS as requested for request: ${requestId}`);
       
       // Manually trigger a refetch of the request to ensure we have the latest data
       console.log(`🔄 SMSContext - Manually fetching updated request details...`);
@@ -648,10 +647,10 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       
       return true;
     } catch (error) {
-      console.error('❌ SMSContext - Error marking SMS as sent:', error);
+      console.error('❌ SMSContext - Error marking SMS as requested:', error);
       toast({
         title: "Fehler",
-        description: "Die SMS konnte nicht als versendet markiert werden.",
+        description: "Die SMS konnte nicht als angefordert markiert werden.",
         variant: "destructive",
       });
       return false;
