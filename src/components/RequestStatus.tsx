@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useSMS } from '../context/SMSContext';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,7 @@ import { CheckCircle, MessageSquare, Clock, Loader } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const RequestStatus = () => {
-  const { currentRequest, sendSMS, isLoading } = useSMS();
+  const { currentRequest, markSMSSent, isLoading } = useSMS();
   const [hasSentSMS, setHasSentSMS] = useState(false);
 
   if (!currentRequest) {
@@ -18,7 +17,7 @@ const RequestStatus = () => {
   }
 
   const handleSendSMS = () => {
-    sendSMS(currentRequest.id);
+    markSMSSent(currentRequest.id);
     setHasSentSMS(true);
   };
 
