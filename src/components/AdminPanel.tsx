@@ -12,7 +12,7 @@ import SupportTickets from './SupportTickets';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const AdminPanel = () => {
-  const { requests, activateRequest, submitSMSCode, isLoading, requestSMS } = useSMS();
+  const { requests, activateRequest, submitSMSCode, isLoading } = useSMS();
   const { user, isLoading: authLoading, isAdmin } = useAuth();
   const [smsCode, setSmsCode] = useState('');
   const [selectedRequest, setSelectedRequest] = useState<string | null>(null);
@@ -25,11 +25,6 @@ const AdminPanel = () => {
   const handleSendSMS = (requestId: string) => {
     console.log('📝 Admin preparing to send SMS for request:', requestId);
     setSelectedRequest(requestId);
-  };
-
-  const handleRequestSMS = (requestId: string) => {
-    console.log('📤 Admin requesting SMS for request:', requestId);
-    requestSMS(requestId);
   };
   
   const submitSMS = () => {
@@ -161,23 +156,11 @@ const AdminPanel = () => {
                     </Button>
                   )}
                   
-                  {request.status === 'activated' && (
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => handleRequestSMS(request.id)}
-                        size="sm"
-                        className="bg-blue-500 hover:bg-blue-600 transition-all"
-                      >
-                        <Send className="h-4 w-4 mr-1" /> SMS Anfordern
-                      </Button>
-                    </div>
-                  )}
-                  
-                  {(request.status === 'sms_sent' || request.status === 'sms_requested') && (
+                  {(request.status === 'activated' || request.status === 'sms_sent' || request.status === 'sms_requested') && (
                     <Button 
                       onClick={() => handleSendSMS(request.id)}
                       size="sm" 
-                      className="bg-orange hover:bg-orange-dark animate-pulse transition-all"
+                      className="bg-orange hover:bg-orange-dark transition-all"
                     >
                       📨 SMS Code eingeben
                     </Button>
@@ -189,12 +172,12 @@ const AdminPanel = () => {
                         SMS Code: <span className="font-medium bg-green-100 px-2 py-1 rounded">{request.smsCode}</span>
                       </div>
                       <Button 
-                        onClick={() => handleRequestSMS(request.id)}
+                        onClick={() => handleSendSMS(request.id)}
                         size="sm"
                         variant="outline"
                         className="text-blue-500 border-blue-500 hover:bg-blue-50"
                       >
-                        Neue SMS senden
+                        Neuen SMS Code senden
                       </Button>
                     </div>
                   )}
