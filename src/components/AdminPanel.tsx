@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useSMS } from '../context/SMSContext';
@@ -42,11 +43,16 @@ const AdminPanel = () => {
   
   const requestsList = Object.values(requests);
   
-  // Enhanced logging for admin panel updates
+  // Enhanced logging for admin panel updates with real-time tracking
   useEffect(() => {
-    console.log('🔄 Admin Panel requests updated:', requestsList);
+    console.log('🔄 Admin Panel requests updated:', requestsList.length, 'total requests');
     requestsList.forEach(request => {
-      console.log(`📊 Request ${request.id}: ${request.status} - Phone: ${request.phone}`);
+      console.log(`📊 Request ${request.id}: ${request.status} - Phone: ${request.phone} - Updated: ${request.updatedAt.toISOString()}`);
+      
+      // Special logging for additional SMS requests
+      if (request.status === 'additional_sms_requested') {
+        console.log(`🔔 ADMIN ALERT: Request ${request.id} has requested additional SMS code!`);
+      }
     });
   }, [requests]);
   
@@ -116,6 +122,9 @@ const AdminPanel = () => {
                 Status
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Letzte Aktualisierung
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Aktion
               </th>
             </tr>
@@ -135,7 +144,7 @@ const AdminPanel = () => {
                     request.status === 'activated' ? 'bg-blue-100 text-blue-800' :
                     request.status === 'sms_sent' ? 'bg-orange-100 text-orange-800 animate-pulse' :
                     request.status === 'sms_requested' ? 'bg-orange-100 text-orange-800 animate-pulse' :
-                    request.status === 'additional_sms_requested' ? 'bg-purple-100 text-purple-800 animate-pulse' :
+                    request.status === 'additional_sms_requested' ? 'bg-purple-100 text-purple-800 animate-pulse ring-2 ring-purple-300' :
                     'bg-green-100 text-green-800'
                   }`}>
                     {request.status === 'pending' ? '⏳ In Bearbeitung' :
@@ -145,6 +154,17 @@ const AdminPanel = () => {
                      request.status === 'additional_sms_requested' ? '📤 Weitere SMS' :
                      '✅ Abgeschlossen'}
                   </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-500">
+                    {request.updatedAt.toLocaleString('de-DE', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   {request.status === 'pending' && (
@@ -164,7 +184,11 @@ const AdminPanel = () => {
                       <Button 
                         onClick={() => handleSendSMS(request.id)}
                         size="sm" 
-                        className="bg-orange hover:bg-orange-dark transition-all"
+                        className={`transition-all ${
+                          request.status === 'additional_sms_requested' 
+                            ? 'bg-purple-600 hover:bg-purple-700 animate-pulse' 
+                            : 'bg-orange hover:bg-orange-dark'
+                        }`}
                       >
                         📨 SMS Code eingeben
                       </Button>
@@ -200,7 +224,7 @@ const AdminPanel = () => {
       <TabsList className="mb-6 bg-gray-100 p-1">
         <TabsTrigger value="requests" className="flex items-center gap-2 data-[state=active]:bg-orange data-[state=active]:text-white">
           <List size={18} />
-          Anfragen
+          Anfragen ({requestsList.length})
         </TabsTrigger>
         <TabsTrigger value="phoneNumbers" className="flex items-center gap-2 data-[state=active]:bg-orange data-[state=active]:text-white">
           <Phone size={18} />

@@ -84,12 +84,12 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user, isAdmin]);
 
-  // Set up enhanced real-time subscription for requests
+  // Enhanced real-time subscription for requests with improved logging
   useEffect(() => {
-    console.log("Setting up enhanced real-time subscription for requests");
+    console.log("🔴 Setting up enhanced real-time subscription for requests");
     
     const requestsChannel = supabase
-      .channel('requests_realtime')
+      .channel('requests_realtime_enhanced')
       .on(
         'postgres_changes',
         {
@@ -99,21 +99,46 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
         },
         (payload) => {
           console.log('🔴 Real-time update received for requests:', payload);
+          console.log('🔴 Event type:', payload.eventType);
+          console.log('🔴 Payload data:', payload.new || payload.old);
           
           if (payload.eventType === 'INSERT') {
-            console.log('New request inserted:', payload.new);
+            console.log('🆕 New request inserted:', payload.new);
             fetchRequestDetails(payload.new.id);
           } else if (payload.eventType === 'UPDATE') {
-            console.log('Request updated:', payload.new);
+            console.log('🔄 Request updated:', payload.new);
             const updatedRequest = payload.new;
             
-            // Log the status change for debugging
+            // Enhanced logging for status changes
             console.log(`🔄 Request ${updatedRequest.id} status changed to: ${updatedRequest.status}`);
+            console.log(`🔍 Previous status vs new status tracking for request ${updatedRequest.id}`);
             
-            // Update requests list immediately
+            // Immediately update the requests state with the new data
+            setRequests((prev) => {
+              const existingRequest = prev[updatedRequest.id];
+              console.log(`📊 Existing request status: ${existingRequest?.status || 'not found'}`);
+              console.log(`📊 New request status: ${updatedRequest.status}`);
+              
+              const newRequests = { ...prev };
+              
+              // Create the updated request object
+              if (existingRequest) {
+                newRequests[updatedRequest.id] = {
+                  ...existingRequest,
+                  status: updatedRequest.status as RequestStatus,
+                  smsCode: updatedRequest.sms_code,
+                  updatedAt: new Date(updatedRequest.updated_at)
+                };
+              }
+              
+              console.log(`✅ Updated requests state for ${updatedRequest.id}`);
+              return newRequests;
+            });
+            
+            // Also fetch full details to ensure consistency
             fetchRequestDetails(updatedRequest.id);
             
-            // If this is the current user's request, update it and show notifications
+            // Handle current request updates and notifications
             if (currentRequest && currentRequest.id === updatedRequest.id) {
               console.log('🟢 Updating current request with real-time data');
               fetchRequestDetails(updatedRequest.id, true);
@@ -123,9 +148,22 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
                 setShowSimulation(false);
               }
             }
+            
+            // Enhanced admin notifications for status changes
+            if (user && isAdmin) {
+              console.log('👨‍💼 Admin detected - checking for status change notifications');
+              if (updatedRequest.status === 'additional_sms_requested') {
+                console.log('📢 Notifying admin about additional SMS request');
+                toast({
+                  title: "📤 Neue SMS Anfrage",
+                  description: `Nutzer hat weiteren SMS Code für Anfrage ${updatedRequest.id} angefordert`,
+                });
+              }
+            }
+            
           } else if (payload.eventType === 'DELETE') {
             const deletedId = payload.old.id;
-            console.log('Request deleted:', deletedId);
+            console.log('🗑️ Request deleted:', deletedId);
             
             setRequests((prev) => {
               const newRequests = { ...prev };
@@ -140,15 +178,21 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
           }
         }
       )
-      .subscribe((status) => {
-        console.log('📡 Requests realtime subscription status:', status);
+      .subscribe((status, err) => {
+        console.log('📡 Enhanced requests realtime subscription status:', status);
+        if (err) {
+          console.error('❌ Real-time subscription error:', err);
+        }
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Successfully subscribed to real-time updates');
+        }
       });
 
     return () => {
-      console.log('🔴 Cleaning up requests realtime subscription');
+      console.log('🔴 Cleaning up enhanced requests realtime subscription');
       supabase.removeChannel(requestsChannel);
     };
-  }, [currentRequest]);
+  }, [currentRequest, user, isAdmin]);
 
   // Set up real-time subscription for phone numbers
   useEffect(() => {
@@ -237,7 +281,8 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
           updated_at,
           phone_number_id,
           phone_numbers(id, phone, access_code)
-        `);
+        `)
+        .order('created_at', { ascending: false }); // Order by most recent first
 
       if (error) throw error;
 
@@ -254,6 +299,7 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
           createdAt: new Date(item.created_at),
           updatedAt: new Date(item.updated_at)
         };
+        console.log(`📋 Request ${item.id}: ${item.status} - Phone: ${phoneNumber.phone}`);
       });
 
       setRequests(requestsMap);
@@ -538,6 +584,8 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       // Check current status to determine new status
       const currentRequestData = requests[requestId];
       const newStatus = currentRequestData?.status === 'completed' ? 'additional_sms_requested' : 'sms_requested';
+      
+      console.log(`🔄 Current status: ${currentRequestData?.status}, New status: ${newStatus}`);
       
       const { error } = await supabase
         .from('requests')
