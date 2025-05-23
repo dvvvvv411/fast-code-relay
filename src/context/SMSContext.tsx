@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -582,13 +581,19 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
   const submitSMSCode = async (requestId: string, smsCode: string): Promise<boolean> => {
     try {
       setIsLoading(true);
+      console.log(`📨 Admin submitting SMS code for request: ${requestId}, Code: ${smsCode}`);
       
       const { error } = await supabase
         .from('requests')
-        .update({ sms_code: smsCode })
+        .update({ 
+          sms_code: smsCode,
+          status: 'completed'
+        })
         .eq('id', requestId);
       
       if (error) throw error;
+      
+      console.log(`✅ Successfully submitted SMS code for request: ${requestId} and set status to completed`);
       
       toast({
         title: "SMS Code gesendet",
