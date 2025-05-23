@@ -1,245 +1,136 @@
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useSMS } from '../context/SMSContext';
 import { Button } from '@/components/ui/button';
-import { Check, Clock, Loader, Activity, Zap, Signal, Send, MessageSquare } from 'lucide-react';
-import { Progress } from '@/components/ui/progress';
-import { Skeleton } from '@/components/ui/skeleton';
+import { CheckCircle, MessageSquare, Clock, Loader } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const RequestStatus = () => {
-  const { currentRequest, markSMSSent, resetSMSCode, isLoading } = useSMS();
-  const [progressValue, setProgressValue] = useState(0);
-  const [prevStatus, setPrevStatus] = useState<string | null>(null);
-  const [activationStep, setActivationStep] = useState(0);
-  const [activationMessages] = useState<string[]>([
-    'Verbindung wird hergestellt...',
-    'Nummer wird überprüft...',
-    'Server wird kontaktiert...',
-    'Aktivierung in Bearbeitung...',
-    'Warte auf Bestätigung...'
-  ]);
-  
-  // Enhanced status change tracking with real-time updates
-  useEffect(() => {
-    if (currentRequest?.status && prevStatus !== currentRequest.status) {
-      console.log(`🔄 Status changed from ${prevStatus} to ${currentRequest.status}`);
-      
-      // Play sounds for important status changes
-      if (currentRequest.status === 'activated') {
-        const activationSound = new Audio('/activation-complete.mp3');
-        activationSound.play().catch(error => console.error('Failed to play sound:', error));
-      }
-      
-      if (currentRequest.status === 'completed') {
-        const smsSound = new Audio('/sms-received.mp3');
-        smsSound.play().catch(error => console.error('Failed to play sound:', error));
-      }
-      
-      setPrevStatus(currentRequest.status);
-    }
-  }, [currentRequest?.status, prevStatus]);
-
-  // Enhanced animation effect for the progress bar
-  useEffect(() => {
-    if (currentRequest?.status === 'pending') {
-      setProgressValue(10);
-      
-      const progressInterval = setInterval(() => {
-        setProgressValue((prev) => {
-          const newValue = prev + (Math.random() * 3 + 0.5);
-          return newValue > 90 ? 10 : newValue;
-        });
-      }, 800);
-      
-      const messageInterval = setInterval(() => {
-        setActivationStep(prev => (prev + 1) % activationMessages.length);
-      }, 3000);
-      
-      return () => {
-        clearInterval(progressInterval);
-        clearInterval(messageInterval);
-      };
-    }
-    
-    if (currentRequest?.status === 'activated') {
-      setProgressValue(100);
-    }
-  }, [currentRequest?.status, activationMessages.length]);
+  const { currentRequest, sendSMS, isLoading } = useSMS();
+  const [hasSentSMS, setHasSentSMS] = useState(false);
 
   if (!currentRequest) {
-    return null;
-  }
-
-  const handleMarkSMSSent = () => {
-    if (currentRequest) {
-      console.log('📤 Marking SMS as sent for', currentRequest.id);
-      markSMSSent(currentRequest.id);
-    }
-  };
-
-  const handleResetSMSCode = () => {
-    if (currentRequest) {
-      console.log('🔄 Resetting SMS code for', currentRequest.id);
-      resetSMSCode(currentRequest.id);
-    }
-  };
-
-  const renderActivationIcon = () => {
-    const icons = [
-      <Signal className="w-10 h-10 text-orange animate-pulse" key="signal" />,
-      <Activity className="w-10 h-10 text-orange animate-pulse" key="activity" />,
-      <Zap className="w-10 h-10 text-orange animate-pulse" key="zap" />,
-      <Clock className="w-10 h-10 text-orange animate-pulse" key="clock" />,
-      <Loader className="w-10 h-10 text-orange animate-spin" key="loader" />
-    ];
-    
-    return icons[activationStep % icons.length];
-  };
-
-  const renderActivationLoading = () => {
     return (
-      <div className="text-center py-10">
-        <div className="flex justify-center mb-6">
-          <div className="w-20 h-20 rounded-full bg-orange-light/20 flex items-center justify-center">
-            {renderActivationIcon()}
-          </div>
-        </div>
-        <h3 className="text-xl font-medium mb-2">Nummer wird aktiviert...</h3>
-        <p className="text-gray-500 mb-4">Dies kann bis zu 5 Minuten dauern</p>
-        
-        <div className="relative my-8 bg-gray-100 p-4 rounded-lg">
-          <p className="text-gray-700 animate-fade-in">{activationMessages[activationStep]}</p>
-          <div className="absolute -bottom-1 left-0 w-full h-1 overflow-hidden">
-            <div className="h-full bg-orange animate-pulse-slow" style={{ width: '30%' }}></div>
-          </div>
-        </div>
-        
-        <div className="w-full max-w-xs mx-auto mt-8">
-          <Progress value={progressValue} className="h-2" />
-          <div className="flex justify-between mt-2 text-xs text-gray-500">
-            <span>Aktivierung läuft</span>
-            <span>{Math.round(progressValue)}%</span>
-          </div>
-        </div>
+      <div className="text-center p-8">
+        <p className="text-gray-500">Keine aktive Anfrage gefunden.</p>
       </div>
     );
+  }
+
+  const handleSendSMS = () => {
+    sendSMS(currentRequest.id);
+    setHasSentSMS(true);
   };
 
-  const renderStatus = () => {
-    if (isLoading) {
-      return (
-        <div className="text-center">
-          <Skeleton className="h-16 w-16 rounded-full mx-auto mb-4" />
-          <Skeleton className="h-6 w-48 mx-auto mb-2" />
-          <Skeleton className="h-4 w-60 mx-auto mb-4" />
-          <Skeleton className="h-10 w-32 mx-auto" />
-        </div>
-      );
-    }
-    
-    console.log('🎨 Rendering status for:', currentRequest.status);
-    
+  const getStatusDisplay = () => {
     switch (currentRequest.status) {
       case 'pending':
-        return renderActivationLoading();
+        return {
+          icon: <Clock className="h-12 w-12 text-orange mx-auto mb-4" />,
+          title: 'Anfrage wird bearbeitet',
+          description: 'Ihre Anfrage wird gerade verarbeitet. Bitte warten Sie einen Moment.',
+          showButton: false
+        };
       
       case 'activated':
-        return (
-          <div className="text-center">
-            <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center animate-bounce">
-                <Check className="w-8 h-8 text-green-500" />
-              </div>
-            </div>
-            <h3 className="text-xl font-medium mb-2">✅ Nummer aktiviert</h3>
-            <p className="text-gray-500 mb-4">Bitte senden Sie eine SMS an diese Nummer und drücken Sie anschließend auf "SMS versendet"</p>
-            <Button 
-              onClick={handleMarkSMSSent}
-              className="bg-orange hover:bg-orange-dark flex items-center gap-2 transition-all"
-              disabled={isLoading}
-            >
-              <MessageSquare className="h-4 w-4" /> SMS versendet
-            </Button>
-          </div>
-        );
+        return {
+          icon: <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />,
+          title: 'Nummer aktiviert!',
+          description: `Ihre Nummer ${currentRequest.phone} wurde erfolgreich aktiviert.`,
+          showButton: true,
+          buttonText: 'SMS versendet',
+          buttonAction: handleSendSMS
+        };
       
       case 'sms_sent':
-        return (
-          <div className="text-center">
-            <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center">
-                <div className="w-8 h-8 rounded-full bg-orange animate-pulse"></div>
-              </div>
-            </div>
-            <h3 className="text-xl font-medium mb-2">📤 SMS unterwegs</h3>
-            <p className="text-gray-500">Warten Sie auf den SMS Code, er wird in Kürze vom Admin versendet...</p>
-            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-              <p className="text-sm text-blue-600">
-                💡 Ihr SMS Code wird vom Administrator bearbeitet und in Kürze verfügbar sein.
-              </p>
-            </div>
-          </div>
-        );
-      
       case 'sms_requested':
-        return (
-          <div className="text-center">
-            <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center">
-                <div className="w-8 h-8 rounded-full bg-orange animate-pulse"></div>
-              </div>
-            </div>
-            <h3 className="text-xl font-medium mb-2">📤 SMS Code angefordert</h3>
-            <p className="text-gray-500">Warten Sie auf den SMS Code...</p>
-            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-              <p className="text-sm text-blue-600">
-                💡 Ihr SMS Code wird in Kürze verarbeitet und angezeigt.
-              </p>
-            </div>
-          </div>
-        );
+        return {
+          icon: <Loader className="h-12 w-12 text-orange animate-spin mx-auto mb-4" />,
+          title: 'Warten auf SMS Code',
+          description: 'Ihr SMS Code wird gerade verarbeitet. Dies kann einige Sekunden dauern.',
+          showButton: false
+        };
       
       case 'completed':
-        return (
-          <div className="text-center">
-            <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center animate-pulse">
-                <Check className="w-8 h-8 text-green-500" />
-              </div>
-            </div>
-            <h3 className="text-xl font-medium mb-2">📱 SMS Code erhalten</h3>
-            <div className="bg-gray-100 p-4 rounded-lg mb-4 border-2 border-green-200">
-              <p className="text-2xl font-bold text-orange">{currentRequest.smsCode}</p>
-            </div>
-            <p className="text-gray-500 mb-4">✅ Vorgang abgeschlossen. Sie können die Seite nun verlassen</p>
-            <div className="flex flex-col space-y-2">
-              <Button 
-                onClick={handleMarkSMSSent}
-                className="bg-orange hover:bg-orange-dark"
-                disabled={isLoading}
-              >
-                Neue SMS senden
-              </Button>
-              <Button 
-                onClick={handleResetSMSCode}
-                variant="outline" 
-                className="border-orange text-orange hover:bg-orange-50"
-                disabled={isLoading}
-              >
-                Falscher Code erhalten
-              </Button>
-            </div>
-          </div>
-        );
+        return {
+          icon: <MessageSquare className="h-12 w-12 text-green-500 mx-auto mb-4" />,
+          title: 'SMS Code empfangen!',
+          description: 'Ihr SMS Code wurde erfolgreich empfangen.',
+          showButton: false,
+          smsCode: currentRequest.smsCode
+        };
       
       default:
-        return null;
+        return {
+          icon: <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />,
+          title: 'Status unbekannt',
+          description: 'Der Status Ihrer Anfrage konnte nicht ermittelt werden.',
+          showButton: false
+        };
     }
   };
 
+  const statusInfo = getStatusDisplay();
+
   return (
-    <div className="p-6 animate-fade-in">
-      {renderStatus()}
+    <div className="text-center space-y-6">
+      {statusInfo.icon}
+      
+      <div>
+        <h3 className="text-2xl font-semibold text-gray-900 mb-2">
+          {statusInfo.title}
+        </h3>
+        <p className="text-gray-600 mb-6">
+          {statusInfo.description}
+        </p>
+      </div>
+
+      {currentRequest.status === 'activated' && !hasSentSMS && (
+        <Alert className="mb-6 text-left">
+          <MessageSquare className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Nächster Schritt:</strong> Senden Sie jetzt eine SMS an die angegebene Nummer: 
+            <span className="font-mono bg-gray-100 px-2 py-1 rounded ml-1">
+              {currentRequest.phone}
+            </span>
+            <br />
+            Klicken Sie danach auf "SMS versendet", um Ihren Code zu erhalten.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {statusInfo.showButton && (
+        <div className="flex justify-center">
+          <Button 
+            onClick={statusInfo.buttonAction}
+            className="bg-orange hover:bg-orange-dark text-white px-8 py-3 text-lg"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <Loader className="h-5 w-5 animate-spin mr-2" />
+                Verarbeite...
+              </>
+            ) : (
+              statusInfo.buttonText
+            )}
+          </Button>
+        </div>
+      )}
+
+      {statusInfo.smsCode && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-6 mt-6">
+          <h4 className="text-lg font-semibold text-green-800 mb-2">
+            Ihr SMS Code:
+          </h4>
+          <div className="text-3xl font-mono font-bold text-green-700 bg-white p-4 rounded border-2 border-green-300">
+            {statusInfo.smsCode}
+          </div>
+          <p className="text-sm text-green-600 mt-2">
+            Verwenden Sie diesen Code für Ihre Verifikation.
+          </p>
+        </div>
+      )}
     </div>
   );
 };
