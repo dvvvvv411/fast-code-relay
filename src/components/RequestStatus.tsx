@@ -2,10 +2,10 @@
 import { useState } from 'react';
 import { useSMS } from '../context/SMSContext';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, MessageSquare, Clock, Loader, RefreshCw, AlertTriangle, Timer } from 'lucide-react';
+import { CheckCircle, MessageSquare, Clock, Loader, RefreshCw, Timer, Check } from 'lucide-react';
 
 const RequestStatus = () => {
-  const { currentRequest, markSMSSent, requestSMS, isLoading } = useSMS();
+  const { currentRequest, markSMSSent, requestSMS, completeRequest, isLoading } = useSMS();
   const [hasSentSMS, setHasSentSMS] = useState(false);
   const [smsClickTimestamp, setSmsClickTimestamp] = useState<string>('');
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
@@ -39,9 +39,8 @@ const RequestStatus = () => {
     requestSMS(currentRequest.id);
   };
 
-  const handleReportWrongCode = () => {
-    // This could open a modal or redirect to support
-    console.log('User reported wrong code for request:', currentRequest.id);
+  const handleCompleteProcess = () => {
+    completeRequest(currentRequest.id);
   };
 
   const getStatusDisplay = () => {
@@ -184,12 +183,12 @@ const RequestStatus = () => {
             {currentRequest.status === 'waiting_for_additional_sms' ? 'Weitere SMS anfordern' : 'Weiteren Code'}
           </Button>
           <Button 
-            onClick={handleReportWrongCode}
-            variant="outline"
-            className="flex items-center gap-2 text-red-600 border-red-300 hover:bg-red-50"
+            onClick={handleCompleteProcess}
+            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white"
+            disabled={isLoading}
           >
-            <AlertTriangle className="h-4 w-4" />
-            Falscher Code
+            <Check className="h-4 w-4" />
+            Vorgang abgeschlossen
           </Button>
         </div>
       )}
