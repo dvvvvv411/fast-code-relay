@@ -41,6 +41,7 @@ interface SMSContextType {
   updatePhoneNumber: (id: string, phone: string, accessCode: string) => Promise<boolean>;
   deletePhoneNumber: (id: string) => Promise<boolean>;
   confirmSMSSuccess: (requestId: string) => Promise<boolean>;
+  completeRequest: (requestId: string) => Promise<boolean>; // Added this line
 }
 
 const SMSContext = createContext<SMSContextType | undefined>(undefined);
@@ -896,6 +897,52 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const completeRequest = async (requestId: string): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      console.log(`✅ User completing request manually: ${requestId}`);
+      
+      const { error } = await supabase
+        .from('requests')
+        .update({ status: 'completed' })
+        .eq('id', requestId);
+      
+      if (error) throw error;
+      
+      console.log(`✅ Successfully completed request: ${requestId}`);
+      
+      // Clear any existing timer for this request
+      if (timers[requestId]) {
+        clearTimeout(timers[requestId]);
+        
+        setTimers(prev => {
+          const newTimers = { ...prev };
+          delete newTimers[requestId];
+          return newTimers;
+        });
+        
+        console.log(`⏱️ Cleared timer for request ${requestId} as user manually completed the request`);
+      }
+      
+      toast({
+        title: "Vorgang abgeschlossen",
+        description: "Vielen Dank für die Bestätigung. Der Vorgang wurde erfolgreich abgeschlossen.",
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Error completing request:', error);
+      toast({
+        title: "Fehler",
+        description: "Der Vorgang konnte nicht abgeschlossen werden.",
+        variant: "destructive",
+      });
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const getCurrentUserStatus = (): RequestStatus | null => {
     return currentRequest ? currentRequest.status : null;
   };
@@ -921,6 +968,7 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
         deletePhoneNumber,
         resetCurrentRequest,
         confirmSMSSuccess,
+        completeRequest,
       }}
     >
       {children}
