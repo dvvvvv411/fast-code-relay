@@ -103,6 +103,9 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
             console.log('Request updated:', payload.new);
             const updatedRequest = payload.new;
             
+            // Log the status change for debugging
+            console.log(`🔄 Request ${updatedRequest.id} status changed to: ${updatedRequest.status}`);
+            
             // Update requests list immediately
             fetchRequestDetails(updatedRequest.id);
             
@@ -302,6 +305,7 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       };
 
       console.log('✅ Updated request:', request);
+      console.log(`📊 Request ${request.id} has status: ${request.status}`);
       
       setRequests((prev) => ({
         ...prev,
@@ -477,6 +481,7 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
   const markSMSSent = async (requestId: string): Promise<boolean> => {
     try {
       setIsLoading(true);
+      console.log(`📤 Marking SMS as sent for request: ${requestId}`);
       
       const { error } = await supabase
         .from('requests')
@@ -484,6 +489,8 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
         .eq('id', requestId);
       
       if (error) throw error;
+      
+      console.log(`✅ Successfully marked SMS as sent for request: ${requestId}`);
       
       toast({
         title: "SMS als versendet markiert",
