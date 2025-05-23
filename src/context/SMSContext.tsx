@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -41,7 +42,7 @@ interface SMSContextType {
   updatePhoneNumber: (id: string, phone: string, accessCode: string) => Promise<boolean>;
   deletePhoneNumber: (id: string) => Promise<boolean>;
   confirmSMSSuccess: (requestId: string) => Promise<boolean>;
-  completeRequest: (requestId: string) => Promise<boolean>; // Added this line
+  completeRequest: (requestId: string) => Promise<boolean>;
 }
 
 const SMSContext = createContext<SMSContextType | undefined>(undefined);
@@ -923,6 +924,11 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
         
         console.log(`⏱️ Cleared timer for request ${requestId} as user manually completed the request`);
       }
+      
+      // Reset the current request and clear localStorage to show initial form again
+      localStorage.removeItem(CURRENT_REQUEST_ID_KEY);
+      setCurrentRequest(null);
+      setShowSimulation(false);
       
       toast({
         title: "Vorgang abgeschlossen",
