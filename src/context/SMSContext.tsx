@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 
-type RequestStatus = 'pending' | 'activated' | 'sms_sent' | 'sms_requested' | 'completed' | 'additional_sms_requested';
+type RequestStatus = 'pending' | 'activated' | 'sms_sent' | 'sms_requested' | 'completed' | 'additional_sms_requested' | 'waiting_for_additional_sms';
 
 interface Request {
   id: string;
@@ -47,6 +47,8 @@ const SMSContext = createContext<SMSContextType | undefined>(undefined);
 
 // Storage key for saving the request ID
 const CURRENT_REQUEST_ID_KEY = 'sms_current_request_id';
+// Time in milliseconds to wait before automatically marking a request as completed (5 minutes)
+const ADDITIONAL_SMS_WAIT_TIME = 5 * 60 * 1000;
 
 export const SMSProvider = ({ children }: { children: ReactNode }) => {
   const [requests, setRequests] = useState<Record<string, Request>>({});
@@ -55,6 +57,7 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showSimulation, setShowSimulation] = useState(false);
   const { user, isAdmin } = useAuth();
+  const [timers, setTimers] = useState<Record<string, NodeJS.Timeout>>({});
 
   // On initial mount, check if we have a stored request ID
   useEffect(() => {
@@ -235,6 +238,56 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [user, isAdmin]);
 
+  // Function to start the timer for a request in waiting_for_additional_sms status
+  const startWaitingTimer = (requestId: string) => {
+    // Clear any existing timer for this request
+    if (timers[requestId]) {
+      clearTimeout(timers[requestId]);
+    }
+    
+    console.log(`⏱️ Starting 5-minute timer for request ${requestId}`);
+    
+    // Set a new timer
+    const timer = setTimeout(async () => {
+      console.log(`⏱️ Timer expired for request ${requestId}, marking as completed`);
+      
+      try {
+        const { error } = await supabase
+          .from('requests')
+          .update({ status: 'completed' })
+          .eq('id', requestId);
+          
+        if (error) throw error;
+        
+        console.log(`✅ Request ${requestId} automatically marked as completed after 5-minute wait`);
+        
+        // Clear this timer from state
+        setTimers(prev => {
+          const newTimers = { ...prev };
+          delete newTimers[requestId];
+          return newTimers;
+        });
+        
+      } catch (error) {
+        console.error('Error updating request status after timer:', error);
+      }
+    }, ADDITIONAL_SMS_WAIT_TIME);
+    
+    // Store the timer reference
+    setTimers(prev => ({
+      ...prev,
+      [requestId]: timer
+    }));
+  };
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      // Clear all timers when component unmounts
+      Object.values(timers).forEach(timer => clearTimeout(timer));
+    };
+  }, [timers]);
+
   const fetchPhoneNumbers = async () => {
     try {
       setIsLoading(true);
@@ -398,6 +451,14 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
             title: "Weiteren SMS Code angefordert",
             description: "Ein weiterer SMS Code wurde angefordert.",
           });
+        } else if (request.status === 'waiting_for_additional_sms') {
+          toast({
+            title: "Warten auf weitere SMS Anfrage",
+            description: "Ihr SMS Code wurde gesendet. Sie haben 5 Minuten Zeit, eine weitere SMS anzufordern.",
+          });
+          
+          // Start the 5-minute timer for this request
+          startWaitingTimer(request.id);
         }
       }
 
@@ -583,7 +644,10 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       
       // Check current status to determine new status
       const currentRequestData = requests[requestId];
-      const newStatus = currentRequestData?.status === 'completed' ? 'additional_sms_requested' : 'sms_requested';
+      const newStatus = currentRequestData?.status === 'completed' || 
+                        currentRequestData?.status === 'waiting_for_additional_sms' 
+                        ? 'additional_sms_requested' 
+                        : 'sms_requested';
       
       console.log(`🔄 Current status: ${currentRequestData?.status}, New status: ${newStatus}`);
       
@@ -595,6 +659,19 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       if (error) throw error;
       
       console.log(`✅ Successfully requested additional SMS for request: ${requestId} with status: ${newStatus}`);
+      
+      // Clear any existing timer for this request
+      if (timers[requestId]) {
+        clearTimeout(timers[requestId]);
+        
+        setTimers(prev => {
+          const newTimers = { ...prev };
+          delete newTimers[requestId];
+          return newTimers;
+        });
+        
+        console.log(`⏱️ Cleared timer for request ${requestId} as user requested additional SMS`);
+      }
       
       const toastMessage = newStatus === 'additional_sms_requested' 
         ? 'Weiteren SMS Code angefordert'
@@ -657,21 +734,22 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(true);
       console.log(`📨 Admin submitting SMS code for request: ${requestId}, Code: ${smsCode}`);
       
+      // Change status to waiting_for_additional_sms instead of completed
       const { error } = await supabase
         .from('requests')
         .update({ 
           sms_code: smsCode,
-          status: 'completed'
+          status: 'waiting_for_additional_sms'
         })
         .eq('id', requestId);
       
       if (error) throw error;
       
-      console.log(`✅ Successfully submitted SMS code for request: ${requestId} and set status to completed`);
+      console.log(`✅ Successfully submitted SMS code for request: ${requestId} and set status to waiting_for_additional_sms`);
       
       toast({
         title: "SMS Code gesendet",
-        description: "Der SMS Code wurde erfolgreich gesendet.",
+        description: "Der SMS Code wurde erfolgreich gesendet. Der Nutzer hat jetzt 5 Minuten Zeit, eine weitere SMS anzufordern.",
       });
       
       return true;

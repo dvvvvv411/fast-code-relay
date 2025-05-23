@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useSMS } from '../context/SMSContext';
@@ -7,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PhoneNumberManager from './PhoneNumberManager';
-import { List, Phone, MessageSquare, Loader, AlertTriangle, Send } from 'lucide-react';
+import { List, Phone, MessageSquare, Loader, AlertTriangle, Send, Timer } from 'lucide-react';
 import SupportTickets from './SupportTickets';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -52,6 +51,11 @@ const AdminPanel = () => {
       // Special logging for additional SMS requests
       if (request.status === 'additional_sms_requested') {
         console.log(`🔔 ADMIN ALERT: Request ${request.id} has requested additional SMS code!`);
+      }
+      
+      // Special logging for waiting for additional SMS requests
+      if (request.status === 'waiting_for_additional_sms') {
+        console.log(`⏰ ADMIN ALERT: Request ${request.id} is waiting for additional SMS code!`);
       }
     });
   }, [requests]);
@@ -145,6 +149,7 @@ const AdminPanel = () => {
                     request.status === 'sms_sent' ? 'bg-orange-100 text-orange-800 animate-pulse' :
                     request.status === 'sms_requested' ? 'bg-orange-100 text-orange-800 animate-pulse' :
                     request.status === 'additional_sms_requested' ? 'bg-purple-100 text-purple-800 animate-pulse ring-2 ring-purple-300' :
+                    request.status === 'waiting_for_additional_sms' ? 'bg-blue-100 text-blue-800 animate-pulse ring-1 ring-blue-300' :
                     'bg-green-100 text-green-800'
                   }`}>
                     {request.status === 'pending' ? '⏳ In Bearbeitung' :
@@ -152,6 +157,7 @@ const AdminPanel = () => {
                      request.status === 'sms_sent' ? '📤 SMS unterwegs' :
                      request.status === 'sms_requested' ? '📤 SMS Code benötigt' :
                      request.status === 'additional_sms_requested' ? '📤 Weitere SMS' :
+                     request.status === 'waiting_for_additional_sms' ? '⏱️ SMS gesendet (5 Min.)' :
                      '✅ Abgeschlossen'}
                   </span>
                 </td>
@@ -179,7 +185,10 @@ const AdminPanel = () => {
                     </div>
                   )}
                   
-                  {(request.status === 'activated' || request.status === 'sms_sent' || request.status === 'sms_requested' || request.status === 'additional_sms_requested') && (
+                  {(request.status === 'activated' || 
+                    request.status === 'sms_sent' || 
+                    request.status === 'sms_requested' || 
+                    request.status === 'additional_sms_requested') && (
                     <div className="flex justify-center">
                       <Button 
                         onClick={() => handleSendSMS(request.id)}
@@ -191,6 +200,26 @@ const AdminPanel = () => {
                         }`}
                       >
                         📨 SMS Code eingeben
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {request.status === 'waiting_for_additional_sms' && (
+                    <div className="flex flex-col gap-2 items-center">
+                      <div className="text-sm text-blue-500 flex items-center gap-1">
+                        <Timer className="h-4 w-4" />
+                        <span>Warte auf weitere Anfrage</span>
+                      </div>
+                      <div>
+                        SMS Code: <span className="font-medium bg-blue-100 px-2 py-1 rounded">{request.smsCode}</span>
+                      </div>
+                      <Button 
+                        onClick={() => handleSendSMS(request.id)}
+                        size="sm"
+                        variant="outline" 
+                        className="text-blue-500 border-blue-500 hover:bg-blue-50"
+                      >
+                        Neuen SMS Code senden
                       </Button>
                     </div>
                   )}
