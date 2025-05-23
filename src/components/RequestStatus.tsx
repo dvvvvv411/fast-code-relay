@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useSMS } from '../context/SMSContext';
 import { Button } from '@/components/ui/button';
@@ -118,7 +119,7 @@ const RequestStatus = () => {
       {hasSentSMS && smsClickTimestamp && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
           <p className="text-blue-800 text-sm">
-            <strong>SMS versendet bestätigt am:</strong> {smsClickTimestamp}
+            <strong>SMS versendet:</strong> {smsClickTimestamp}
           </p>
         </div>
       )}
