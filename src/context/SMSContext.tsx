@@ -51,6 +51,32 @@ const SMSProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showSimulation, setShowSimulation] = useState(false);
 
+  // Real-time sync effect for currentRequest
+  useEffect(() => {
+    if (currentRequest && requests[currentRequest.id]) {
+      const updatedRequest = requests[currentRequest.id];
+      console.log('🔄 Syncing currentRequest with updated data:', {
+        currentStatus: currentRequest.status,
+        newStatus: updatedRequest.status,
+        requestId: currentRequest.id
+      });
+      
+      // Only update if there's actually a change to prevent unnecessary re-renders
+      if (currentRequest.status !== updatedRequest.status || 
+          currentRequest.smsCode !== updatedRequest.smsCode ||
+          currentRequest.updatedAt.getTime() !== updatedRequest.updatedAt.getTime()) {
+        console.log('✅ Updating currentRequest due to real-time changes');
+        setCurrentRequest(updatedRequest);
+        
+        // Hide simulation when status changes from pending
+        if (currentRequest.status === 'pending' && updatedRequest.status !== 'pending') {
+          console.log('🎯 Hiding simulation - status changed from pending to:', updatedRequest.status);
+          setShowSimulation(false);
+        }
+      }
+    }
+  }, [requests, currentRequest]);
+
   const fetchRequests = async () => {
     console.log('🔄 Fetching requests...');
     setIsLoading(true);
@@ -653,7 +679,6 @@ const SMSProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // Enhanced completeRequest function with better error handling for anonymous users
   const completeRequest = async (requestId: string) => {
     console.log('🎯 Completing request:', requestId);
     console.log('📊 Current request status before completion:', requests[requestId]?.status);
@@ -816,14 +841,18 @@ const SMSProvider = ({ children }: { children: React.ReactNode }) => {
             setRequests(prev => {
               const existingRequest = prev[updatedRequest.id];
               if (existingRequest) {
+                const updatedRequestData = {
+                  ...existingRequest,
+                  status: updatedRequest.status,
+                  smsCode: updatedRequest.sms_code || undefined,
+                  updatedAt: new Date(updatedRequest.updated_at)
+                };
+                
+                console.log('✅ Updated request in state:', updatedRequestData);
+                
                 return {
                   ...prev,
-                  [updatedRequest.id]: {
-                    ...existingRequest,
-                    status: updatedRequest.status,
-                    smsCode: updatedRequest.sms_code || undefined,
-                    updatedAt: new Date(updatedRequest.updated_at)
-                  }
+                  [updatedRequest.id]: updatedRequestData
                 };
               }
               return prev;
