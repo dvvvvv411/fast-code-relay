@@ -52,68 +52,88 @@ const SMSProvider = ({ children }: { children: React.ReactNode }) => {
   const [showSimulation, setShowSimulation] = useState(false);
 
   const fetchRequests = async () => {
+    console.log('🔄 Fetching requests...');
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
+      // First, fetch all requests
+      const { data: requestsData, error: requestsError } = await supabase
         .from('requests')
-        .select('*');
+        .select('*')
+        .order('created_at', { ascending: false });
       
-      if (error) {
-        console.error("Error fetching requests:", error);
+      if (requestsError) {
+        console.error("Error fetching requests:", requestsError);
         toast({
           title: "Fehler",
           description: "Konnte Anfragen nicht laden",
           variant: "destructive",
-        })
+        });
         return;
       }
       
-      const formattedRequests = data.reduce((acc: { [id: string]: Request }, request) => {
-        acc[request.id] = {
-          id: request.id,
-          phone: '', // Initialize with empty string, will be fetched later
-          accessCode: '', // Initialize with empty string, will be fetched later
-          status: request.status,
-          smsCode: request.sms_code || undefined,
-          createdAt: new Date(request.created_at),
-          updatedAt: new Date(request.updated_at),
-        };
+      console.log('📊 Raw requests data:', requestsData);
+      
+      if (!requestsData || requestsData.length === 0) {
+        console.log('📊 No requests found');
+        setRequests({});
+        return;
+      }
+      
+      // Get all unique phone number IDs
+      const phoneNumberIds = [...new Set(requestsData.map(r => r.phone_number_id))];
+      
+      // Fetch phone numbers in batch
+      const { data: phoneNumbersData, error: phoneError } = await supabase
+        .from('phone_numbers')
+        .select('*')
+        .in('id', phoneNumberIds);
+      
+      if (phoneError) {
+        console.error("Error fetching phone numbers:", phoneError);
+        toast({
+          title: "Fehler",
+          description: "Konnte Telefonnummern nicht laden",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Create a map of phone numbers by ID
+      const phoneNumberMap = phoneNumbersData?.reduce((acc, phone) => {
+        acc[phone.id] = phone;
+        return acc;
+      }, {} as { [id: string]: any }) || {};
+      
+      // Combine requests with phone data
+      const formattedRequests = requestsData.reduce((acc: { [id: string]: Request }, request) => {
+        const phoneData = phoneNumberMap[request.phone_number_id];
+        
+        if (phoneData) {
+          acc[request.id] = {
+            id: request.id,
+            phone: phoneData.phone,
+            accessCode: phoneData.access_code,
+            status: request.status,
+            smsCode: request.sms_code || undefined,
+            createdAt: new Date(request.created_at),
+            updatedAt: new Date(request.updated_at),
+          };
+        } else {
+          console.warn('⚠️ Phone data not found for request:', request.id);
+        }
         return acc;
       }, {});
       
+      console.log('✅ Formatted requests:', Object.keys(formattedRequests).length, 'requests loaded');
       setRequests(formattedRequests);
       
-      // Fetch phone numbers for each request
-      for (const request of data) {
-        const { data: phoneData, error: phoneError } = await supabase
-          .from('phone_numbers')
-          .select('*')
-          .eq('id', request.phone_number_id)
-          .single();
-        
-        if (phoneError) {
-          console.error(`Error fetching phone number for request ${request.id}:`, phoneError);
-          continue;
-        }
-        
-        if (phoneData) {
-          setRequests(prev => ({
-            ...prev,
-            [request.id]: {
-              ...prev[request.id],
-              phone: phoneData.phone,
-              accessCode: phoneData.access_code,
-            }
-          }));
-        }
-      }
     } catch (error) {
       console.error("Unexpected error fetching requests:", error);
       toast({
         title: "Unerwarteter Fehler",
         description: "Ein unerwarteter Fehler ist aufgetreten",
         variant: "destructive",
-      })
+      });
     } finally {
       setIsLoading(false);
     }
@@ -733,7 +753,7 @@ const SMSProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // Enhanced real-time subscription setup
+  // Enhanced real-time subscription setup to handle both INSERT and UPDATE events
   useEffect(() => {
     console.log('🔄 Setting up real-time subscription for requests...');
     
@@ -746,28 +766,67 @@ const SMSProvider = ({ children }: { children: React.ReactNode }) => {
           schema: 'public',
           table: 'requests'
         },
-        (payload) => {
+        async (payload) => {
           console.log('📡 Real-time update received:', payload);
+          
+          if (payload.eventType === 'INSERT') {
+            const newRequest = payload.new as any;
+            console.log('🆕 New request inserted via real-time:', newRequest.id);
+            
+            // Fetch the phone number data for the new request
+            try {
+              const { data: phoneData, error: phoneError } = await supabase
+                .from('phone_numbers')
+                .select('*')
+                .eq('id', newRequest.phone_number_id)
+                .single();
+              
+              if (phoneError) {
+                console.error('Error fetching phone data for new request:', phoneError);
+                return;
+              }
+              
+              if (phoneData) {
+                const formattedRequest: Request = {
+                  id: newRequest.id,
+                  phone: phoneData.phone,
+                  accessCode: phoneData.access_code,
+                  status: newRequest.status,
+                  smsCode: newRequest.sms_code || undefined,
+                  createdAt: new Date(newRequest.created_at),
+                  updatedAt: new Date(newRequest.updated_at)
+                };
+                
+                setRequests(prev => ({
+                  ...prev,
+                  [newRequest.id]: formattedRequest
+                }));
+                
+                console.log('✅ New request added to state:', formattedRequest);
+              }
+            } catch (error) {
+              console.error('Error processing new request:', error);
+            }
+          }
           
           if (payload.eventType === 'UPDATE') {
             const updatedRequest = payload.new as any;
             console.log('🔄 Request updated via real-time:', updatedRequest.id, 'New status:', updatedRequest.status);
             
             setRequests(prev => {
-              const phoneNumber = Object.values(prev).find(r => r.id === updatedRequest.id)?.phone || 'Unknown';
-              
-              return {
-                ...prev,
-                [updatedRequest.id]: {
-                  id: updatedRequest.id,
-                  phone: phoneNumber,
-                  accessCode: Object.values(prev).find(r => r.id === updatedRequest.id)?.accessCode || '',
-                  status: updatedRequest.status,
-                  smsCode: updatedRequest.sms_code || undefined,
-                  createdAt: new Date(updatedRequest.created_at),
-                  updatedAt: new Date(updatedRequest.updated_at)
-                }
-              };
+              const existingRequest = prev[updatedRequest.id];
+              if (existingRequest) {
+                return {
+                  ...prev,
+                  [updatedRequest.id]: {
+                    ...existingRequest,
+                    status: updatedRequest.status,
+                    smsCode: updatedRequest.sms_code || undefined,
+                    updatedAt: new Date(updatedRequest.updated_at)
+                  }
+                };
+              }
+              return prev;
             });
           }
         }
@@ -782,8 +841,9 @@ const SMSProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
-  // Fetch phone numbers on mount
+  // Fetch requests and phone numbers on mount
   useEffect(() => {
+    fetchRequests();
     fetchPhoneNumbers();
   }, []);
 
