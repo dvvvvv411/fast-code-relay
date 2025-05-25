@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useSMS } from '../context/SMSContext';
 import { Button } from '@/components/ui/button';
@@ -104,6 +103,15 @@ const PhoneNumberManager = () => {
 
   const phoneNumbersList = Object.values(phoneNumbers);
 
+  // Group phone numbers by phone number for better display
+  const groupedPhoneNumbers = phoneNumbersList.reduce((acc, phoneNumber) => {
+    if (!acc[phoneNumber.phone]) {
+      acc[phoneNumber.phone] = [];
+    }
+    acc[phoneNumber.phone].push(phoneNumber);
+    return acc;
+  }, {} as Record<string, typeof phoneNumbersList>);
+
   if (isLoading) {
     return (
       <div className="container mx-auto p-6 space-y-8">
@@ -206,6 +214,9 @@ const PhoneNumberManager = () => {
       <Card>
         <CardHeader>
           <CardTitle className="text-xl font-medium">Erstellte Telefonnummern</CardTitle>
+          <p className="text-sm text-gray-600">
+            Sie können dieselbe Telefonnummer mehrmals mit verschiedenen Zugangscodes hinzufügen.
+          </p>
         </CardHeader>
         <CardContent>
           {phoneNumbersList.length === 0 ? (
@@ -226,69 +237,87 @@ const PhoneNumberManager = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {phoneNumbersList.map((item) => {
-                  const urlInfo = phoneNumberUrls[item.phone];
-                  return (
-                    <TableRow key={item.id} className={item.isUsed ? 'bg-gray-50' : ''}>
-                      <TableCell className="font-medium">{item.phone}</TableCell>
-                      <TableCell>{item.accessCode}</TableCell>
-                      <TableCell>
-                        {item.isUsed ? (
-                          <div className="flex items-center gap-2 text-red-600">
-                            <XCircle size={16} />
-                            <span>Verwendet</span>
+                {Object.entries(groupedPhoneNumbers).map(([phoneNumber, entries]) => 
+                  entries.map((item, index) => {
+                    const urlInfo = phoneNumberUrls[item.phone];
+                    const isFirstEntry = index === 0;
+                    const hasMultipleEntries = entries.length > 1;
+                    
+                    return (
+                      <TableRow key={item.id} className={item.isUsed ? 'bg-gray-50' : ''}>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            {item.phone}
+                            {hasMultipleEntries && (
+                              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                {index + 1}/{entries.length}
+                              </span>
+                            )}
                           </div>
-                        ) : (
-                          <div className="flex items-center gap-2 text-green-600">
-                            <CheckCircle size={16} />
-                            <span>Verfügbar</span>
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {urlInfo ? (
-                          <span className="text-sm text-gray-600">{urlInfo.domain}</span>
-                        ) : (
-                          <span className="text-sm text-gray-400">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>{item.createdAt.toLocaleDateString()}</TableCell>
-                      <TableCell>
-                        {item.usedAt ? item.usedAt.toLocaleDateString() : '-'}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end space-x-2">
-                          {urlInfo && (
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-mono bg-gray-100 px-2 py-1 rounded text-sm">
+                            {item.accessCode}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          {item.isUsed ? (
+                            <div className="flex items-center gap-2 text-red-600">
+                              <XCircle size={16} />
+                              <span>Verwendet</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 text-green-600">
+                              <CheckCircle size={16} />
+                              <span>Verfügbar</span>
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {urlInfo ? (
+                            <span className="text-sm text-gray-600">{urlInfo.domain}</span>
+                          ) : (
+                            <span className="text-sm text-gray-400">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>{item.createdAt.toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          {item.usedAt ? item.usedAt.toLocaleDateString() : '-'}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end space-x-2">
+                            {urlInfo && (
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => handleOpenUrl(item.phone)}
+                                title="URL öffnen"
+                              >
+                                <ExternalLink size={16} />
+                              </Button>
+                            )}
                             <Button 
                               variant="ghost" 
                               size="sm" 
-                              onClick={() => handleOpenUrl(item.phone)}
-                              title="URL öffnen"
+                              onClick={() => handleEdit(item.phone, item.accessCode, item.id)}
+                              disabled={item.isUsed}
                             >
-                              <ExternalLink size={16} />
+                              <Edit size={16} />
                             </Button>
-                          )}
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => handleEdit(item.phone, item.accessCode, item.id)}
-                            disabled={item.isUsed}
-                          >
-                            <Edit size={16} />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => handleDelete(item.id)}
-                            disabled={item.isUsed}
-                          >
-                            <Trash size={16} />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleDelete(item.id)}
+                              disabled={item.isUsed}
+                            >
+                              <Trash size={16} />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
               </TableBody>
             </Table>
           )}

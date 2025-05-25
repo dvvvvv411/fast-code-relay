@@ -639,27 +639,23 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
     try {
       console.log('🚀 SMSContext - submitRequest called with:', { phone, accessCode });
       
+      // Find the specific phone number entry that matches both phone AND access code
       const { data: phoneData, error: phoneError } = await supabase
         .from('phone_numbers')
         .select('id, is_used, access_code')
         .eq('phone', phone)
+        .eq('access_code', accessCode)
         .single();
 
       if (phoneError) {
-        console.error('❌ SMSContext - Error finding phone number:', phoneError);
-        setError('Diese Telefonnummer wurde nicht gefunden oder ist ungültig.');
+        console.error('❌ SMSContext - Error finding phone number with access code:', phoneError);
+        setError('Diese Kombination aus Telefonnummer und Zugangscode wurde nicht gefunden oder ist ungültig.');
         return;
       }
 
       if (phoneData.is_used) {
-        console.log('⚠️ SMSContext - Phone number already used:', phone);
-        setError('Diese Telefonnummer wurde bereits verwendet und kann nicht erneut aktiviert werden.');
-        return;
-      }
-
-      if (phoneData.access_code !== accessCode) {
-        console.error('❌ SMSContext - Invalid access code for phone:', phone);
-        setError('Der eingegebene Zugangscode ist ungültig.');
+        console.log('⚠️ SMSContext - Phone number entry already used:', phone, accessCode);
+        setError('Diese Kombination aus Telefonnummer und Zugangscode wurde bereits verwendet.');
         return;
       }
 
