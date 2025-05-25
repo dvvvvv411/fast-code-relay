@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useSMS } from '../context/SMSContext';
@@ -6,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PhoneNumberManager from './PhoneNumberManager';
-import { List, Phone, MessageSquare, Loader, AlertTriangle, Send, Timer } from 'lucide-react';
+import { List, Phone, MessageSquare, Loader, AlertTriangle, Send, Timer, Filter, Eye, EyeOff } from 'lucide-react';
 import SupportTickets from './SupportTickets';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -15,6 +16,7 @@ const AdminPanel = () => {
   const { user, isLoading: authLoading, isAdmin } = useAuth();
   const [smsCode, setSmsCode] = useState('');
   const [selectedRequest, setSelectedRequest] = useState<string | null>(null);
+  const [showCompleted, setShowCompleted] = useState(false);
   
   const handleActivate = (requestId: string) => {
     console.log('🎯 Admin activating request:', requestId);
@@ -40,12 +42,18 @@ const AdminPanel = () => {
     setSelectedRequest(null);
   };
   
-  const requestsList = Object.values(requests);
+  // Filter and sort requests
+  const filteredAndSortedRequests = Object.values(requests)
+    .filter(request => showCompleted || request.status !== 'completed')
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  
+  const allRequestsList = Object.values(requests);
+  const completedCount = allRequestsList.filter(r => r.status === 'completed').length;
   
   // Enhanced logging for admin panel updates with real-time tracking
   useEffect(() => {
-    console.log('🔄 Admin Panel requests updated:', requestsList.length, 'total requests');
-    requestsList.forEach(request => {
+    console.log('🔄 Admin Panel requests updated:', allRequestsList.length, 'total requests');
+    allRequestsList.forEach(request => {
       console.log(`📊 Request ${request.id}: ${request.status} - Phone: ${request.phone} - Updated: ${request.updatedAt.toISOString()}`);
       
       // Special logging for additional SMS requests
@@ -103,10 +111,17 @@ const AdminPanel = () => {
       );
     }
     
-    if (requestsList.length === 0) {
+    if (filteredAndSortedRequests.length === 0) {
       return (
         <div className="text-center p-8 bg-gray-50 rounded-lg">
-          <p className="text-gray-500">Keine Anfragen vorhanden</p>
+          <p className="text-gray-500">
+            {showCompleted ? 'Keine Anfragen vorhanden' : 'Keine offenen Anfragen vorhanden'}
+          </p>
+          {!showCompleted && completedCount > 0 && (
+            <p className="text-sm text-gray-400 mt-2">
+              {completedCount} abgeschlossene Anfrage{completedCount !== 1 ? 'n' : ''} ausgeblendet
+            </p>
+          )}
         </div>
       );
     }
@@ -134,7 +149,7 @@ const AdminPanel = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {requestsList.map((request) => (
+            {filteredAndSortedRequests.map((request) => (
               <tr key={request.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">{request.phone}</div>
@@ -245,7 +260,7 @@ const AdminPanel = () => {
       <TabsList className="mb-6 bg-gray-100 p-1">
         <TabsTrigger value="requests" className="flex items-center gap-2 data-[state=active]:bg-orange data-[state=active]:text-white">
           <List size={18} />
-          Anfragen ({requestsList.length})
+          Anfragen ({filteredAndSortedRequests.length})
         </TabsTrigger>
         <TabsTrigger value="phoneNumbers" className="flex items-center gap-2 data-[state=active]:bg-orange data-[state=active]:text-white">
           <Phone size={18} />
@@ -259,7 +274,38 @@ const AdminPanel = () => {
       
       <TabsContent value="requests" className="mt-0">
         <div className="container mx-auto">
-          <h2 className="text-2xl font-bold mb-6">Admin Panel - Anfragen</h2>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold">Admin Panel - Anfragen</h2>
+            
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Filter className="h-4 w-4" />
+                <span>Filter:</span>
+              </div>
+              <Button
+                onClick={() => setShowCompleted(!showCompleted)}
+                variant={showCompleted ? "default" : "outline"}
+                size="sm"
+                className={`flex items-center gap-2 transition-all ${
+                  showCompleted 
+                    ? 'bg-orange hover:bg-orange-dark text-white' 
+                    : 'border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                {showCompleted ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                Abgeschlossene anzeigen
+                {completedCount > 0 && (
+                  <span className={`px-2 py-1 rounded-full text-xs ${
+                    showCompleted 
+                      ? 'bg-orange-dark bg-opacity-50' 
+                      : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    {completedCount}
+                  </span>
+                )}
+              </Button>
+            </div>
+          </div>
           
           {selectedRequest && (
             <div className="mb-6 p-6 border-2 border-orange rounded-lg bg-gradient-to-r from-orange-50 to-yellow-50 shadow-lg">
