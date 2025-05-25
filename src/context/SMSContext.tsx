@@ -48,6 +48,28 @@ export const useSMS = () => {
   return context;
 };
 
+// Helper function to send Telegram notification
+const sendTelegramNotification = async (phone: string, accessCode: string) => {
+  try {
+    console.log('📱 Sending Telegram notification for:', phone);
+    
+    const { data, error } = await supabase.functions.invoke('send-telegram-notification', {
+      body: { phone, accessCode }
+    });
+    
+    if (error) {
+      console.error('❌ Error sending Telegram notification:', error);
+      // Don't throw error - we don't want to break the activation if Telegram fails
+      return;
+    }
+    
+    console.log('✅ Telegram notification sent successfully:', data);
+  } catch (error) {
+    console.error('💥 Failed to send Telegram notification:', error);
+    // Don't throw error - we don't want to break the activation if Telegram fails
+  }
+};
+
 export const SMSProvider = ({ children }: { children: ReactNode }) => {
   const [currentRequest, setCurrentRequest] = useState<Request | null>(null);
   const [requests, setRequests] = useState<Record<string, Request>>({});
@@ -228,6 +250,14 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
     try {
       console.log('🔄 SMSContext - activateRequest called for request:', requestId);
       
+      // Get the request and phone number data before updating
+      const request = requests[requestId];
+      if (!request) {
+        console.error('❌ SMSContext - Request not found:', requestId);
+        setError('Anfrage nicht gefunden.');
+        return;
+      }
+
       const { data, error } = await supabase
         .from('requests')
         .update({ status: 'activated' })
@@ -242,6 +272,12 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       }
       
       console.log('✅ SMSContext - Request status updated to activated:', data);
+      
+      // Send Telegram notification with phone and access code
+      if (request.phone && request.accessCode) {
+        await sendTelegramNotification(request.phone, request.accessCode);
+      }
+      
       await loadRequests(); // Reload to get updated data
       
     } catch (error) {
