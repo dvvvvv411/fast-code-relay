@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -19,6 +20,8 @@ interface PhoneNumber {
   id: string;
   phone: string;
   accessCode: string;
+  isUsed: boolean;
+  usedAt: Date | null;
   createdAt: Date;
 }
 
@@ -304,6 +307,8 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
           id: item.id,
           phone: item.phone,
           accessCode: item.access_code,
+          isUsed: item.is_used,
+          usedAt: item.used_at ? new Date(item.used_at) : null,
           createdAt: new Date(item.created_at)
         };
       });
@@ -517,6 +522,16 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
         } else {
           throw phoneNumberError;
         }
+        return false;
+      }
+      
+      // Check if the phone number has already been used
+      if (phoneNumberData.is_used) {
+        toast({
+          title: "Telefonnummer bereits verwendet",
+          description: "Diese Telefonnummer wurde bereits verwendet und ist nicht mehr verfügbar.",
+          variant: "destructive",
+        });
         return false;
       }
       
@@ -839,7 +854,8 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
         .insert([
           {
             phone,
-            access_code: accessCode
+            access_code: accessCode,
+            is_used: false
           }
         ]);
       

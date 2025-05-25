@@ -4,7 +4,7 @@ import { useSMS } from '../context/SMSContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Edit, Trash, Loader } from 'lucide-react';
+import { Plus, Edit, Trash, Loader, CheckCircle, XCircle } from 'lucide-react';
 import { 
   Table, 
   TableBody, 
@@ -154,22 +154,41 @@ const PhoneNumberManager = () => {
                 <TableRow>
                   <TableHead>Telefonnummer</TableHead>
                   <TableHead>Zugangscode</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Erstellt am</TableHead>
+                  <TableHead>Verwendet am</TableHead>
                   <TableHead className="text-right">Aktionen</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {phoneNumbersList.map((item) => (
-                  <TableRow key={item.id}>
+                  <TableRow key={item.id} className={item.isUsed ? 'bg-gray-50' : ''}>
                     <TableCell className="font-medium">{item.phone}</TableCell>
                     <TableCell>{item.accessCode}</TableCell>
+                    <TableCell>
+                      {item.isUsed ? (
+                        <div className="flex items-center gap-2 text-red-600">
+                          <XCircle size={16} />
+                          <span>Verwendet</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 text-green-600">
+                          <CheckCircle size={16} />
+                          <span>Verfügbar</span>
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell>{item.createdAt.toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      {item.usedAt ? item.usedAt.toLocaleDateString() : '-'}
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end space-x-2">
                         <Button 
                           variant="ghost" 
                           size="sm" 
                           onClick={() => handleEdit(item.phone, item.accessCode, item.id)}
+                          disabled={item.isUsed}
                         >
                           <Edit size={16} />
                         </Button>
@@ -177,6 +196,7 @@ const PhoneNumberManager = () => {
                           variant="ghost" 
                           size="sm"
                           onClick={() => handleDelete(item.id)}
+                          disabled={item.isUsed}
                         >
                           <Trash size={16} />
                         </Button>

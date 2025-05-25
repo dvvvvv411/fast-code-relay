@@ -14,19 +14,25 @@ export type Database = {
           access_code: string
           created_at: string
           id: string
+          is_used: boolean
           phone: string
+          used_at: string | null
         }
         Insert: {
           access_code: string
           created_at?: string
           id?: string
+          is_used?: boolean
           phone: string
+          used_at?: string | null
         }
         Update: {
           access_code?: string
           created_at?: string
           id?: string
+          is_used?: boolean
           phone?: string
+          used_at?: string | null
         }
         Relationships: []
       }
