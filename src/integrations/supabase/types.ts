@@ -57,6 +57,136 @@ export type Database = {
         }
         Relationships: []
       }
+      auftrag_assignments: {
+        Row: {
+          access_email: string | null
+          access_password: string | null
+          access_phone: string | null
+          assignment_url: string
+          auftrag_id: string
+          created_at: string
+          id: string
+          ident_code: string | null
+          is_completed: boolean
+          is_evaluated: boolean
+          updated_at: string
+          worker_first_name: string
+          worker_last_name: string
+        }
+        Insert: {
+          access_email?: string | null
+          access_password?: string | null
+          access_phone?: string | null
+          assignment_url: string
+          auftrag_id: string
+          created_at?: string
+          id?: string
+          ident_code?: string | null
+          is_completed?: boolean
+          is_evaluated?: boolean
+          updated_at?: string
+          worker_first_name: string
+          worker_last_name: string
+        }
+        Update: {
+          access_email?: string | null
+          access_password?: string | null
+          access_phone?: string | null
+          assignment_url?: string
+          auftrag_id?: string
+          created_at?: string
+          id?: string
+          ident_code?: string | null
+          is_completed?: boolean
+          is_evaluated?: boolean
+          updated_at?: string
+          worker_first_name?: string
+          worker_last_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auftrag_assignments_auftrag_id_fkey"
+            columns: ["auftrag_id"]
+            isOneToOne: false
+            referencedRelation: "auftraege"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      evaluation_questions: {
+        Row: {
+          auftrag_id: string
+          created_at: string
+          id: string
+          question_order: number
+          question_text: string
+        }
+        Insert: {
+          auftrag_id: string
+          created_at?: string
+          id?: string
+          question_order?: number
+          question_text: string
+        }
+        Update: {
+          auftrag_id?: string
+          created_at?: string
+          id?: string
+          question_order?: number
+          question_text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evaluation_questions_auftrag_id_fkey"
+            columns: ["auftrag_id"]
+            isOneToOne: false
+            referencedRelation: "auftraege"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      evaluations: {
+        Row: {
+          assignment_id: string
+          created_at: string
+          id: string
+          question_id: string
+          star_rating: number
+          text_feedback: string | null
+        }
+        Insert: {
+          assignment_id: string
+          created_at?: string
+          id?: string
+          question_id: string
+          star_rating: number
+          text_feedback?: string | null
+        }
+        Update: {
+          assignment_id?: string
+          created_at?: string
+          id?: string
+          question_id?: string
+          star_rating?: number
+          text_feedback?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evaluations_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "auftrag_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evaluations_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "evaluation_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       phone_numbers: {
         Row: {
           access_code: string
@@ -181,6 +311,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_assignment_url: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       generate_short_id: {
         Args: Record<PropertyKey, never>
         Returns: string

@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PhoneNumberManager from './PhoneNumberManager';
 import AuftraegeManager from './AuftraegeManager';
+import FeedbackManager from './FeedbackManager';
 import { List, Phone, MessageSquare, Loader, AlertTriangle, Send, Timer, Filter, Eye, EyeOff, CheckCircle, FileText } from 'lucide-react';
 import SupportTickets from './SupportTickets';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -299,6 +300,9 @@ const AdminPanel = () => {
           <MessageSquare size={18} />
           Support Tickets
         </TabsTrigger>
+        <TabsTrigger value="feedback" className="flex items-center gap-2 data-[state=active]:bg-orange data-[state=active]:text-white">
+          <FeedbackManager />
+        </TabsTrigger>
       </TabsList>
       
       <TabsContent value="requests" className="mt-0">
@@ -383,6 +387,10 @@ const AdminPanel = () => {
       
       <TabsContent value="supportTickets" className="mt-0">
         <SupportTickets />
+      </TabsContent>
+      
+      <TabsContent value="feedback" className="mt-0">
+        <FeedbackManager />
       </TabsContent>
     </Tabs>
   );

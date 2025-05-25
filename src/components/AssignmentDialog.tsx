@@ -1,0 +1,197 @@
+
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/components/ui/use-toast';
+import { UserPlus } from 'lucide-react';
+
+interface AssignmentDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  auftragId: string;
+  auftragTitle: string;
+  onAssignmentCreated: () => void;
+}
+
+const AssignmentDialog = ({ isOpen, onClose, auftragId, auftragTitle, onAssignmentCreated }: AssignmentDialogProps) => {
+  const [formData, setFormData] = useState({
+    worker_first_name: '',
+    worker_last_name: '',
+    ident_code: '',
+    access_email: '',
+    access_password: '',
+    access_phone: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+
+  const resetForm = () => {
+    setFormData({
+      worker_first_name: '',
+      worker_last_name: '',
+      ident_code: '',
+      access_email: '',
+      access_password: '',
+      access_phone: ''
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.worker_first_name.trim() || !formData.worker_last_name.trim()) {
+      toast({
+        title: "Fehler",
+        description: "Vor- und Nachname sind erforderlich.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      const assignmentData = {
+        auftrag_id: auftragId,
+        worker_first_name: formData.worker_first_name.trim(),
+        worker_last_name: formData.worker_last_name.trim(),
+        ident_code: formData.ident_code.trim() || null,
+        access_email: formData.access_email.trim() || null,
+        access_password: formData.access_password.trim() || null,
+        access_phone: formData.access_phone.trim() || null
+      };
+
+      const { data, error } = await supabase
+        .from('auftrag_assignments')
+        .insert([assignmentData])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast({
+        title: "Erfolg",
+        description: `Auftrag wurde an ${formData.worker_first_name} ${formData.worker_last_name} zugewiesen.`
+      });
+
+      console.log('Assignment created:', data);
+      resetForm();
+      onClose();
+      onAssignmentCreated();
+    } catch (error) {
+      console.error('Error creating assignment:', error);
+      toast({
+        title: "Fehler",
+        description: "Auftragszuweisung konnte nicht erstellt werden.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <UserPlus className="h-5 w-5 text-orange-500" />
+            Auftrag zuweisen
+          </DialogTitle>
+          <p className="text-sm text-gray-600 mt-2">
+            <strong>{auftragTitle}</strong>
+          </p>
+        </DialogHeader>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label htmlFor="worker_first_name">Vorname *</Label>
+              <Input
+                id="worker_first_name"
+                value={formData.worker_first_name}
+                onChange={(e) => setFormData({ ...formData, worker_first_name: e.target.value })}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="worker_last_name">Nachname *</Label>
+              <Input
+                id="worker_last_name"
+                value={formData.worker_last_name}
+                onChange={(e) => setFormData({ ...formData, worker_last_name: e.target.value })}
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="ident_code">Ident Code (Optional)</Label>
+            <Input
+              id="ident_code"
+              value={formData.ident_code}
+              onChange={(e) => setFormData({ ...formData, ident_code: e.target.value })}
+              placeholder="z.B. ID12345"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="access_email">E-Mail (Optional)</Label>
+            <Input
+              id="access_email"
+              type="email"
+              value={formData.access_email}
+              onChange={(e) => setFormData({ ...formData, access_email: e.target.value })}
+              placeholder="beispiel@email.de"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="access_password">Passwort (Optional)</Label>
+            <Input
+              id="access_password"
+              type="password"
+              value={formData.access_password}
+              onChange={(e) => setFormData({ ...formData, access_password: e.target.value })}
+              placeholder="Zugangsdaten"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="access_phone">Telefonnummer (Optional)</Label>
+            <Input
+              id="access_phone"
+              type="tel"
+              value={formData.access_phone}
+              onChange={(e) => setFormData({ ...formData, access_phone: e.target.value })}
+              placeholder="+49 123 456789"
+            />
+          </div>
+
+          <div className="flex gap-2 pt-4">
+            <Button 
+              type="submit" 
+              className="bg-orange hover:bg-orange-dark flex-1"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Erstelle...' : 'Zuweisen'}
+            </Button>
+            <Button type="button" variant="outline" onClick={handleClose}>
+              Abbrechen
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default AssignmentDialog;

@@ -7,10 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Trash2, Edit, Plus, Eye } from 'lucide-react';
+import { Trash2, Edit, Plus, Eye, UserPlus, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import InstructionsBuilder from './InstructionsBuilder';
+import EvaluationQuestionsBuilder from './EvaluationQuestionsBuilder';
+import AssignmentDialog from './AssignmentDialog';
 
 interface Auftrag {
   id: string;
@@ -27,11 +29,20 @@ interface Auftrag {
   created_at: string;
 }
 
+interface EvaluationQuestion {
+  id: string;
+  question_text: string;
+  question_order: number;
+}
+
 const AuftraegeManager = () => {
   const [auftraege, setAuftraege] = useState<Auftrag[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingAuftrag, setEditingAuftrag] = useState<Auftrag | null>(null);
+  const [assignmentDialogOpen, setAssignmentDialogOpen] = useState(false);
+  const [selectedAuftragForAssignment, setSelectedAuftragForAssignment] = useState<Auftrag | null>(null);
+  const [assignments, setAssignments] = useState<Record<string, number>>({});
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -43,12 +54,14 @@ const AuftraegeManager = () => {
     google_play_link: '',
     show_download_links: true,
     anweisungen: [],
+    evaluation_questions: [] as EvaluationQuestion[],
     kontakt_name: 'Friedrich Hautmann',
     kontakt_email: 'f.hautmann@sls-advisors.net'
   });
 
   useEffect(() => {
     fetchAuftraege();
+    fetchAssignmentCounts();
   }, []);
 
   const fetchAuftraege = async () => {
@@ -79,6 +92,25 @@ const AuftraegeManager = () => {
     }
   };
 
+  const fetchAssignmentCounts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('auftrag_assignments')
+        .select('auftrag_id');
+
+      if (error) throw error;
+
+      const counts: Record<string, number> = {};
+      data?.forEach(assignment => {
+        counts[assignment.auftrag_id] = (counts[assignment.auftrag_id] || 0) + 1;
+      });
+      
+      setAssignments(counts);
+    } catch (error) {
+      console.error('Error fetching assignment counts:', error);
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       title: '',
@@ -89,6 +121,7 @@ const AuftraegeManager = () => {
       google_play_link: '',
       show_download_links: true,
       anweisungen: [],
+      evaluation_questions: [],
       kontakt_name: 'Friedrich Hautmann',
       kontakt_email: 'f.hautmann@sls-advisors.net'
     });
@@ -101,10 +134,19 @@ const AuftraegeManager = () => {
     try {
       // Clean up empty string values to null for optional fields
       const cleanedData = {
-        ...formData,
+        title: formData.title,
+        auftragsnummer: formData.auftragsnummer,
+        anbieter: formData.anbieter,
+        projektziel: formData.projektziel,
         app_store_link: formData.app_store_link || null,
-        google_play_link: formData.google_play_link || null
+        google_play_link: formData.google_play_link || null,
+        show_download_links: formData.show_download_links,
+        anweisungen: formData.anweisungen,
+        kontakt_name: formData.kontakt_name,
+        kontakt_email: formData.kontakt_email
       };
+      
+      let auftragId: string;
       
       if (editingAuftrag) {
         const { error } = await supabase
@@ -113,22 +155,50 @@ const AuftraegeManager = () => {
           .eq('id', editingAuftrag.id);
         
         if (error) throw error;
+        auftragId = editingAuftrag.id;
         
         toast({
           title: "Erfolg",
           description: "Auftrag wurde aktualisiert."
         });
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('auftraege')
-          .insert([cleanedData]);
+          .insert([cleanedData])
+          .select()
+          .single();
         
         if (error) throw error;
+        auftragId = data.id;
         
         toast({
           title: "Erfolg",
           description: "Auftrag wurde erstellt."
         });
+      }
+
+      // Handle evaluation questions
+      if (formData.evaluation_questions.length > 0) {
+        // Delete existing questions if editing
+        if (editingAuftrag) {
+          await supabase
+            .from('evaluation_questions')
+            .delete()
+            .eq('auftrag_id', auftragId);
+        }
+
+        // Insert new questions
+        const questionsToInsert = formData.evaluation_questions.map(q => ({
+          auftrag_id: auftragId,
+          question_text: q.question_text,
+          question_order: q.question_order
+        }));
+
+        const { error: questionsError } = await supabase
+          .from('evaluation_questions')
+          .insert(questionsToInsert);
+
+        if (questionsError) throw questionsError;
       }
       
       setIsDialogOpen(false);
@@ -144,20 +214,49 @@ const AuftraegeManager = () => {
     }
   };
 
-  const handleEdit = (auftrag: Auftrag) => {
+  const handleEdit = async (auftrag: Auftrag) => {
     setEditingAuftrag(auftrag);
-    setFormData({
-      title: auftrag.title,
-      auftragsnummer: auftrag.auftragsnummer,
-      anbieter: auftrag.anbieter,
-      projektziel: auftrag.projektziel,
-      app_store_link: auftrag.app_store_link || '',
-      google_play_link: auftrag.google_play_link || '',
-      show_download_links: auftrag.show_download_links,
-      anweisungen: Array.isArray(auftrag.anweisungen) ? auftrag.anweisungen : [],
-      kontakt_name: auftrag.kontakt_name,
-      kontakt_email: auftrag.kontakt_email
-    });
+    
+    // Fetch evaluation questions for this auftrag
+    try {
+      const { data: questionsData, error } = await supabase
+        .from('evaluation_questions')
+        .select('*')
+        .eq('auftrag_id', auftrag.id)
+        .order('question_order');
+
+      if (error) throw error;
+
+      setFormData({
+        title: auftrag.title,
+        auftragsnummer: auftrag.auftragsnummer,
+        anbieter: auftrag.anbieter,
+        projektziel: auftrag.projektziel,
+        app_store_link: auftrag.app_store_link || '',
+        google_play_link: auftrag.google_play_link || '',
+        show_download_links: auftrag.show_download_links,
+        anweisungen: Array.isArray(auftrag.anweisungen) ? auftrag.anweisungen : [],
+        evaluation_questions: questionsData || [],
+        kontakt_name: auftrag.kontakt_name,
+        kontakt_email: auftrag.kontakt_email
+      });
+    } catch (error) {
+      console.error('Error fetching evaluation questions:', error);
+      setFormData({
+        title: auftrag.title,
+        auftragsnummer: auftrag.auftragsnummer,
+        anbieter: auftrag.anbieter,
+        projektziel: auftrag.projektziel,
+        app_store_link: auftrag.app_store_link || '',
+        google_play_link: auftrag.google_play_link || '',
+        show_download_links: auftrag.show_download_links,
+        anweisungen: Array.isArray(auftrag.anweisungen) ? auftrag.anweisungen : [],
+        evaluation_questions: [],
+        kontakt_name: auftrag.kontakt_name,
+        kontakt_email: auftrag.kontakt_email
+      });
+    }
+    
     setIsDialogOpen(true);
   };
 
@@ -178,6 +277,7 @@ const AuftraegeManager = () => {
       });
       
       fetchAuftraege();
+      fetchAssignmentCounts();
     } catch (error) {
       console.error('Error deleting auftrag:', error);
       toast({
@@ -190,6 +290,15 @@ const AuftraegeManager = () => {
 
   const handleViewAuftrag = (id: string) => {
     window.open(`/auftrag/${id}`, '_blank');
+  };
+
+  const handleAssignAuftrag = (auftrag: Auftrag) => {
+    setSelectedAuftragForAssignment(auftrag);
+    setAssignmentDialogOpen(true);
+  };
+
+  const handleAssignmentCreated = () => {
+    fetchAssignmentCounts();
   };
 
   if (isLoading) {
@@ -297,6 +406,13 @@ const AuftraegeManager = () => {
                 />
               </div>
 
+              <div>
+                <EvaluationQuestionsBuilder
+                  questions={formData.evaluation_questions}
+                  onChange={(questions) => setFormData({ ...formData, evaluation_questions: questions })}
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="kontakt_name">Kontakt Name</Label>
@@ -349,6 +465,15 @@ const AuftraegeManager = () => {
                     <Button
                       variant="outline"
                       size="sm"
+                      onClick={() => handleAssignAuftrag(auftrag)}
+                      className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+                    >
+                      <UserPlus className="h-4 w-4 mr-1" />
+                      Zuweisen
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => handleViewAuftrag(auftrag.id)}
                     >
                       <Eye className="h-4 w-4" />
@@ -384,8 +509,12 @@ const AuftraegeManager = () => {
                   <div>
                     <strong>Erstellt:</strong> {new Date(auftrag.created_at).toLocaleDateString('de-DE')}
                   </div>
-                  <div>
-                    <strong>Download-Links:</strong> {auftrag.show_download_links ? 'Ja' : 'Nein'}
+                  <div className="flex items-center gap-2">
+                    <strong>Zuweisungen:</strong> 
+                    <span className="flex items-center gap-1">
+                      <Users className="h-4 w-4" />
+                      {assignments[auftrag.id] || 0}
+                    </span>
                   </div>
                 </div>
               </CardContent>
@@ -393,6 +522,20 @@ const AuftraegeManager = () => {
           ))
         )}
       </div>
+
+      {/* Assignment Dialog */}
+      {selectedAuftragForAssignment && (
+        <AssignmentDialog
+          isOpen={assignmentDialogOpen}
+          onClose={() => {
+            setAssignmentDialogOpen(false);
+            setSelectedAuftragForAssignment(null);
+          }}
+          auftragId={selectedAuftragForAssignment.id}
+          auftragTitle={selectedAuftragForAssignment.title}
+          onAssignmentCreated={handleAssignmentCreated}
+        />
+      )}
     </div>
   );
 };
