@@ -4,7 +4,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { FileText, Smartphone, Download, User, Mail, Target, Search, RefreshCw, ArrowDown, ArrowUp, Key, Phone } from 'lucide-react';
+import { FileText, Smartphone, Download, User, Mail, Target, Search, RefreshCw, ArrowDown, ArrowUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface AuftragData {
@@ -19,10 +19,6 @@ interface AuftragData {
   anweisungen: any[];
   kontakt_name: string;
   kontakt_email: string;
-  ident_code: string | null;
-  access_email: string | null;
-  access_password: string | null;
-  access_phone: string | null;
 }
 
 interface Instruction {
@@ -121,11 +117,7 @@ const AuftragTemplate = ({ auftragId }: AuftragTemplateProps) => {
       }
     ],
     kontakt_name: 'Friedrich Hautmann',
-    kontakt_email: 'f.hautmann@sls-advisors.net',
-    ident_code: null,
-    access_email: null,
-    access_password: null,
-    access_phone: null
+    kontakt_email: 'f.hautmann@sls-advisors.net'
   };
 
   const data = auftragData || defaultData;
@@ -154,8 +146,6 @@ const AuftragTemplate = ({ auftragId }: AuftragTemplateProps) => {
   const getIconComponent = (iconName: string) => {
     return iconMap[iconName as keyof typeof iconMap];
   };
-
-  const hasAccessCredentials = data.ident_code || data.access_email || data.access_password || data.access_phone;
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -196,58 +186,6 @@ const AuftragTemplate = ({ auftragId }: AuftragTemplateProps) => {
               </div>
             </CardContent>
           </Card>
-
-          {/* Zugangsdaten */}
-          {hasAccessCredentials && (
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Key className="h-5 w-5 text-orange-500" />
-                  Zugangsdaten
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid md:grid-cols-2 gap-4">
-                  {data.ident_code && (
-                    <div>
-                      <h3 className="font-semibold mb-2 flex items-center gap-2">
-                        <Key className="h-4 w-4" />
-                        Ident Code:
-                      </h3>
-                      <p className="text-gray-700">{data.ident_code}</p>
-                    </div>
-                  )}
-                  {data.access_email && (
-                    <div>
-                      <h3 className="font-semibold mb-2 flex items-center gap-2">
-                        <Mail className="h-4 w-4" />
-                        E-Mail:
-                      </h3>
-                      <p className="text-gray-700">{data.access_email}</p>
-                    </div>
-                  )}
-                  {data.access_password && (
-                    <div>
-                      <h3 className="font-semibold mb-2 flex items-center gap-2">
-                        <Key className="h-4 w-4" />
-                        Passwort:
-                      </h3>
-                      <p className="text-gray-700 font-mono">{"•".repeat(8)}</p>
-                    </div>
-                  )}
-                  {data.access_phone && (
-                    <div>
-                      <h3 className="font-semibold mb-2 flex items-center gap-2">
-                        <Phone className="h-4 w-4" />
-                        Telefonnummer:
-                      </h3>
-                      <p className="text-gray-700">{data.access_phone}</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
 
           {/* Projektziel */}
           <Card className="mb-6">

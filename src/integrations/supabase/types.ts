@@ -11,9 +11,6 @@ export type Database = {
     Tables: {
       auftraege: {
         Row: {
-          access_email: string | null
-          access_password: string | null
-          access_phone: string | null
           anbieter: string
           anweisungen: Json
           app_store_link: string | null
@@ -21,7 +18,6 @@ export type Database = {
           created_at: string
           google_play_link: string | null
           id: string
-          ident_code: string | null
           kontakt_email: string
           kontakt_name: string
           projektziel: string
@@ -30,9 +26,6 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          access_email?: string | null
-          access_password?: string | null
-          access_phone?: string | null
           anbieter: string
           anweisungen?: Json
           app_store_link?: string | null
@@ -40,7 +33,6 @@ export type Database = {
           created_at?: string
           google_play_link?: string | null
           id?: string
-          ident_code?: string | null
           kontakt_email?: string
           kontakt_name?: string
           projektziel: string
@@ -49,9 +41,6 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          access_email?: string | null
-          access_password?: string | null
-          access_phone?: string | null
           anbieter?: string
           anweisungen?: Json
           app_store_link?: string | null
@@ -59,7 +48,6 @@ export type Database = {
           created_at?: string
           google_play_link?: string | null
           id?: string
-          ident_code?: string | null
           kontakt_email?: string
           kontakt_name?: string
           projektziel?: string
