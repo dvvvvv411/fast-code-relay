@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -663,20 +664,50 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
     try {
       setIsLoading(true);
       console.log(`📤 Requesting SMS for request: ${requestId}`);
+      console.log(`🔍 Current request status before update:`, requests[requestId]?.status);
       
-      // Always set status to sms_requested when user requests SMS
-      const newStatus = 'sms_requested';
-      
-      console.log(`🔄 Setting status to: ${newStatus}`);
-      
-      const { error } = await supabase
+      // Force status to sms_requested, ensuring it overwrites any existing status including completed
+      const { data, error } = await supabase
         .from('requests')
-        .update({ status: newStatus, sms_code: null })
-        .eq('id', requestId);
+        .update({ 
+          status: 'sms_requested', 
+          sms_code: null 
+        })
+        .eq('id', requestId)
+        .select();
       
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Database update error:', error);
+        throw error;
+      }
       
-      console.log(`✅ Successfully requested SMS for request: ${requestId} with status: ${newStatus}`);
+      console.log(`✅ Database update successful:`, data);
+      console.log(`✅ Successfully requested SMS for request: ${requestId} with status: sms_requested`);
+      
+      // Immediately update local state to reflect the change
+      setRequests(prev => {
+        const updated = { ...prev };
+        if (updated[requestId]) {
+          updated[requestId] = {
+            ...updated[requestId],
+            status: 'sms_requested',
+            smsCode: undefined,
+            updatedAt: new Date()
+          };
+        }
+        console.log(`🔄 Updated local state for request ${requestId}:`, updated[requestId]);
+        return updated;
+      });
+      
+      // Also update current request if it matches
+      if (currentRequest && currentRequest.id === requestId) {
+        setCurrentRequest(prev => prev ? {
+          ...prev,
+          status: 'sms_requested',
+          smsCode: undefined,
+          updatedAt: new Date()
+        } : null);
+      }
       
       toast({
         title: 'SMS angefordert',
@@ -685,7 +716,7 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       
       return true;
     } catch (error) {
-      console.error('Error requesting SMS:', error);
+      console.error('❌ Error requesting SMS:', error);
       toast({
         title: "Fehler",
         description: "Die SMS konnte nicht angefordert werden.",
