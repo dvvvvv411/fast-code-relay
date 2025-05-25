@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Star, MessageSquare, User, Calendar, FileText, Eye } from 'lucide-react';
@@ -19,6 +18,7 @@ interface FeedbackData {
   worker_last_name: string;
   auftrag_title: string;
   auftrag_auftragsnummer: string;
+  completed_at: string;
 }
 
 interface GroupedFeedback {
@@ -124,7 +124,7 @@ const FeedbackManager = () => {
 
     // Calculate average rating for each group
     grouped.forEach(group => {
-      const totalRating = group.evaluations.reduce((sum, eval) => sum + eval.star_rating, 0);
+      const totalRating = group.evaluations.reduce((sum, evaluation) => sum + evaluation.star_rating, 0);
       group.average_rating = totalRating / group.evaluations.length;
       group.total_questions = group.evaluations.length;
     });
