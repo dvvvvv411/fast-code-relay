@@ -77,7 +77,18 @@ const AssignmentTemplate = ({ assignmentUrl }: AssignmentTemplateProps) => {
 
       if (assignmentError) throw assignmentError;
       
-      setAssignmentData(assignmentData);
+      // Type cast the anweisungen to ensure it's an array
+      const typedAssignmentData: AssignmentData = {
+        ...assignmentData,
+        auftraege: {
+          ...assignmentData.auftraege,
+          anweisungen: Array.isArray(assignmentData.auftraege.anweisungen) 
+            ? assignmentData.auftraege.anweisungen 
+            : []
+        }
+      };
+      
+      setAssignmentData(typedAssignmentData);
 
       // Fetch evaluation questions for this auftrag
       const { data: questionsData, error: questionsError } = await supabase
