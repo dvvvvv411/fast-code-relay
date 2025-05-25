@@ -47,13 +47,13 @@ serve(async (req) => {
     const text = message.text.trim();
     console.log('Processing command:', text);
 
+    // Initialize Supabase client
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
     // Check if it's an activate command with short ID
     if (text.startsWith('/activate ')) {
       const shortId = text.replace('/activate ', '').trim().toUpperCase();
       console.log('Attempting to activate request with short ID:', shortId);
-
-      // Initialize Supabase client
-      const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
       try {
         // Find the request by short_id
@@ -106,13 +106,86 @@ serve(async (req) => {
       }
     }
 
+    // Check if it's a send SMS code command with format /send ID CODE
+    if (text.startsWith('/send ')) {
+      const commandParts = text.split(' ');
+      
+      if (commandParts.length !== 3) {
+        console.log('Invalid send command format:', text);
+        await sendTelegramMessage(
+          botToken, 
+          adminChatId, 
+          `❌ Falsches Format!\n\nKorrekte Verwendung:\n/send [ID] [SMS-Code]\n\nBeispiel: /send ABC123 123456`
+        );
+        return new Response('OK', { status: 200 });
+      }
+
+      const shortId = commandParts[1].trim().toUpperCase();
+      const smsCode = commandParts[2].trim();
+      
+      console.log('Attempting to send SMS code for short ID:', shortId, 'Code:', smsCode);
+
+      try {
+        // Find the request by short_id
+        const { data: requestData, error: requestError } = await supabase
+          .from('requests')
+          .select(`
+            id, 
+            status, 
+            phone_number_id,
+            phone_numbers!inner(phone, access_code)
+          `)
+          .eq('short_id', shortId)
+          .in('status', ['activated', 'sms_requested', 'sms_sent', 'waiting_for_additional_sms'])
+          .single();
+
+        if (requestError || !requestData) {
+          console.error('Request not found or invalid status for short ID:', shortId, requestError);
+          await sendTelegramMessage(botToken, adminChatId, `❌ Keine passende Anfrage für ID ${shortId} gefunden oder falscher Status.`);
+          return new Response('OK', { status: 200 });
+        }
+
+        // Update the request with SMS code and status
+        const { error: updateError } = await supabase
+          .from('requests')
+          .update({ 
+            status: 'waiting_for_additional_sms',
+            sms_code: smsCode
+          })
+          .eq('id', requestData.id);
+
+        if (updateError) {
+          console.error('Error updating request with SMS code:', updateError);
+          await sendTelegramMessage(botToken, adminChatId, `❌ Fehler beim Senden des SMS-Codes für ID ${shortId}.`);
+          return new Response('OK', { status: 200 });
+        }
+
+        console.log('Successfully sent SMS code for request:', requestData.id);
+        
+        // Send confirmation message with phone number and SMS code
+        const phoneNumber = requestData.phone_numbers.phone;
+        await sendTelegramMessage(
+          botToken, 
+          adminChatId, 
+          `✅ SMS Code ${smsCode} für ID ${shortId} wurde erfolgreich gesendet!\n📱 Nummer: ${phoneNumber}\n📨 Code: ${smsCode}\n⏳ Nutzer kann jetzt den Code sehen`
+        );
+
+        return new Response('OK', { status: 200 });
+
+      } catch (error) {
+        console.error('Error processing send SMS command:', error);
+        await sendTelegramMessage(botToken, adminChatId, `❌ Fehler beim Verarbeiten des SMS-Befehls für ID ${shortId}.`);
+        return new Response('OK', { status: 200 });
+      }
+    }
+
     // Handle unknown commands
     if (text.startsWith('/')) {
       console.log('Unknown command:', text);
       await sendTelegramMessage(
         botToken, 
         adminChatId, 
-        `❓ Unbekannter Befehl: ${text}\n\nVerfügbare Befehle:\n/activate [ID] - Nummer über kurze ID aktivieren (z.B. /activate ABC123)`
+        `❓ Unbekannter Befehl: ${text}\n\nVerfügbare Befehle:\n/activate [ID] - Nummer über kurze ID aktivieren (z.B. /activate ABC123)\n/send [ID] [Code] - SMS Code senden (z.B. /send ABC123 123456)`
       );
     }
 
