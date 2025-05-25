@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useSMS } from '../context/SMSContext';
@@ -7,16 +6,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PhoneNumberManager from './PhoneNumberManager';
-import { List, Phone, MessageSquare, Loader, AlertTriangle, Send, Timer, RefreshCw } from 'lucide-react';
+import { List, Phone, MessageSquare, Loader, AlertTriangle, Send, Timer } from 'lucide-react';
 import SupportTickets from './SupportTickets';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const AdminPanel = () => {
-  const { requests, activateRequest, submitSMSCode, isLoading, refreshRequests } = useSMS();
+  const { requests, activateRequest, submitSMSCode, isLoading } = useSMS();
   const { user, isLoading: authLoading, isAdmin } = useAuth();
   const [smsCode, setSmsCode] = useState('');
   const [selectedRequest, setSelectedRequest] = useState<string | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   
   const handleActivate = (requestId: string) => {
     console.log('🎯 Admin activating request:', requestId);
@@ -40,14 +38,6 @@ const AdminPanel = () => {
   const handleCancelSMS = () => {
     setSmsCode('');
     setSelectedRequest(null);
-  };
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    console.log('🔄 Admin manually refreshing requests...');
-    await refreshRequests();
-    setIsRefreshing(false);
-    console.log('✅ Admin refresh completed');
   };
   
   const requestsList = Object.values(requests);
@@ -117,15 +107,6 @@ const AdminPanel = () => {
       return (
         <div className="text-center p-8 bg-gray-50 rounded-lg">
           <p className="text-gray-500">Keine Anfragen vorhanden</p>
-          <Button 
-            onClick={handleRefresh}
-            variant="outline" 
-            className="mt-4 flex items-center gap-2"
-            disabled={isRefreshing}
-          >
-            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            Aktualisieren
-          </Button>
         </div>
       );
     }
@@ -278,18 +259,7 @@ const AdminPanel = () => {
       
       <TabsContent value="requests" className="mt-0">
         <div className="container mx-auto">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold">Admin Panel - Anfragen</h2>
-            <Button 
-              onClick={handleRefresh}
-              variant="outline" 
-              className="flex items-center gap-2"
-              disabled={isRefreshing}
-            >
-              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              Aktualisieren
-            </Button>
-          </div>
+          <h2 className="text-2xl font-bold mb-6">Admin Panel - Anfragen</h2>
           
           {selectedRequest && (
             <div className="mb-6 p-6 border-2 border-orange rounded-lg bg-gradient-to-r from-orange-50 to-yellow-50 shadow-lg">
