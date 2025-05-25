@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -409,7 +410,13 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) {
         console.error('❌ SMSContext - Error creating phone number:', error);
-        setError('Fehler beim Erstellen der Telefonnummer. Bitte versuchen Sie es erneut.');
+        
+        // Prüfe ob es ein Unique-Constraint Fehler ist (für die neue phone + access_code Kombination)
+        if (error.code === '23505' && error.message.includes('phone_numbers_phone_access_code_key')) {
+          setError('Diese Kombination aus Telefonnummer und Zugangscode existiert bereits. Bitte verwenden Sie einen anderen Zugangscode.');
+        } else {
+          setError('Fehler beim Erstellen der Telefonnummer. Bitte versuchen Sie es erneut.');
+        }
         return;
       }
 
@@ -418,7 +425,7 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       
       toast({
         title: "Telefonnummer erstellt!",
-        description: `Die Nummer ${phone} wurde erfolgreich hinzugefügt.`,
+        description: `Die Nummer ${phone} wurde erfolgreich mit dem Zugangscode ${accessCode} hinzugefügt.`,
       });
       
     } catch (error) {
