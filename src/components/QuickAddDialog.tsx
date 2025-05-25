@@ -9,7 +9,7 @@ import {
   DialogTitle, 
   DialogTrigger 
 } from '@/components/ui/dialog';
-import { Lightning, Plus } from 'lucide-react';
+import { Zap, Plus } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface QuickAddDialogProps {
@@ -96,7 +96,7 @@ export const QuickAddDialog = ({ onQuickAdd, generateAccessCode }: QuickAddDialo
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" className="flex items-center gap-2">
-          <Lightning size={16} />
+          <Zap size={16} />
           Quick Add
         </Button>
       </DialogTrigger>
