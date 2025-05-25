@@ -4,7 +4,7 @@ import Footer from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { FileText, Smartphone, Download, User, Mail, MessageCircle, Target, Search, Sync } from 'lucide-react';
+import { FileText, Smartphone, Download, User, Mail, MessageCircle, Target, Search, RefreshCw } from 'lucide-react';
 
 const Auftrag = () => {
   return (
@@ -150,7 +150,7 @@ const Auftrag = () => {
                 {/* Synchronisation */}
                 <div>
                   <h3 className="font-semibold mb-3 flex items-center gap-2">
-                    <Sync className="h-4 w-4" />
+                    <RefreshCw className="h-4 w-4" />
                     Synchronisation und plattformübergreifende Nutzung:
                   </h3>
                   <p className="text-gray-700">
