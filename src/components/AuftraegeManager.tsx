@@ -33,6 +33,18 @@ const AuftraegeManager = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Helper function to safely convert JSON to Anweisung array
+  const convertJsonToAnweisungen = (jsonData: any): Anweisung[] => {
+    if (!Array.isArray(jsonData)) return [];
+    
+    return jsonData.map((item: any) => ({
+      id: item.id || '',
+      title: item.title || '',
+      content: item.content || '',
+      icon: item.icon || undefined
+    }));
+  };
+
   const { data: auftraege, isLoading } = useQuery({
     queryKey: ['auftraege'],
     queryFn: async () => {
@@ -43,10 +55,10 @@ const AuftraegeManager = () => {
 
       if (error) throw error;
       
-      // Convert the data to proper Auftrag type
+      // Convert the data to proper Auftrag type with safe JSON conversion
       return data.map(item => ({
         ...item,
-        anweisungen: Array.isArray(item.anweisungen) ? item.anweisungen as Anweisung[] : []
+        anweisungen: convertJsonToAnweisungen(item.anweisungen)
       })) as Auftrag[];
     },
   });

@@ -10,6 +10,18 @@ import { Loader } from 'lucide-react';
 const DynamicAuftrag = () => {
   const { id } = useParams<{ id: string }>();
 
+  // Helper function to safely convert JSON to Anweisung array
+  const convertJsonToAnweisungen = (jsonData: any): Anweisung[] => {
+    if (!Array.isArray(jsonData)) return [];
+    
+    return jsonData.map((item: any) => ({
+      id: item.id || '',
+      title: item.title || '',
+      content: item.content || '',
+      icon: item.icon || undefined
+    }));
+  };
+
   const { data: auftrag, isLoading, error } = useQuery({
     queryKey: ['auftrag', id],
     queryFn: async () => {
@@ -23,10 +35,10 @@ const DynamicAuftrag = () => {
 
       if (error) throw error;
       
-      // Convert the data to proper Auftrag type
+      // Convert the data to proper Auftrag type with safe JSON conversion
       const convertedData: Auftrag = {
         ...data,
-        anweisungen: Array.isArray(data.anweisungen) ? data.anweisungen as Anweisung[] : []
+        anweisungen: convertJsonToAnweisungen(data.anweisungen)
       };
       
       return convertedData;
