@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Auftrag } from '@/types/auftrag';
+import { Auftrag, Anweisung } from '@/types/auftrag';
 import AuftragTemplate from '@/components/AuftragTemplate';
 import { Loader } from 'lucide-react';
 
@@ -22,7 +22,14 @@ const DynamicAuftrag = () => {
         .single();
 
       if (error) throw error;
-      return data as Auftrag;
+      
+      // Convert the data to proper Auftrag type
+      const convertedData: Auftrag = {
+        ...data,
+        anweisungen: Array.isArray(data.anweisungen) ? data.anweisungen as Anweisung[] : []
+      };
+      
+      return convertedData;
     },
     enabled: !!id,
   });

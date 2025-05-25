@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -43,7 +42,12 @@ const AuftraegeManager = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as Auftrag[];
+      
+      // Convert the data to proper Auftrag type
+      return data.map(item => ({
+        ...item,
+        anweisungen: Array.isArray(item.anweisungen) ? item.anweisungen as Anweisung[] : []
+      })) as Auftrag[];
     },
   });
 
