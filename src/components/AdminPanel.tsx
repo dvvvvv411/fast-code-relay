@@ -149,14 +149,13 @@ const AdminPanel = () => {
                     request.status === 'activated' ? 'bg-blue-100 text-blue-800' :
                     (request.status === 'sms_requested' || request.status === 'additional_sms_requested') ? 'bg-red-100 text-red-800 animate-pulse ring-2 ring-red-300' :
                     request.status === 'sms_sent' ? 'bg-orange-100 text-orange-800 animate-pulse' :
-                    request.status === 'waiting_for_additional_sms' ? 'bg-blue-100 text-blue-800 animate-pulse ring-1 ring-blue-300' :
                     'bg-green-100 text-green-800'
                   }`}>
                     {request.status === 'pending' ? '⏳ In Bearbeitung' :
                      request.status === 'activated' ? '✅ Aktiviert' :
                      (request.status === 'sms_requested' || request.status === 'additional_sms_requested') ? '🚨 SMS Code benötigt' :
                      request.status === 'sms_sent' ? '📤 SMS unterwegs' :
-                     request.status === 'waiting_for_additional_sms' ? '⏱️ SMS gesendet (5 Min.)' :
+                     request.status === 'waiting_for_additional_sms' ? '📱 SMS gesendet' :
                      '✅ Abgeschlossen'}
                   </span>
                 </td>
@@ -207,7 +206,7 @@ const AdminPanel = () => {
                     <div className="flex flex-col gap-2 items-center">
                       <div className="text-sm text-blue-500 flex items-center gap-1">
                         <Timer className="h-4 w-4" />
-                        <span>Warte auf weitere Anfrage</span>
+                        <span>SMS Code gesendet</span>
                       </div>
                       <div>
                         SMS Code: <span className="font-medium bg-blue-100 px-2 py-1 rounded">{request.smsCode}</span>
