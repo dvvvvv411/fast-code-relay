@@ -49,7 +49,7 @@ const EvaluationForm = ({ assignmentId, questions, onEvaluationComplete }: Evalu
   };
 
   const isFormValid = () => {
-    return answers.every(answer => answer.starRating > 0);
+    return answers.every(answer => answer.starRating > 0 && answer.textFeedback.trim().length > 0);
   };
 
   const sendTelegramNotification = async (assignmentData: any) => {
@@ -79,7 +79,7 @@ const EvaluationForm = ({ assignmentId, questions, onEvaluationComplete }: Evalu
     if (!isFormValid()) {
       toast({
         title: "Fehler",
-        description: "Bitte bewerten Sie alle Fragen mit Sternen.",
+        description: "Bitte bewerten Sie alle Fragen mit Sternen und geben Sie Textfeedback ab.",
         variant: "destructive"
       });
       return;
@@ -236,11 +236,6 @@ const EvaluationForm = ({ assignmentId, questions, onEvaluationComplete }: Evalu
           >
             {isSubmitting ? 'Wird eingereicht...' : 'Bewertung einreichen'}
           </Button>
-          {!isFormValid() && (
-            <p className="text-sm text-red-600 mt-2 text-center">
-              Bitte bewerten Sie alle Fragen mit Sternen.
-            </p>
-          )}
         </div>
       </CardContent>
     </Card>
