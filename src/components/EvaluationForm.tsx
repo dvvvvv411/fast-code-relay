@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -218,7 +219,7 @@ const EvaluationForm = ({ assignmentId, questions, onEvaluationComplete }: Evalu
                   </div>
                 </div>
                 <Textarea
-                  placeholder="Optional: Zusätzliche Anmerkungen..."
+                  placeholder="Bitte beantworten Sie diese Frage ausführlich und teilen Sie Ihre detaillierten Erfahrungen mit..."
                   value={answer.textFeedback}
                   onChange={(e) => updateAnswer(question.id, 'textFeedback', e.target.value)}
                   rows={3}
