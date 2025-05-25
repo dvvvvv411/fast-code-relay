@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -102,29 +101,45 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const fetchRequests = async () => {
       try {
+        console.log('🔍 SMSContext - Fetching requests with phone information...');
+        
+        // Join requests with phone_numbers to get phone and access_code
         const { data, error } = await supabase
           .from('requests')
-          .select('*');
+          .select(`
+            *,
+            phone_numbers (
+              phone,
+              access_code
+            )
+          `);
 
         if (error) {
           throw error;
         }
 
+        console.log('📊 SMSContext - Fetched requests data:', data);
+
         const fetchedRequests: { [id: string]: Request } = {};
         data.forEach(item => {
+          // Extract phone and access_code from the joined phone_numbers data
+          const phoneData = item.phone_numbers as any;
+          
           fetchedRequests[item.id] = {
             id: item.id,
-            phone: '', // item.phone,  // The 'phone' field is not directly available in the 'requests' table.
-            accessCode: '', // item.access_code,  // The 'access_code' field is not directly available in the 'requests' table.
+            phone: phoneData?.phone || '',
+            accessCode: phoneData?.access_code || '',
             status: item.status,
             createdAt: new Date(item.created_at),
             updatedAt: new Date(item.updated_at),
             smsCode: item.sms_code,
           };
         });
+        
+        console.log('✅ SMSContext - Processed requests:', fetchedRequests);
         setRequests(fetchedRequests);
       } catch (error) {
-        console.error('Error fetching requests:', error);
+        console.error('💥 SMSContext - Error fetching requests:', error);
         toast({
           title: "Fehler",
           description: "Anfragen konnten nicht geladen werden",
@@ -240,6 +255,26 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const createRequest = async (phone: string, accessCode: string): Promise<string | null> => {
     try {
+      console.log('🚀 SMSContext - Creating request for phone:', phone, 'accessCode:', accessCode);
+
+      // Check for existing pending requests for this phone/access code combination
+      const existingPendingRequests = Object.values(requests).filter(
+        request => request.phone === phone && 
+                  request.accessCode === accessCode && 
+                  (request.status === 'pending' || request.status === 'activated' || request.status === 'sms_sent')
+      );
+
+      if (existingPendingRequests.length > 0) {
+        console.log('⚠️ SMSContext - Found existing pending request:', existingPendingRequests[0]);
+        toast({
+          title: "Info",
+          description: "Es gibt bereits eine aktive Anfrage für diese Nummer",
+          variant: "default",
+        });
+        setCurrentRequest(existingPendingRequests[0]);
+        return existingPendingRequests[0].id;
+      }
+
       // Find the phone number by phone and access_code
       const { data: phoneNumbers, error: phoneError } = await supabase
         .from('phone_numbers')
@@ -249,10 +284,10 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         .single();
   
       if (phoneError) {
-        console.error('Error finding phone number:', phoneError);
+        console.error('💥 SMSContext - Error finding phone number:', phoneError);
         toast({
           title: "Fehler",
-          description: "Telefonnummer nicht gefunden",
+          description: "Telefonnummer nicht gefunden oder Zugangscode ungültig",
           variant: "destructive",
         });
         return null;
@@ -284,7 +319,7 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         .single();
   
       if (error) {
-        console.error('Error creating request:', error);
+        console.error('💥 SMSContext - Error creating request:', error);
         toast({
           title: "Fehler",
           description: "Anfrage konnte nicht erstellt werden",
@@ -293,11 +328,13 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return null;
       }
   
-      // Optimistically update the state
+      console.log('✅ SMSContext - Request created successfully:', data);
+
+      // Create the new request object
       const newRequest: Request = {
         id: data.id,
-        phone: phone,  // Use the provided phone
-        accessCode: accessCode,  // Use the provided accessCode
+        phone: phone,
+        accessCode: accessCode,
         status: data.status,
         createdAt: new Date(data.created_at),
         updatedAt: new Date(data.updated_at),
@@ -313,7 +350,7 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   
       return data.id;
     } catch (error) {
-      console.error('Error creating request:', error);
+      console.error('💥 SMSContext - Error creating request:', error);
       toast({
         title: "Fehler",
         description: "Anfrage konnte nicht erstellt werden",
@@ -325,6 +362,8 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const activateRequest = async (requestId: string) => {
     try {
+      console.log('🔄 SMSContext - Activating request:', requestId);
+      
       // Update the request status to 'activated'
       const { data: requestData, error: requestError } = await supabase
         .from('requests')
@@ -406,12 +445,13 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       
       setCurrentRequest(updatedRequest);
   
+      console.log('✅ SMSContext - Request activated successfully');
       toast({
         title: "Erfolg",
         description: "Anfrage wurde erfolgreich aktiviert",
       });
     } catch (error) {
-      console.error('Error activating request:', error);
+      console.error('💥 SMSContext - Error activating request:', error);
       toast({
         title: "Fehler",
         description: "Anfrage konnte nicht aktiviert werden",
@@ -532,6 +572,8 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           await activateRequest(requestId);
           setShowSimulation(false);
         }, 2000);
+      } else {
+        setShowSimulation(false);
       }
     } catch (error) {
       console.error('💥 SMSContext - Error in submitRequest:', error);
