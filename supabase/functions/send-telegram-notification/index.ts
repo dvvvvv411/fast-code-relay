@@ -7,10 +7,13 @@ const corsHeaders = {
 };
 
 interface TelegramNotificationRequest {
-  phone: string;
-  accessCode: string;
+  phone?: string;
+  accessCode?: string;
   shortId?: string;
-  type?: 'request' | 'activation' | 'sms_sent' | 'completed';
+  type?: 'request' | 'activation' | 'sms_sent' | 'completed' | 'evaluation_completed';
+  workerName?: string;
+  auftragTitle?: string;
+  auftragsnummer?: string;
 }
 
 serve(async (req) => {
@@ -20,7 +23,7 @@ serve(async (req) => {
   }
 
   try {
-    const { phone, accessCode, shortId, type = 'request' }: TelegramNotificationRequest = await req.json();
+    const { phone, accessCode, shortId, type = 'request', workerName, auftragTitle, auftragsnummer }: TelegramNotificationRequest = await req.json();
     
     const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
     const chatId = Deno.env.get('TELEGRAM_CHAT_ID');
@@ -35,7 +38,9 @@ serve(async (req) => {
 
     // Create different messages based on type
     let message: string;
-    if (type === 'activation') {
+    if (type === 'evaluation_completed') {
+      message = `📝 Auftrag bewertet!\n📋 ${auftragTitle} (${auftragsnummer})\n👤 von ${workerName} wurde erfolgreich bewertet.`;
+    } else if (type === 'activation') {
       message = `✅ Nummer Aktiviert!\n📱 Phone: ${phone}\n🔑 PIN: ${accessCode}`;
       if (shortId) {
         message += `\n🆔 ID: ${shortId}`;
@@ -59,7 +64,7 @@ serve(async (req) => {
       }
     }
     
-    console.log(`Sending Telegram notification (${type}):`, { phone, accessCode, shortId });
+    console.log(`Sending Telegram notification (${type}):`, { phone, accessCode, shortId, workerName, auftragTitle, auftragsnummer });
     
     const telegramResponse = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: 'POST',

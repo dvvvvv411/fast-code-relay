@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -52,6 +51,29 @@ const EvaluationForm = ({ assignmentId, questions, onEvaluationComplete }: Evalu
     return answers.every(answer => answer.starRating > 0);
   };
 
+  const sendTelegramNotification = async (assignmentData: any) => {
+    try {
+      const { error } = await supabase.functions.invoke('send-telegram-notification', {
+        body: {
+          type: 'evaluation_completed',
+          workerName: `${assignmentData.worker_first_name} ${assignmentData.worker_last_name}`,
+          auftragTitle: assignmentData.auftraege.title,
+          auftragsnummer: assignmentData.auftraege.auftragsnummer
+        }
+      });
+
+      if (error) {
+        console.error('Error sending Telegram notification:', error);
+        // Don't throw error here - notification failure shouldn't block the evaluation
+      } else {
+        console.log('Telegram notification sent successfully');
+      }
+    } catch (error) {
+      console.error('Error sending Telegram notification:', error);
+      // Don't throw error here - notification failure shouldn't block the evaluation
+    }
+  };
+
   const handleSubmit = async () => {
     if (!isFormValid()) {
       toast({
@@ -86,6 +108,24 @@ const EvaluationForm = ({ assignmentId, questions, onEvaluationComplete }: Evalu
         .eq('id', assignmentId);
 
       if (updateError) throw updateError;
+
+      // Fetch assignment data for Telegram notification
+      const { data: assignmentData, error: fetchError } = await supabase
+        .from('auftrag_assignments')
+        .select(`
+          worker_first_name,
+          worker_last_name,
+          auftraege!inner(title, auftragsnummer)
+        `)
+        .eq('id', assignmentId)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching assignment data for notification:', fetchError);
+      } else {
+        // Send Telegram notification (non-blocking)
+        await sendTelegramNotification(assignmentData);
+      }
 
       toast({
         title: "Erfolg",
