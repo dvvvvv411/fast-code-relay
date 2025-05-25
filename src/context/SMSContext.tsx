@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -295,12 +294,14 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
   const fetchPhoneNumbers = async () => {
     try {
       setIsLoading(true);
+      console.log('🔍 Fetching phone numbers with full details...');
       const { data, error } = await supabase
         .from('phone_numbers')
         .select('*');
 
       if (error) throw error;
 
+      console.log('📊 Fetched phone numbers:', data);
       const phoneNumbersMap: Record<string, PhoneNumber> = {};
       data.forEach((item) => {
         phoneNumbersMap[item.id] = {
@@ -311,6 +312,9 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
           usedAt: item.used_at ? new Date(item.used_at) : null,
           createdAt: new Date(item.created_at)
         };
+        
+        // Enhanced logging for phone number status
+        console.log(`📞 Phone ${item.phone}: isUsed=${item.is_used}, usedAt=${item.used_at || 'null'}`);
       });
 
       setPhoneNumbers(phoneNumbersMap);
@@ -386,7 +390,7 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
           created_at,
           updated_at,
           phone_number_id,
-          phone_numbers(id, phone, access_code)
+          phone_numbers(id, phone, access_code, is_used, used_at)
         `)
         .eq('id', requestId)
         .single();
@@ -420,11 +424,27 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
 
       console.log('✅ Updated request:', request);
       console.log(`📊 Request ${request.id} has status: ${request.status}`);
+      console.log(`📞 Associated phone number: ${phoneNumber.phone}, isUsed: ${phoneNumber.is_used}, usedAt: ${phoneNumber.used_at}`);
       
       setRequests((prev) => ({
         ...prev,
         [data.id]: request
       }));
+
+      // Also update the phone number data if it's included
+      if (phoneNumber) {
+        setPhoneNumbers(prev => ({
+          ...prev,
+          [phoneNumber.id]: {
+            id: phoneNumber.id,
+            phone: phoneNumber.phone,
+            accessCode: phoneNumber.access_code,
+            isUsed: phoneNumber.is_used,
+            usedAt: phoneNumber.used_at ? new Date(phoneNumber.used_at) : null,
+            createdAt: prev[phoneNumber.id]?.createdAt || new Date()
+          }
+        }));
+      }
 
       // If this is the current user's request or we specifically want to update it
       if ((currentRequest && currentRequest.id === requestId) || updateCurrentRequest) {
@@ -950,6 +970,26 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(true);
       console.log(`✅ User completing request manually: ${requestId}`);
       
+      // Enhanced logging before the update
+      console.log(`🔍 Checking current request status before completing...`);
+      const { data: currentData, error: checkError } = await supabase
+        .from('requests')
+        .select(`
+          id,
+          status,
+          phone_number_id,
+          phone_numbers(id, phone, is_used, used_at)
+        `)
+        .eq('id', requestId)
+        .single();
+        
+      if (checkError) {
+        console.error('❌ Error checking current request status:', checkError);
+      } else {
+        console.log(`📊 Current request status: ${currentData.status}`);
+        console.log(`📞 Current phone number status:`, currentData.phone_numbers);
+      }
+      
       const { error } = await supabase
         .from('requests')
         .update({ status: 'completed' })
@@ -958,6 +998,37 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       if (error) throw error;
       
       console.log(`✅ Successfully completed request: ${requestId}`);
+      
+      // After updating, let's check if the phone number was marked as used
+      console.log(`🔍 Checking if phone number was marked as used after completion...`);
+      setTimeout(async () => {
+        const { data: updatedData, error: verifyError } = await supabase
+          .from('requests')
+          .select(`
+            id,
+            status,
+            phone_number_id,
+            phone_numbers(id, phone, is_used, used_at)
+          `)
+          .eq('id', requestId)
+          .single();
+          
+        if (!verifyError && updatedData) {
+          console.log(`📊 Verification - Request status: ${updatedData.status}`);
+          console.log(`📞 Verification - Phone number status:`, updatedData.phone_numbers);
+          
+          if (updatedData.phone_numbers && !updatedData.phone_numbers.is_used) {
+            console.warn(`⚠️ WARNING: Phone number ${updatedData.phone_numbers.phone} was NOT marked as used after completion!`);
+            toast({
+              title: "Warnung",
+              description: "Die Telefonnummer wurde möglicherweise nicht korrekt als verwendet markiert.",
+              variant: "destructive",
+            });
+          } else {
+            console.log(`✅ SUCCESS: Phone number ${updatedData.phone_numbers?.phone} was correctly marked as used!`);
+          }
+        }
+      }, 1000); // Wait 1 second for the trigger to complete
       
       // Clear any existing timer for this request
       if (timers[requestId]) {
@@ -976,6 +1047,11 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       localStorage.removeItem(CURRENT_REQUEST_ID_KEY);
       setCurrentRequest(null);
       setShowSimulation(false);
+      
+      // Refresh phone numbers to show updated status
+      if (user && isAdmin) {
+        fetchPhoneNumbers();
+      }
       
       toast({
         title: "Vorgang abgeschlossen",
