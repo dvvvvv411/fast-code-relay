@@ -147,7 +147,6 @@ const EmailTemplate: React.FC<EmailTemplateProps> = ({
               Telefonnummer:
             </td>
             <td style={{ 
-              padding: '5px 0', 
               color: '#333333',
               fontFamily: 'monospace',
               backgroundColor: '#ffffff',
@@ -162,7 +161,6 @@ const EmailTemplate: React.FC<EmailTemplateProps> = ({
               Zugangscode:
             </td>
             <td style={{ 
-              padding: '5px 0', 
               color: '#333333',
               fontFamily: 'monospace',
               backgroundColor: '#ffffff',
