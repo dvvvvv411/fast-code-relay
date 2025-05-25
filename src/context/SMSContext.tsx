@@ -489,6 +489,8 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
         id: data.id,
         phone: data.phone,
         accessCode: data.access_code,
+        isUsed: data.is_used,
+        usedAt: data.used_at ? new Date(data.used_at) : null,
         createdAt: new Date(data.created_at)
       };
 
