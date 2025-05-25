@@ -27,6 +27,7 @@ const App = () => (
               <Route path="/admin" element={<Admin />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/auftrag" element={<Auftrag />} />
+              <Route path="/auftrag/:id" element={<Auftrag />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
