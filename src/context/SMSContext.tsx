@@ -62,6 +62,83 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
     loadPhoneNumbers();
   }, []);
 
+  // Set up real-time subscription for requests
+  useEffect(() => {
+    console.log('🔄 SMSContext - Setting up real-time subscription for requests');
+    
+    const channel = supabase
+      .channel('requests-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'requests'
+        },
+        async (payload) => {
+          console.log('🔔 SMSContext - Real-time update received:', payload);
+          
+          if (payload.eventType === 'UPDATE') {
+            const updatedRequest = payload.new as Tables<'requests'>;
+            console.log('📝 SMSContext - Request updated via real-time:', updatedRequest.id, updatedRequest.status);
+            
+            // If this is the current request, update it immediately
+            if (currentRequest && currentRequest.id === updatedRequest.id) {
+              console.log('🎯 SMSContext - Updating current request from real-time');
+              
+              // Get the phone number info for the updated request
+              const { data: phoneData } = await supabase
+                .from('phone_numbers')
+                .select('*')
+                .eq('id', updatedRequest.phone_number_id)
+                .single();
+              
+              const updatedRequestWithPhone = {
+                ...updatedRequest,
+                phone: phoneData?.phone || currentRequest.phone,
+                accessCode: phoneData?.access_code || currentRequest.accessCode,
+                smsCode: updatedRequest.sms_code,
+              };
+              
+              setCurrentRequest(updatedRequestWithPhone);
+              
+              // Hide simulation if status changed from pending
+              if (updatedRequest.status !== 'pending' && showSimulation) {
+                console.log('🎭 SMSContext - Hiding simulation due to status change');
+                setShowSimulation(false);
+              }
+              
+              // Show toast for important status changes
+              if (updatedRequest.status === 'activated' && currentRequest.status === 'pending') {
+                toast({
+                  title: "Nummer aktiviert!",
+                  description: `Ihre Nummer ${phoneData?.phone} wurde erfolgreich aktiviert.`,
+                });
+              }
+            }
+            
+            // Always reload requests to keep the admin view in sync
+            await loadRequests();
+          } else if (payload.eventType === 'INSERT') {
+            console.log('➕ SMSContext - New request created via real-time');
+            await loadRequests();
+          } else if (payload.eventType === 'DELETE') {
+            console.log('🗑️ SMSContext - Request deleted via real-time');
+            await loadRequests();
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 SMSContext - Real-time subscription status:', status);
+      });
+
+    // Cleanup subscription on unmount
+    return () => {
+      console.log('🧹 SMSContext - Cleaning up real-time subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [currentRequest, showSimulation]);
+
   const loadRequests = async () => {
     try {
       console.log('🔄 SMSContext - Loading requests...');
