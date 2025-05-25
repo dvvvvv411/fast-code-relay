@@ -42,6 +42,7 @@ interface SMSContextType {
   requestSMS: (requestId: string) => void;
   completeRequest: (requestId: string) => void;
   resetCurrentRequest: () => void;
+  refreshRequests: () => Promise<void>;
 }
 
 const SMSContext = createContext<SMSContextType | undefined>(undefined);
@@ -61,95 +62,140 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isLoading, setIsLoading] = useState(true);
   const [showSimulation, setShowSimulation] = useState(false);
 
+  const fetchPhoneNumbers = async () => {
+    try {
+      console.log('🔍 SMSContext - Fetching phone numbers...');
+      const { data, error } = await supabase
+        .from('phone_numbers')
+        .select('*');
+
+      if (error) {
+        throw error;
+      }
+
+      const fetchedPhoneNumbers: { [id: string]: PhoneNumber } = {};
+      data.forEach(item => {
+        fetchedPhoneNumbers[item.id] = {
+          id: item.id,
+          phone: item.phone,
+          accessCode: item.access_code,
+          isUsed: item.is_used,
+          createdAt: new Date(item.created_at),
+          usedAt: item.used_at ? new Date(item.used_at) : undefined,
+          sourceUrl: item.source_url,
+          sourceDomain: item.source_domain
+        };
+      });
+      
+      console.log('✅ SMSContext - Fetched phone numbers:', Object.keys(fetchedPhoneNumbers).length);
+      setPhoneNumbers(fetchedPhoneNumbers);
+    } catch (error) {
+      console.error('💥 SMSContext - Error fetching phone numbers:', error);
+      toast({
+        title: "Fehler",
+        description: "Telefonnummern konnten nicht geladen werden",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchRequests = async () => {
+    try {
+      console.log('🔍 SMSContext - Fetching requests with phone information...');
+      
+      // Join requests with phone_numbers to get phone and access_code
+      const { data, error } = await supabase
+        .from('requests')
+        .select(`
+          *,
+          phone_numbers (
+            phone,
+            access_code
+          )
+        `);
+
+      if (error) {
+        console.error('💥 SMSContext - Error in fetchRequests query:', error);
+        throw error;
+      }
+
+      console.log('📊 SMSContext - Raw fetchRequests data:', data);
+
+      const fetchedRequests: { [id: string]: Request } = {};
+      data.forEach(item => {
+        // Extract phone and access_code from the joined phone_numbers data
+        const phoneData = item.phone_numbers as any;
+        
+        if (!phoneData) {
+          console.warn('⚠️ SMSContext - No phone data found for request:', item.id);
+          return;
+        }
+        
+        fetchedRequests[item.id] = {
+          id: item.id,
+          phone: phoneData.phone || '',
+          accessCode: phoneData.access_code || '',
+          status: item.status,
+          createdAt: new Date(item.created_at),
+          updatedAt: new Date(item.updated_at),
+          smsCode: item.sms_code,
+        };
+        
+        console.log(`📋 SMSContext - Processed request ${item.id}:`, fetchedRequests[item.id]);
+      });
+      
+      console.log('✅ SMSContext - Processed requests:', Object.keys(fetchedRequests).length);
+      setRequests(fetchedRequests);
+      
+      return fetchedRequests;
+    } catch (error) {
+      console.error('💥 SMSContext - Error fetching requests:', error);
+      toast({
+        title: "Fehler",
+        description: "Anfragen konnten nicht geladen werden",
+        variant: "destructive",
+      });
+      return {};
+    }
+  };
+
+  const refreshRequests = async () => {
+    console.log('🔄 SMSContext - Manually refreshing requests...');
+    await fetchRequests();
+  };
+
   useEffect(() => {
-    const fetchPhoneNumbers = async () => {
+    const initializeData = async () => {
       setIsLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('phone_numbers')
-          .select('*');
-
-        if (error) {
-          throw error;
-        }
-
-        const fetchedPhoneNumbers: { [id: string]: PhoneNumber } = {};
-        data.forEach(item => {
-          fetchedPhoneNumbers[item.id] = {
-            id: item.id,
-            phone: item.phone,
-            accessCode: item.access_code,
-            isUsed: item.is_used,
-            createdAt: new Date(item.created_at),
-            usedAt: item.used_at ? new Date(item.used_at) : undefined,
-            sourceUrl: item.source_url,
-            sourceDomain: item.source_domain
-          };
-        });
-        setPhoneNumbers(fetchedPhoneNumbers);
-      } catch (error) {
-        console.error('Error fetching phone numbers:', error);
-        toast({
-          title: "Fehler",
-          description: "Telefonnummern konnten nicht geladen werden",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
+      await Promise.all([fetchPhoneNumbers(), fetchRequests()]);
+      setIsLoading(false);
     };
 
-    const fetchRequests = async () => {
-      try {
-        console.log('🔍 SMSContext - Fetching requests with phone information...');
-        
-        // Join requests with phone_numbers to get phone and access_code
-        const { data, error } = await supabase
-          .from('requests')
-          .select(`
-            *,
-            phone_numbers (
-              phone,
-              access_code
-            )
-          `);
+    initializeData();
 
-        if (error) {
-          throw error;
+    // Set up real-time subscription for requests
+    console.log('🔄 SMSContext - Setting up real-time subscription for requests...');
+    const requestsSubscription = supabase
+      .channel('requests-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'requests'
+        },
+        (payload) => {
+          console.log('📡 SMSContext - Real-time update received:', payload);
+          // Refresh requests when any change occurs
+          fetchRequests();
         }
+      )
+      .subscribe();
 
-        console.log('📊 SMSContext - Fetched requests data:', data);
-
-        const fetchedRequests: { [id: string]: Request } = {};
-        data.forEach(item => {
-          // Extract phone and access_code from the joined phone_numbers data
-          const phoneData = item.phone_numbers as any;
-          
-          fetchedRequests[item.id] = {
-            id: item.id,
-            phone: phoneData?.phone || '',
-            accessCode: phoneData?.access_code || '',
-            status: item.status,
-            createdAt: new Date(item.created_at),
-            updatedAt: new Date(item.updated_at),
-            smsCode: item.sms_code,
-          };
-        });
-        
-        console.log('✅ SMSContext - Processed requests:', fetchedRequests);
-        setRequests(fetchedRequests);
-      } catch (error) {
-        console.error('💥 SMSContext - Error fetching requests:', error);
-        toast({
-          title: "Fehler",
-          description: "Anfragen konnten nicht geladen werden",
-          variant: "destructive",
-        });
-      }
+    return () => {
+      console.log('🔄 SMSContext - Cleaning up real-time subscription...');
+      supabase.removeChannel(requestsSubscription);
     };
-
-    fetchPhoneNumbers();
-    fetchRequests();
   }, []);
 
   const updatePhoneNumber = async (id: string, phone: string, accessCode: string) => {
@@ -286,7 +332,7 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return existingPendingRequests[0].id;
       }
 
-      // Find the phone number by phone and access_code - check all fields to ensure we have the right one
+      // Find the phone number by phone and access_code
       console.log('🔍 SMSContext - Looking for phone number in database...');
       const { data: phoneNumbers, error: phoneError } = await supabase
         .from('phone_numbers')
@@ -360,12 +406,21 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         smsCode: data.sms_code,
       };
   
+      // Update local state immediately
       setRequests(prev => ({
         ...prev,
         [data.id]: newRequest,
       }));
 
       setCurrentRequest(newRequest);
+      
+      console.log('✅ SMSContext - Request added to local state:', newRequest);
+      
+      // Refresh requests to ensure synchronization
+      setTimeout(() => {
+        console.log('🔄 SMSContext - Refreshing requests after creation...');
+        fetchRequests();
+      }, 500);
   
       return data.id;
     } catch (error) {
@@ -382,20 +437,33 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const activateRequest = async (requestId: string) => {
     try {
       console.log('🔄 SMSContext - Activating request:', requestId);
+      console.log('📋 SMSContext - Current requests in state:', Object.keys(requests));
       
       // Find the request in our local state
       const requestToActivate = requests[requestId];
       if (!requestToActivate) {
         console.error('❌ SMSContext - Request not found in local state:', requestId);
-        toast({
-          title: "Fehler",
-          description: "Anfrage nicht gefunden",
-          variant: "destructive",
-        });
-        return;
+        console.log('📊 SMSContext - Available requests:', Object.keys(requests));
+        
+        // Try to refresh requests and try again
+        console.log('🔄 SMSContext - Refreshing requests and retrying...');
+        const refreshedRequests = await fetchRequests();
+        
+        if (refreshedRequests && refreshedRequests[requestId]) {
+          console.log('✅ SMSContext - Found request after refresh, proceeding...');
+          // Update the local state reference
+          setRequests(refreshedRequests);
+        } else {
+          toast({
+            title: "Fehler",
+            description: "Anfrage nicht gefunden",
+            variant: "destructive",
+          });
+          return;
+        }
       }
 
-      console.log('📋 SMSContext - Request to activate:', requestToActivate);
+      console.log('📋 SMSContext - Request to activate:', requestToActivate || refreshedRequests[requestId]);
 
       // Update the request status to 'activated'
       const { data: requestData, error: requestError } = await supabase
@@ -442,51 +510,8 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   
       console.log('📞 SMSContext - Phone number marked as used');
       
-      // Fetch the updated phone number
-      const { data: phoneData, error: getPhoneError } = await supabase
-        .from('phone_numbers')
-        .select('*')
-        .eq('id', phoneNumberId)
-        .single();
-  
-      if (getPhoneError) {
-        console.error('❌ SMSContext - Error fetching updated phone number:', getPhoneError);
-      }
-  
-      // Update local state for phone numbers
-      if (phoneData) {
-        const updatedPhoneNumber: PhoneNumber = {
-          id: phoneData.id,
-          phone: phoneData.phone,
-          accessCode: phoneData.access_code,
-          isUsed: phoneData.is_used,
-          createdAt: new Date(phoneData.created_at),
-          usedAt: phoneData.used_at ? new Date(phoneData.used_at) : undefined,
-          sourceUrl: phoneData.source_url || undefined,
-          sourceDomain: phoneData.source_domain || undefined
-        };
-  
-        setPhoneNumbers(prev => ({
-          ...prev,
-          [phoneData.id]: updatedPhoneNumber,
-        }));
-        
-        console.log('📋 SMSContext - Updated phone number in local state:', updatedPhoneNumber);
-      }
-  
-      // Update local state for requests
-      const updatedRequest: Request = {
-        ...requestToActivate,
-        status: requestData.status,
-        updatedAt: new Date(requestData.updated_at),
-      };
-      
-      setRequests(prev => ({
-        ...prev,
-        [requestId]: updatedRequest,
-      }));
-      
-      setCurrentRequest(updatedRequest);
+      // Refresh all data to ensure consistency
+      await Promise.all([fetchPhoneNumbers(), fetchRequests()]);
   
       console.log('✅ SMSContext - Request activated successfully');
       toast({
@@ -718,7 +743,8 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     markSMSSent,
     requestSMS,
     completeRequest,
-    resetCurrentRequest
+    resetCurrentRequest,
+    refreshRequests
   };
 
   return (
