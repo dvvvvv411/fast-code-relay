@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useSMS } from '../context/SMSContext';
@@ -7,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PhoneNumberManager from './PhoneNumberManager';
-import { List, Phone, MessageSquare, Loader, AlertTriangle, Send, Timer, Filter, Eye, EyeOff, CheckCircle } from 'lucide-react';
+import AuftraegeManager from './AuftraegeManager';
+import { List, Phone, MessageSquare, Loader, AlertTriangle, Send, Timer, Filter, Eye, EyeOff, CheckCircle, FileText } from 'lucide-react';
 import SupportTickets from './SupportTickets';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -287,6 +287,10 @@ const AdminPanel = () => {
           <List size={18} />
           Anfragen ({filteredAndSortedRequests.length})
         </TabsTrigger>
+        <TabsTrigger value="auftraege" className="flex items-center gap-2 data-[state=active]:bg-orange data-[state=active]:text-white">
+          <FileText size={18} />
+          Aufträge
+        </TabsTrigger>
         <TabsTrigger value="phoneNumbers" className="flex items-center gap-2 data-[state=active]:bg-orange data-[state=active]:text-white">
           <Phone size={18} />
           Telefonnummer
@@ -367,6 +371,10 @@ const AdminPanel = () => {
           
           {renderRequests()}
         </div>
+      </TabsContent>
+      
+      <TabsContent value="auftraege" className="mt-0">
+        <AuftraegeManager />
       </TabsContent>
       
       <TabsContent value="phoneNumbers" className="mt-0">

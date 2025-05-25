@@ -10,6 +10,7 @@ import Index from "./pages/Index";
 import Admin from "./pages/Admin";
 import Auth from "./pages/Auth";
 import Auftrag from "./pages/Auftrag";
+import DynamicAuftrag from "./pages/DynamicAuftrag";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +28,7 @@ const App = () => (
               <Route path="/admin" element={<Admin />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/auftrag" element={<Auftrag />} />
+              <Route path="/auftrag/:id" element={<DynamicAuftrag />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
