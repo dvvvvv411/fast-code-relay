@@ -39,6 +39,31 @@ const AssignmentDialog = ({ isOpen, onClose, auftragId, auftragTitle, onAssignme
     });
   };
 
+  const copyLinkToClipboard = async (assignmentUrl: string, workerName: string) => {
+    const fullUrl = `${window.location.origin}/assignment/${assignmentUrl}`;
+    
+    try {
+      await navigator.clipboard.writeText(fullUrl);
+      toast({
+        title: "Link automatisch kopiert",
+        description: `Assignment-Link für ${workerName} wurde in die Zwischenablage kopiert: ${fullUrl}`
+      });
+    } catch (error) {
+      // Fallback for browsers without clipboard support
+      const textArea = document.createElement('textarea');
+      textArea.value = fullUrl;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      
+      toast({
+        title: "Link kopiert",
+        description: `Assignment-Link für ${workerName} wurde kopiert: ${fullUrl}`
+      });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -73,10 +98,17 @@ const AssignmentDialog = ({ isOpen, onClose, auftragId, auftragTitle, onAssignme
 
       if (error) throw error;
 
+      const workerName = `${formData.worker_first_name} ${formData.worker_last_name}`;
+      
       toast({
         title: "Erfolg",
-        description: `Auftrag wurde an ${formData.worker_first_name} ${formData.worker_last_name} zugewiesen.`
+        description: `Auftrag wurde an ${workerName} zugewiesen.`
       });
+
+      // Automatically copy the assignment link to clipboard
+      if (data.assignment_url) {
+        await copyLinkToClipboard(data.assignment_url, workerName);
+      }
 
       console.log('Assignment created:', data);
       resetForm();

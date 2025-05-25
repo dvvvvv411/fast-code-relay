@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,12 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { Trash2, Edit, Plus, Eye, UserPlus, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import InstructionsBuilder from './InstructionsBuilder';
 import EvaluationQuestionsBuilder from './EvaluationQuestionsBuilder';
 import AssignmentDialog from './AssignmentDialog';
+import AssignmentListDialog from './AssignmentListDialog';
 
 interface Auftrag {
   id: string;
@@ -41,7 +42,9 @@ const AuftraegeManager = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingAuftrag, setEditingAuftrag] = useState<Auftrag | null>(null);
   const [assignmentDialogOpen, setAssignmentDialogOpen] = useState(false);
+  const [assignmentListDialogOpen, setAssignmentListDialogOpen] = useState(false);
   const [selectedAuftragForAssignment, setSelectedAuftragForAssignment] = useState<Auftrag | null>(null);
+  const [selectedAuftragForList, setSelectedAuftragForList] = useState<Auftrag | null>(null);
   const [assignments, setAssignments] = useState<Record<string, number>>({});
   const { toast } = useToast();
 
@@ -297,6 +300,11 @@ const AuftraegeManager = () => {
     setAssignmentDialogOpen(true);
   };
 
+  const handleViewAssignments = (auftrag: Auftrag) => {
+    setSelectedAuftragForList(auftrag);
+    setAssignmentListDialogOpen(true);
+  };
+
   const handleAssignmentCreated = () => {
     fetchAssignmentCounts();
   };
@@ -471,6 +479,23 @@ const AuftraegeManager = () => {
                       <UserPlus className="h-4 w-4 mr-1" />
                       Zuweisen
                     </Button>
+                    {assignments[auftrag.id] > 0 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleViewAssignments(auftrag)}
+                        className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 relative"
+                      >
+                        <Users className="h-4 w-4 mr-1" />
+                        Zuweisungen
+                        <Badge 
+                          variant="secondary" 
+                          className="ml-2 bg-blue-100 text-blue-800 text-xs"
+                        >
+                          {assignments[auftrag.id]}
+                        </Badge>
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       size="sm"
@@ -534,6 +559,19 @@ const AuftraegeManager = () => {
           auftragId={selectedAuftragForAssignment.id}
           auftragTitle={selectedAuftragForAssignment.title}
           onAssignmentCreated={handleAssignmentCreated}
+        />
+      )}
+
+      {/* Assignment List Dialog */}
+      {selectedAuftragForList && (
+        <AssignmentListDialog
+          isOpen={assignmentListDialogOpen}
+          onClose={() => {
+            setAssignmentListDialogOpen(false);
+            setSelectedAuftragForList(null);
+          }}
+          auftragId={selectedAuftragForList.id}
+          auftragTitle={selectedAuftragForList.title}
         />
       )}
     </div>
