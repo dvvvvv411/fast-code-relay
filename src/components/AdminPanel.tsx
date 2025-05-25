@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useSMS } from '../context/SMSContext';
@@ -49,7 +50,7 @@ const AdminPanel = () => {
   // Filter and sort requests
   const filteredAndSortedRequests = Object.values(requests)
     .filter(request => showCompleted || request.status !== 'completed')
-    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
   
   const allRequestsList = Object.values(requests);
   const completedCount = allRequestsList.filter(r => r.status === 'completed').length;
@@ -58,7 +59,7 @@ const AdminPanel = () => {
   useEffect(() => {
     console.log('🔄 Admin Panel requests updated:', allRequestsList.length, 'total requests');
     allRequestsList.forEach(request => {
-      console.log(`📊 Request ${request.id}: ${request.status} - Phone: ${request.phone} - Updated: ${request.updatedAt.toISOString()}`);
+      console.log(`📊 Request ${request.id}: ${request.status} - Phone: ${request.phone} - Updated: ${request.updated_at}`);
       
       // Special logging for additional SMS requests
       if (request.status === 'additional_sms_requested') {
@@ -180,7 +181,7 @@ const AdminPanel = () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-500">
-                    {request.updatedAt.toLocaleString('de-DE', {
+                    {new Date(request.updated_at).toLocaleString('de-DE', {
                       day: '2-digit',
                       month: '2-digit',
                       year: '2-digit',
