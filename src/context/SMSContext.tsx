@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -26,7 +27,10 @@ interface Request {
 interface SMSContextType {
   phoneNumbers: { [id: string]: PhoneNumber };
   requests: { [id: string]: Request };
+  currentRequest: Request | null;
   isLoading: boolean;
+  showSimulation: boolean;
+  setShowSimulation: (show: boolean) => void;
   createPhoneNumber: (phone: string, accessCode: string, sourceUrl?: string, sourceDomain?: string) => Promise<void>;
   updatePhoneNumber: (id: string, phone: string, accessCode: string) => Promise<void>;
   deletePhoneNumber: (id: string) => Promise<void>;
@@ -34,6 +38,11 @@ interface SMSContextType {
   activateRequest: (requestId: string) => Promise<void>;
   submitSMSCode: (requestId: string, smsCode: string) => Promise<void>;
   requestSMSCode: (requestId: string) => Promise<void>;
+  submitRequest: (phone: string, accessCode: string) => Promise<void>;
+  markSMSSent: (requestId: string) => Promise<boolean>;
+  requestSMS: (requestId: string) => void;
+  completeRequest: (requestId: string) => void;
+  resetCurrentRequest: () => void;
 }
 
 const SMSContext = createContext<SMSContextType | undefined>(undefined);
@@ -49,7 +58,9 @@ export const useSMS = () => {
 export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [phoneNumbers, setPhoneNumbers] = useState<{ [id: string]: PhoneNumber }>({});
   const [requests, setRequests] = useState<{ [id: string]: Request }>({});
+  const [currentRequest, setCurrentRequest] = useState<Request | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showSimulation, setShowSimulation] = useState(false);
 
   useEffect(() => {
     const fetchPhoneNumbers = async () => {
@@ -297,6 +308,8 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         ...prev,
         [data.id]: newRequest,
       }));
+
+      setCurrentRequest(newRequest);
   
       return data.id;
     } catch (error) {
@@ -336,7 +349,7 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // Update the phone number to is_used = true
       const { error: phoneError } = await supabase
         .from('phone_numbers')
-        .update({ is_used: true, used_at: new Date() })
+        .update({ is_used: true, used_at: new Date().toISOString() })
         .eq('id', phoneNumberId);
   
       if (phoneError) {
@@ -380,17 +393,18 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
   
       // Update local state for requests
-      setRequests(prev => {
-        const updatedRequest: Request = {
-          ...prev[requestId],
-          status: requestData.status,
-          updatedAt: new Date(requestData.updated_at),
-        };
-        return {
-          ...prev,
-          [requestId]: updatedRequest,
-        };
-      });
+      const updatedRequest: Request = {
+        ...currentRequest!,
+        status: requestData.status,
+        updatedAt: new Date(requestData.updated_at),
+      };
+      
+      setRequests(prev => ({
+        ...prev,
+        [requestId]: updatedRequest,
+      }));
+      
+      setCurrentRequest(updatedRequest);
   
       toast({
         title: "Erfolg",
@@ -427,18 +441,19 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
   
       // Update local state
-      setRequests(prev => {
-        const updatedRequest: Request = {
-          ...prev[requestId],
-          smsCode: smsCode,
-          status: data.status,
-          updatedAt: new Date(data.updated_at),
-        };
-        return {
-          ...prev,
-          [requestId]: updatedRequest,
-        };
-      });
+      const updatedRequest: Request = {
+        ...currentRequest!,
+        smsCode: smsCode,
+        status: data.status,
+        updatedAt: new Date(data.updated_at),
+      };
+      
+      setRequests(prev => ({
+        ...prev,
+        [requestId]: updatedRequest,
+      }));
+      
+      setCurrentRequest(updatedRequest);
   
       toast({
         title: "Erfolg",
@@ -475,17 +490,18 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
   
       // Update local state
-      setRequests(prev => {
-        const updatedRequest: Request = {
-          ...prev[requestId],
-          status: data.status,
-          updatedAt: new Date(data.updated_at),
-        };
-        return {
-          ...prev,
-          [requestId]: updatedRequest,
-        };
-      });
+      const updatedRequest: Request = {
+        ...currentRequest!,
+        status: data.status,
+        updatedAt: new Date(data.updated_at),
+      };
+      
+      setRequests(prev => ({
+        ...prev,
+        [requestId]: updatedRequest,
+      }));
+      
+      setCurrentRequest(updatedRequest);
   
       toast({
         title: "Info",
@@ -501,17 +517,123 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  // New functions needed by the components
+  const submitRequest = async (phone: string, accessCode: string) => {
+    console.log('🚀 SMSContext - submitRequest called with phone:', phone, 'accessCode:', accessCode);
+    setIsLoading(true);
+    setShowSimulation(true);
+    
+    try {
+      const requestId = await createRequest(phone, accessCode);
+      if (requestId) {
+        console.log('✅ SMSContext - Request created successfully:', requestId);
+        // Simulate activation after a delay
+        setTimeout(async () => {
+          await activateRequest(requestId);
+          setShowSimulation(false);
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('💥 SMSContext - Error in submitRequest:', error);
+      setShowSimulation(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const markSMSSent = async (requestId: string): Promise<boolean> => {
+    console.log('📱 SMSContext - markSMSSent called for requestId:', requestId);
+    
+    try {
+      const { data, error } = await supabase
+        .from('requests')
+        .update({ status: 'sms_sent' })
+        .eq('id', requestId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error marking SMS as sent:', error);
+        return false;
+      }
+
+      const updatedRequest: Request = {
+        ...currentRequest!,
+        status: data.status,
+        updatedAt: new Date(data.updated_at),
+      };
+      
+      setRequests(prev => ({
+        ...prev,
+        [requestId]: updatedRequest,
+      }));
+      
+      setCurrentRequest(updatedRequest);
+
+      console.log('✅ SMSContext - SMS marked as sent successfully');
+      return true;
+    } catch (error) {
+      console.error('💥 SMSContext - Error in markSMSSent:', error);
+      return false;
+    }
+  };
+
+  const requestSMS = (requestId: string) => {
+    console.log('🔄 SMSContext - requestSMS called for requestId:', requestId);
+    requestSMSCode(requestId);
+  };
+
+  const completeRequest = (requestId: string) => {
+    console.log('✅ SMSContext - completeRequest called for requestId:', requestId);
+    
+    try {
+      const updatedRequest: Request = {
+        ...currentRequest!,
+        status: 'completed',
+        updatedAt: new Date(),
+      };
+      
+      setRequests(prev => ({
+        ...prev,
+        [requestId]: updatedRequest,
+      }));
+      
+      setCurrentRequest(updatedRequest);
+
+      toast({
+        title: "Erfolg",
+        description: "Vorgang wurde erfolgreich abgeschlossen",
+      });
+    } catch (error) {
+      console.error('💥 SMSContext - Error in completeRequest:', error);
+    }
+  };
+
+  const resetCurrentRequest = () => {
+    console.log('🔄 SMSContext - resetCurrentRequest called');
+    setCurrentRequest(null);
+    setShowSimulation(false);
+  };
+
   const value = {
     phoneNumbers,
     requests,
+    currentRequest,
     isLoading,
+    showSimulation,
+    setShowSimulation,
     createPhoneNumber,
     updatePhoneNumber,
     deletePhoneNumber,
     createRequest,
     activateRequest,
     submitSMSCode,
-    requestSMSCode
+    requestSMSCode,
+    submitRequest,
+    markSMSSent,
+    requestSMS,
+    completeRequest,
+    resetCurrentRequest
   };
 
   return (
