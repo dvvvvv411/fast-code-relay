@@ -4,7 +4,7 @@ import { useSMS } from '../context/SMSContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Edit, Trash, Loader, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, Edit, Trash, Loader, CheckCircle, XCircle, Shuffle } from 'lucide-react';
 import { 
   Table, 
   TableBody, 
@@ -21,6 +21,22 @@ const PhoneNumberManager = () => {
   const [phone, setPhone] = useState('');
   const [accessCode, setAccessCode] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  const generateAccessCode = () => {
+    // Generate 3 random uppercase letters
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let code = '';
+    for (let i = 0; i < 3; i++) {
+      code += letters.charAt(Math.floor(Math.random() * letters.length));
+    }
+    
+    // Generate 3 random numbers
+    for (let i = 0; i < 3; i++) {
+      code += Math.floor(Math.random() * 10).toString();
+    }
+    
+    setAccessCode(code);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,14 +131,26 @@ const PhoneNumberManager = () => {
               <label htmlFor="accessCode" className="text-sm font-medium">
                 Zugangscode
               </label>
-              <Input
-                id="accessCode"
-                type="text"
-                value={accessCode}
-                onChange={(e) => setAccessCode(e.target.value)}
-                placeholder="ABC123"
-                required
-              />
+              <div className="flex space-x-2">
+                <Input
+                  id="accessCode"
+                  type="text"
+                  value={accessCode}
+                  onChange={(e) => setAccessCode(e.target.value)}
+                  placeholder="ABC123"
+                  required
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={generateAccessCode}
+                  className="px-3"
+                  title="Zufälligen Zugangscode generieren"
+                >
+                  <Shuffle size={16} />
+                </Button>
+              </div>
             </div>
             <div className="flex space-x-2">
               <Button type="submit" className="bg-orange hover:bg-orange-dark">
