@@ -28,7 +28,7 @@ const SMSRequests = () => {
 
   // Sort requests by creation date (newest first)
   const sortedRequests = requestsArray.sort((a, b) => 
-    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
 
   const getStatusInfo = (status: string) => {
@@ -85,7 +85,8 @@ const SMSRequests = () => {
     }
   };
 
-  const formatDateTime = (date: Date) => {
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
     return date.toLocaleString('de-DE', {
       day: '2-digit',
       month: '2-digit',
@@ -153,7 +154,7 @@ const SMSRequests = () => {
                     <TableRow key={request.id}>
                       <TableCell>
                         <span className="font-mono bg-gray-100 px-2 py-1 rounded text-sm">
-                          {request.shortId}
+                          {request.short_id}
                         </span>
                       </TableCell>
                       <TableCell className="font-medium">
@@ -178,10 +179,10 @@ const SMSRequests = () => {
                         )}
                       </TableCell>
                       <TableCell className="text-sm text-gray-600">
-                        {formatDateTime(request.createdAt)}
+                        {formatDateTime(request.created_at)}
                       </TableCell>
                       <TableCell className="text-sm text-gray-600">
-                        {formatDateTime(request.updatedAt)}
+                        {formatDateTime(request.updated_at)}
                       </TableCell>
                       <TableCell className="text-right">
                         <Button 
