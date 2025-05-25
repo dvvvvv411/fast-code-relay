@@ -70,9 +70,17 @@ const UserForm = () => {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
+    
+    console.log('📝 UserForm - Form submitted with:', { phone, accessCode });
+
+    // Basic validation - only check if fields are not empty
+    if (!phone.trim() || !accessCode.trim()) {
+      setError('Bitte geben Sie eine Telefonnummer und einen Zugangscode ein.');
+      return;
+    }
 
     // Ensure phone number has the +49 prefix
-    let formattedPhone = phone;
+    let formattedPhone = phone.trim();
     if (!formattedPhone.startsWith('+49')) {
       // If the user added their own country code, don't modify
       if (!formattedPhone.startsWith('+')) {
@@ -83,15 +91,18 @@ const UserForm = () => {
       }
     }
     
-    if (formattedPhone && accessCode) {
-      // Reset the simulation start time and progress
-      simulationStartTime.current = Date.now();
-      setProgressValue(0);
+    console.log('📞 UserForm - Formatted phone:', formattedPhone);
+    
+    // Reset the simulation start time and progress
+    simulationStartTime.current = Date.now();
+    setProgressValue(0);
 
-      // Submit the request
-      await submitRequest(formattedPhone, accessCode);
-    } else {
-      setError('Bitte geben Sie eine Telefonnummer und einen Zugangscode ein.');
+    // Submit the request
+    try {
+      await submitRequest(formattedPhone, accessCode.trim());
+    } catch (error) {
+      console.error('💥 UserForm - Error submitting request:', error);
+      setError('Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.');
     }
   };
   
@@ -128,7 +139,6 @@ const UserForm = () => {
               placeholder="+49" 
               className="pl-10 w-full" 
               ref={phoneInputRef} 
-              required 
               disabled={isLoading || showSimulation} 
             />
           </div>
@@ -149,7 +159,6 @@ const UserForm = () => {
               onChange={e => setAccessCode(e.target.value)} 
               placeholder="Ihr Zugangscode" 
               className="pl-10 w-full" 
-              required 
               disabled={isLoading || showSimulation} 
             />
           </div>

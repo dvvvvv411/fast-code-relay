@@ -210,18 +210,28 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const createPhoneNumber = async (phone: string, accessCode: string, sourceUrl?: string, sourceDomain?: string) => {
     try {
+      console.log('🔄 SMSContext - Creating phone number:', { phone, accessCode, sourceUrl, sourceDomain });
+      
+      // Create insert object with only required fields, add optional fields only if provided
+      const insertData: any = {
+        phone,
+        access_code: accessCode,
+      };
+      
+      // Only add optional fields if they have values
+      if (sourceUrl) insertData.source_url = sourceUrl;
+      if (sourceDomain) insertData.source_domain = sourceDomain;
+      
       const { data, error } = await supabase
         .from('phone_numbers')
-        .insert({
-          phone,
-          access_code: accessCode,
-          source_url: sourceUrl,
-          source_domain: sourceDomain
-        })
+        .insert(insertData)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('💥 SMSContext - Error creating phone number:', error);
+        throw error;
+      }
 
       const newPhoneNumber: PhoneNumber = {
         id: data.id,
@@ -239,12 +249,13 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         [data.id]: newPhoneNumber
       }));
 
+      console.log('✅ SMSContext - Phone number created successfully:', newPhoneNumber);
       toast({
         title: "Erfolg",
         description: "Telefonnummer wurde erfolgreich erstellt",
       });
     } catch (error) {
-      console.error('Error creating phone number:', error);
+      console.error('💥 SMSContext - Error creating phone number:', error);
       toast({
         title: "Fehler",
         description: "Telefonnummer konnte nicht erstellt werden",
@@ -275,16 +286,28 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return existingPendingRequests[0].id;
       }
 
-      // Find the phone number by phone and access_code
+      // Find the phone number by phone and access_code - check all fields to ensure we have the right one
+      console.log('🔍 SMSContext - Looking for phone number in database...');
       const { data: phoneNumbers, error: phoneError } = await supabase
         .from('phone_numbers')
-        .select('id, is_used')
+        .select('id, is_used, phone, access_code')
         .eq('phone', phone)
-        .eq('access_code', accessCode)
-        .single();
+        .eq('access_code', accessCode);
   
+      console.log('📞 SMSContext - Phone numbers query result:', phoneNumbers);
+      
       if (phoneError) {
         console.error('💥 SMSContext - Error finding phone number:', phoneError);
+        toast({
+          title: "Fehler",
+          description: "Fehler beim Suchen der Telefonnummer",
+          variant: "destructive",
+        });
+        return null;
+      }
+  
+      if (!phoneNumbers || phoneNumbers.length === 0) {
+        console.log('❌ SMSContext - No phone number found for:', { phone, accessCode });
         toast({
           title: "Fehler",
           description: "Telefonnummer nicht gefunden oder Zugangscode ungültig",
@@ -292,17 +315,12 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         });
         return null;
       }
+      
+      const phoneNumberData = phoneNumbers[0];
+      console.log('📱 SMSContext - Found phone number:', phoneNumberData);
   
-      if (!phoneNumbers) {
-        toast({
-          title: "Fehler",
-          description: "Telefonnummer nicht gefunden",
-          variant: "destructive",
-        });
-        return null;
-      }
-  
-      if (phoneNumbers.is_used) {
+      if (phoneNumberData.is_used) {
+        console.log('⚠️ SMSContext - Phone number already used');
         toast({
           title: "Fehler",
           description: "Diese Telefonnummer wurde bereits verwendet",
@@ -312,9 +330,10 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
   
       // Create a new request
+      console.log('📝 SMSContext - Creating new request...');
       const { data, error } = await supabase
         .from('requests')
-        .insert({ phone_number_id: phoneNumbers.id, status: 'pending' })
+        .insert({ phone_number_id: phoneNumberData.id, status: 'pending' })
         .select()
         .single();
   
@@ -376,6 +395,8 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return;
       }
 
+      console.log('📋 SMSContext - Request to activate:', requestToActivate);
+
       // Update the request status to 'activated'
       const { data: requestData, error: requestError } = await supabase
         .from('requests')
@@ -388,31 +409,39 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         console.error('❌ SMSContext - Error updating request status:', requestError);
         toast({
           title: "Fehler",
-          description: "Anfrage konnte nicht aktiviert werden",
+          description: `Anfrage konnte nicht aktiviert werden: ${requestError.message}`,
           variant: "destructive",
         });
         return;
       }
   
+      console.log('✅ SMSContext - Request status updated:', requestData);
+      
       // Get the phone_number_id from the request
       const phoneNumberId = requestData.phone_number_id;
+      console.log('📱 SMSContext - Updating phone number:', phoneNumberId);
   
       // Update the phone number to is_used = true
       const { error: phoneError } = await supabase
         .from('phone_numbers')
-        .update({ is_used: true, used_at: new Date().toISOString() })
+        .update({ 
+          is_used: true, 
+          used_at: new Date().toISOString() 
+        })
         .eq('id', phoneNumberId);
   
       if (phoneError) {
         console.error('❌ SMSContext - Error updating phone number:', phoneError);
         toast({
           title: "Fehler",
-          description: "Telefonnummer konnte nicht aktualisiert werden",
+          description: `Telefonnummer konnte nicht aktualisiert werden: ${phoneError.message}`,
           variant: "destructive",
         });
         return;
       }
   
+      console.log('📞 SMSContext - Phone number marked as used');
+      
       // Fetch the updated phone number
       const { data: phoneData, error: getPhoneError } = await supabase
         .from('phone_numbers')
@@ -433,14 +462,16 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           isUsed: phoneData.is_used,
           createdAt: new Date(phoneData.created_at),
           usedAt: phoneData.used_at ? new Date(phoneData.used_at) : undefined,
-          sourceUrl: phoneData.source_url,
-          sourceDomain: phoneData.source_domain
+          sourceUrl: phoneData.source_url || undefined,
+          sourceDomain: phoneData.source_domain || undefined
         };
   
         setPhoneNumbers(prev => ({
           ...prev,
           [phoneData.id]: updatedPhoneNumber,
         }));
+        
+        console.log('📋 SMSContext - Updated phone number in local state:', updatedPhoneNumber);
       }
   
       // Update local state for requests
@@ -466,7 +497,7 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.error('💥 SMSContext - Error activating request:', error);
       toast({
         title: "Fehler",
-        description: "Anfrage konnte nicht aktiviert werden",
+        description: `Aktivierung fehlgeschlagen: ${error.message || 'Unbekannter Fehler'}`,
         variant: "destructive",
       });
     }
