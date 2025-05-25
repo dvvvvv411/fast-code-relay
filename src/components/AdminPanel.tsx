@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useSMS } from '../context/SMSContext';
@@ -7,12 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PhoneNumberManager from './PhoneNumberManager';
-import { List, Phone, MessageSquare, Loader, AlertTriangle, Send, Timer, Filter, Eye, EyeOff } from 'lucide-react';
+import { List, Phone, MessageSquare, Loader, AlertTriangle, Send, Timer, Filter, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import SupportTickets from './SupportTickets';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const AdminPanel = () => {
-  const { requests, activateRequest, submitSMSCode, isLoading } = useSMS();
+  const { requests, activateRequest, submitSMSCode, completeRequest, isLoading } = useSMS();
   const { user, isLoading: authLoading, isAdmin } = useAuth();
   const [smsCode, setSmsCode] = useState('');
   const [selectedRequest, setSelectedRequest] = useState<string | null>(null);
@@ -26,6 +25,11 @@ const AdminPanel = () => {
   const handleSendSMS = (requestId: string) => {
     console.log('📝 Admin preparing to send SMS for request:', requestId);
     setSelectedRequest(requestId);
+  };
+  
+  const handleCompleteRequest = (requestId: string) => {
+    console.log('✅ Admin manually completing request:', requestId);
+    completeRequest(requestId);
   };
   
   const submitSMS = () => {
@@ -201,7 +205,7 @@ const AdminPanel = () => {
                   {(request.status === 'activated' || 
                     request.status === 'sms_requested' || 
                     request.status === 'sms_sent') && (
-                    <div className="flex justify-center">
+                    <div className="flex gap-2 justify-center">
                       <Button 
                         onClick={() => handleSendSMS(request.id)}
                         size="sm" 
@@ -215,6 +219,15 @@ const AdminPanel = () => {
                       >
                         📨 {request.status === 'activated' ? 'Neuen SMS Code senden' : 'SMS Code eingeben'}
                       </Button>
+                      <Button
+                        onClick={() => handleCompleteRequest(request.id)}
+                        size="sm"
+                        variant="outline"
+                        className="border-green-500 text-green-600 hover:bg-green-50 flex items-center gap-1"
+                      >
+                        <CheckCircle className="h-4 w-4" />
+                        Abschließen
+                      </Button>
                     </div>
                   )}
                   
@@ -227,14 +240,25 @@ const AdminPanel = () => {
                       <div>
                         SMS Code: <span className="font-medium bg-blue-100 px-2 py-1 rounded">{request.smsCode}</span>
                       </div>
-                      <Button 
-                        onClick={() => handleSendSMS(request.id)}
-                        size="sm"
-                        variant="outline" 
-                        className="text-blue-500 border-blue-500 hover:bg-blue-50"
-                      >
-                        Neuen SMS Code senden
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button 
+                          onClick={() => handleSendSMS(request.id)}
+                          size="sm"
+                          variant="outline" 
+                          className="text-blue-500 border-blue-500 hover:bg-blue-50"
+                        >
+                          Neuen SMS Code senden
+                        </Button>
+                        <Button
+                          onClick={() => handleCompleteRequest(request.id)}
+                          size="sm"
+                          variant="outline"
+                          className="border-green-500 text-green-600 hover:bg-green-50 flex items-center gap-1"
+                        >
+                          <CheckCircle className="h-4 w-4" />
+                          Abschließen
+                        </Button>
+                      </div>
                     </div>
                   )}
                   
