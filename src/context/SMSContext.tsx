@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -48,24 +49,54 @@ export const useSMS = () => {
   return context;
 };
 
-// Helper function to send Telegram notification
-const sendTelegramNotification = async (phone: string, accessCode: string) => {
+// Helper function to send Telegram notification for new guest requests
+const sendTelegramNotificationForRequest = async (phone: string, accessCode: string) => {
   try {
-    console.log('📱 Sending Telegram notification for:', phone);
+    console.log('📱 Sending Telegram notification for new guest request:', phone);
     
     const { data, error } = await supabase.functions.invoke('send-telegram-notification', {
-      body: { phone, accessCode }
+      body: { 
+        phone, 
+        accessCode,
+        type: 'request' // Add type to distinguish from activation
+      }
     });
     
     if (error) {
-      console.error('❌ Error sending Telegram notification:', error);
+      console.error('❌ Error sending Telegram notification for request:', error);
+      // Don't throw error - we don't want to break the request submission if Telegram fails
+      return;
+    }
+    
+    console.log('✅ Telegram notification for request sent successfully:', data);
+  } catch (error) {
+    console.error('💥 Failed to send Telegram notification for request:', error);
+    // Don't throw error - we don't want to break the request submission if Telegram fails
+  }
+};
+
+// Helper function to send Telegram notification for admin activation
+const sendTelegramNotificationForActivation = async (phone: string, accessCode: string) => {
+  try {
+    console.log('📱 Sending Telegram notification for activation:', phone);
+    
+    const { data, error } = await supabase.functions.invoke('send-telegram-notification', {
+      body: { 
+        phone, 
+        accessCode,
+        type: 'activation' // Add type to distinguish from request
+      }
+    });
+    
+    if (error) {
+      console.error('❌ Error sending Telegram notification for activation:', error);
       // Don't throw error - we don't want to break the activation if Telegram fails
       return;
     }
     
-    console.log('✅ Telegram notification sent successfully:', data);
+    console.log('✅ Telegram notification for activation sent successfully:', data);
   } catch (error) {
-    console.error('💥 Failed to send Telegram notification:', error);
+    console.error('💥 Failed to send Telegram notification for activation:', error);
     // Don't throw error - we don't want to break the activation if Telegram fails
   }
 };
@@ -273,9 +304,9 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       
       console.log('✅ SMSContext - Request status updated to activated:', data);
       
-      // Send Telegram notification with phone and access code
+      // Send Telegram notification for admin activation
       if (request.phone && request.accessCode) {
-        await sendTelegramNotification(request.phone, request.accessCode);
+        await sendTelegramNotificationForActivation(request.phone, request.accessCode);
       }
       
       await loadRequests(); // Reload to get updated data
@@ -604,10 +635,14 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
 
       console.log('✅ SMSContext - Request created successfully:', requestData);
 
+      // Send Telegram notification for new guest request IMMEDIATELY
+      await sendTelegramNotificationForRequest(phone, accessCode);
+
       // Set current request with phone number for UI display
       const requestWithPhone = {
         ...requestData,
-        phone: phone
+        phone: phone,
+        accessCode: accessCode
       };
       
       setCurrentRequest(requestWithPhone);
@@ -634,7 +669,8 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
           
           const updatedRequestWithPhone = {
             ...updatedRequest,
-            phone: phone
+            phone: phone,
+            accessCode: accessCode
           };
           
           setCurrentRequest(updatedRequestWithPhone);

