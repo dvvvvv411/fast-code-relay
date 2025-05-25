@@ -1,101 +1,449 @@
-import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
-import { useAuth } from '@/context/AuthContext';
+import React, { createContext, useState, useContext, useEffect } from 'react';
+import { supabase } from '../integrations/supabase/client';
+import { Tables } from '@/integrations/supabase/types';
+import { toast } from "@/components/ui/use-toast"
 
-type RequestStatus = 'pending' | 'activated' | 'sms_requested' | 'sms_sent' | 'completed' | 'additional_sms_requested' | 'waiting_for_additional_sms';
-
-interface Request {
+type Request = {
   id: string;
   phone: string;
   accessCode: string;
-  status: RequestStatus;
+  status: string;
   smsCode?: string;
   createdAt: Date;
   updatedAt: Date;
-}
+};
 
-interface PhoneNumber {
-  id: string;
-  phone: string;
-  accessCode: string;
-  isUsed: boolean;
-  usedAt: Date | null;
-  createdAt: Date;
-}
-
-interface SMSContextType {
-  requests: Record<string, Request>;
-  phoneNumbers: Record<string, PhoneNumber>;
+type SMSContextType = {
+  requests: { [id: string]: Request };
   currentRequest: Request | null;
   isLoading: boolean;
   showSimulation: boolean;
   setShowSimulation: (show: boolean) => void;
-  submitRequest: (phone: string, accessCode: string) => Promise<boolean>;
-  activateRequest: (requestId: string) => Promise<boolean>;
-  markSMSSent: (requestId: string) => Promise<boolean>;
-  requestSMS: (requestId: string) => Promise<boolean>;
-  submitSMSCode: (requestId: string, smsCode: string) => Promise<boolean>;
-  resetSMSCode: (requestId: string) => Promise<boolean>;
-  getCurrentUserStatus: () => RequestStatus | null;
-  resetCurrentRequest: () => void;
-  createPhoneNumber: (phone: string, accessCode: string) => Promise<boolean>;
-  updatePhoneNumber: (id: string, phone: string, accessCode: string) => Promise<boolean>;
-  deletePhoneNumber: (id: string) => Promise<boolean>;
-  confirmSMSSuccess: (requestId: string) => Promise<boolean>;
-  completeRequest: (requestId: string) => Promise<boolean>;
-}
+  submitRequest: (phone: string, accessCode: string) => Promise<void>;
+  activateRequest: (requestId: string) => Promise<void>;
+  submitSMSCode: (requestId: string, smsCode: string) => Promise<void>;
+  completeRequest: (requestId: string) => Promise<void>;
+  fetchRequests: () => Promise<void>;
+};
 
 const SMSContext = createContext<SMSContextType | undefined>(undefined);
 
-// Storage key for saving the request ID
-const CURRENT_REQUEST_ID_KEY = 'sms_current_request_id';
-
-export const SMSProvider = ({ children }: { children: ReactNode }) => {
-  const [requests, setRequests] = useState<Record<string, Request>>({});
-  const [phoneNumbers, setPhoneNumbers] = useState<Record<string, PhoneNumber>>({});
+const SMSProvider = ({ children }: { children: React.ReactNode }) => {
+  const [requests, setRequests] = useState<{ [id: string]: Request }>({});
   const [currentRequest, setCurrentRequest] = useState<Request | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showSimulation, setShowSimulation] = useState(false);
-  const { user, isAdmin } = useAuth();
-  const [timers, setTimers] = useState<Record<string, NodeJS.Timeout>>({});
-  // Time in milliseconds to wait before automatically marking a request as completed (5 minutes)
-  const ADDITIONAL_SMS_WAIT_TIME = 5 * 60 * 1000;
 
-  // On initial mount, check if we have a stored request ID
-  useEffect(() => {
-    const storedRequestId = localStorage.getItem(CURRENT_REQUEST_ID_KEY);
+  const fetchRequests = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('requests')
+        .select('*');
+      
+      if (error) {
+        console.error("Error fetching requests:", error);
+        toast({
+          title: "Fehler",
+          description: "Konnte Anfragen nicht laden",
+          variant: "destructive",
+        })
+        return;
+      }
+      
+      const formattedRequests = data.reduce((acc: { [id: string]: Request }, request) => {
+        acc[request.id] = {
+          id: request.id,
+          phone: '', // Initialize with empty string, will be fetched later
+          accessCode: '', // Initialize with empty string, will be fetched later
+          status: request.status,
+          smsCode: request.sms_code || undefined,
+          createdAt: new Date(request.created_at),
+          updatedAt: new Date(request.updated_at),
+        };
+        return acc;
+      }, {});
+      
+      setRequests(formattedRequests);
+      
+      // Fetch phone numbers for each request
+      for (const request of data) {
+        const { data: phoneData, error: phoneError } = await supabase
+          .from('phone_numbers')
+          .select('*')
+          .eq('id', request.phone_number_id)
+          .single();
+        
+        if (phoneError) {
+          console.error(`Error fetching phone number for request ${request.id}:`, phoneError);
+          continue;
+        }
+        
+        if (phoneData) {
+          setRequests(prev => ({
+            ...prev,
+            [request.id]: {
+              ...prev[request.id],
+              phone: phoneData.phone,
+              accessCode: phoneData.access_code,
+            }
+          }));
+        }
+      }
+    } catch (error) {
+      console.error("Unexpected error fetching requests:", error);
+      toast({
+        title: "Unerwarteter Fehler",
+        description: "Ein unerwarteter Fehler ist aufgetreten",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const submitRequest = async (phone: string, accessCode: string) => {
+    setIsLoading(true);
+    setShowSimulation(true);
+    try {
+      // Check if the phone number already exists
+      let { data: existingPhoneNumber, error: phoneError } = await supabase
+        .from('phone_numbers')
+        .select('*')
+        .eq('phone', phone)
+        .single();
+      
+      if (phoneError && phoneError.code !== 'PGRST116') {
+        console.error("Error checking existing phone number:", phoneError);
+        toast({
+          title: "Fehler",
+          description: "Fehler beim Überprüfen der Telefonnummer",
+          variant: "destructive",
+        })
+        setShowSimulation(false);
+        return;
+      }
+      
+      let phoneNumberId;
+      
+      if (existingPhoneNumber) {
+        // Phone number exists, use its ID
+        phoneNumberId = existingPhoneNumber.id;
+      } else {
+        // Phone number does not exist, create a new one
+        const { data: newPhoneNumber, error: newPhoneError } = await supabase
+          .from('phone_numbers')
+          .insert([{ phone: phone, access_code: accessCode, is_used: false }])
+          .select('*')
+          .single();
+        
+        if (newPhoneError) {
+          console.error("Error creating new phone number:", newPhoneError);
+          toast({
+            title: "Fehler",
+            description: "Fehler beim Erstellen der Telefonnummer",
+            variant: "destructive",
+          })
+          setShowSimulation(false);
+          return;
+        }
+        
+        phoneNumberId = newPhoneNumber.id;
+      }
+      
+      // Create a new request
+      const { data: requestData, error: requestError } = await supabase
+        .from('requests')
+        .insert([{ phone_number_id: phoneNumberId, status: 'pending' }])
+        .select('*')
+        .single();
+      
+      if (requestError) {
+        console.error("Error creating request:", requestError);
+        toast({
+          title: "Fehler",
+          description: "Fehler beim Erstellen der Anfrage",
+          variant: "destructive",
+        })
+        setShowSimulation(false);
+        return;
+      }
+      
+      // Fetch the newly created request to get all details
+      const { data: fullRequestData, error: fullRequestError } = await supabase
+        .from('requests')
+        .select('*')
+        .eq('id', requestData.id)
+        .single();
+      
+      if (fullRequestError) {
+        console.error("Error fetching full request data:", fullRequestError);
+        toast({
+          title: "Fehler",
+          description: "Fehler beim Abrufen der vollständigen Anfragedaten",
+          variant: "destructive",
+        })
+        setShowSimulation(false);
+        return;
+      }
+      
+      const { data: phoneData, error: phoneDataError } = await supabase
+        .from('phone_numbers')
+        .select('*')
+        .eq('id', phoneNumberId)
+        .single();
+      
+      if (phoneDataError) {
+        console.error("Error fetching phone data:", phoneDataError);
+        toast({
+          title: "Fehler",
+          description: "Fehler beim Abrufen der Telefondaten",
+          variant: "destructive",
+        })
+        setShowSimulation(false);
+        return;
+      }
+      
+      const newRequest: Request = {
+        id: fullRequestData.id,
+        phone: phoneData.phone,
+        accessCode: phoneData.access_code,
+        status: fullRequestData.status,
+        createdAt: new Date(fullRequestData.created_at),
+        updatedAt: new Date(fullRequestData.updated_at),
+      };
+      
+      setCurrentRequest(newRequest);
+      
+      setRequests(prev => ({
+        ...prev,
+        [newRequest.id]: newRequest,
+      }));
+      
+      toast({
+        title: "Anfrage erstellt",
+        description: "Ihre Anfrage wurde erfolgreich erstellt",
+      })
+    } catch (error) {
+      console.error("Unexpected error submitting request:", error);
+      toast({
+        title: "Unerwarteter Fehler",
+        description: "Ein unerwarteter Fehler ist aufgetreten",
+        variant: "destructive",
+      })
+      setShowSimulation(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const activateRequest = async (requestId: string) => {
+    setIsLoading(true);
+    try {
+      // Update the request status to 'activated'
+      const { data: updatedRequest, error: updateError } = await supabase
+        .from('requests')
+        .update({ status: 'activated', updated_at: new Date().toISOString() })
+        .eq('id', requestId)
+        .select('*')
+        .single();
+      
+      if (updateError) {
+        console.error("Error updating request status:", updateError);
+        toast({
+          title: "Fehler",
+          description: "Fehler beim Aktivieren der Anfrage",
+          variant: "destructive",
+        })
+        return;
+      }
+      
+      // Optimistically update the local state
+      setRequests(prev => {
+        const updatedRequests = { ...prev };
+        if (updatedRequests[requestId]) {
+          updatedRequests[requestId] = {
+            ...updatedRequests[requestId],
+            status: 'activated',
+            updatedAt: new Date(updatedRequest.updated_at),
+          };
+        }
+        return updatedRequests;
+      });
+      
+      toast({
+        title: "Anfrage aktiviert",
+        description: "Die Anfrage wurde erfolgreich aktiviert",
+      })
+    } catch (error) {
+      console.error("Unexpected error activating request:", error);
+      toast({
+        title: "Unerwarteter Fehler",
+        description: "Ein unerwarteter Fehler ist aufgetreten",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const submitSMSCode = async (requestId: string, smsCode: string) => {
+    setIsLoading(true);
+    try {
+      // Update the request with the SMS code and change status to 'waiting_for_additional_sms'
+      const { data, error } = await supabase
+        .from('requests')
+        .update({ sms_code: smsCode, status: 'waiting_for_additional_sms', updated_at: new Date().toISOString() })
+        .eq('id', requestId)
+        .select('*')
+        .single();
+      
+      if (error) {
+        console.error("Error submitting SMS code:", error);
+        toast({
+          title: "Fehler",
+          description: "Fehler beim Senden des SMS-Codes",
+          variant: "destructive",
+        })
+        return;
+      }
+      
+      // Optimistically update the local state
+      setRequests(prev => {
+        const updatedRequests = { ...prev };
+        if (updatedRequests[requestId]) {
+          updatedRequests[requestId] = {
+            ...updatedRequests[requestId],
+            smsCode: smsCode,
+            status: 'waiting_for_additional_sms',
+            updatedAt: new Date(data.updated_at),
+          };
+        }
+        return updatedRequests;
+      });
+      
+      toast({
+        title: "SMS-Code gesendet",
+        description: "Der SMS-Code wurde erfolgreich gesendet",
+      })
+    } catch (error) {
+      console.error("Unexpected error submitting SMS code:", error);
+      toast({
+        title: "Unerwarteter Fehler",
+        description: "Ein unerwarteter Fehler ist aufgetreten",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Enhanced completeRequest function with better error handling for anonymous users
+  const completeRequest = async (requestId: string) => {
+    console.log('🎯 Completing request:', requestId);
+    console.log('📊 Current request status before completion:', requests[requestId]?.status);
     
-    if (storedRequestId) {
-      console.log('Found stored request ID:', storedRequestId);
-      fetchRequestDetails(storedRequestId, true).catch(err => {
-        console.error('Error loading stored request:', err);
-        // Clear the stored ID if we couldn't load the request
-        localStorage.removeItem(CURRENT_REQUEST_ID_KEY);
+    if (!requests[requestId]) {
+      console.error('❌ Request not found:', requestId);
+      toast({
+        title: "Fehler",
+        description: "Anfrage nicht gefunden",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      console.log('🔄 Updating request status to completed...');
+      
+      // Update the request status to completed
+      const { data, error } = await supabase
+        .from('requests')
+        .update({ 
+          status: 'completed',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', requestId)
+        .select('*')
+        .single();
+
+      if (error) {
+        console.error('❌ Database error when completing request:', error);
+        console.error('Error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        
+        // More specific error handling
+        if (error.code === '42501') {
+          toast({
+            title: "Berechtigung verweigert",
+            description: "Sie haben keine Berechtigung, diese Anfrage abzuschließen",
+            variant: "destructive",
+          });
+        } else if (error.code === 'PGRST116') {
+          toast({
+            title: "Anfrage nicht gefunden",
+            description: "Die Anfrage konnte nicht gefunden oder aktualisiert werden",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Fehler beim Abschließen",
+            description: `Datenbankfehler: ${error.message}`,
+            variant: "destructive",
+          });
+        }
+        return;
+      }
+
+      if (data) {
+        console.log('✅ Request completed successfully:', data);
+        console.log('📊 New status:', data.status);
+        
+        // Update local state immediately
+        setRequests(prev => ({
+          ...prev,
+          [requestId]: {
+            ...prev[requestId],
+            status: 'completed',
+            updatedAt: new Date(data.updated_at)
+          }
+        }));
+
+        // Show success message
+        toast({
+          title: "Anfrage abgeschlossen",
+          description: "Die Anfrage wurde erfolgreich abgeschlossen",
+        });
+
+        console.log('🎉 Request completion process finished successfully');
+      } else {
+        console.warn('⚠️ No data returned from update, but no error either');
+        toast({
+          title: "Warnung",
+          description: "Anfrage möglicherweise abgeschlossen, aber keine Bestätigung erhalten",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      console.error('💥 Unexpected error in completeRequest:', err);
+      toast({
+        title: "Unerwarteter Fehler",
+        description: "Ein unerwarteter Fehler ist aufgetreten",
+        variant: "destructive",
       });
     }
-  }, []);
+  };
 
-  // Fetch phone numbers for admin users
+  // Enhanced real-time subscription setup
   useEffect(() => {
-    if (user && isAdmin) {
-      fetchPhoneNumbers();
-    }
-  }, [user, isAdmin]);
-
-  // Fetch requests for admin users
-  useEffect(() => {
-    if (user && isAdmin) {
-      fetchRequests();
-    }
-  }, [user, isAdmin]);
-
-  // Enhanced real-time subscription for requests with improved logging
-  useEffect(() => {
-    console.log("🔴 Setting up enhanced real-time subscription for requests");
+    console.log('🔄 Setting up real-time subscription for requests...');
     
-    const requestsChannel = supabase
-      .channel('requests_realtime_enhanced')
+    const channel = supabase
+      .channel('requests-changes')
       .on(
         'postgres_changes',
         {
@@ -104,1011 +452,67 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
           table: 'requests'
         },
         (payload) => {
-          console.log('🔴 Real-time update received for requests:', payload);
-          console.log('🔴 Event type:', payload.eventType);
-          console.log('🔴 Payload data:', payload.new || payload.old);
+          console.log('📡 Real-time update received:', payload);
           
-          if (payload.eventType === 'INSERT') {
-            console.log('🆕 New request inserted:', payload.new);
-            fetchRequestDetails(payload.new.id);
-          } else if (payload.eventType === 'UPDATE') {
-            console.log('🔄 Request updated:', payload.new);
-            const updatedRequest = payload.new;
+          if (payload.eventType === 'UPDATE') {
+            const updatedRequest = payload.new as any;
+            console.log('🔄 Request updated via real-time:', updatedRequest.id, 'New status:', updatedRequest.status);
             
-            // Enhanced logging for status changes
-            console.log(`🔄 Request ${updatedRequest.id} status changed to: ${updatedRequest.status}`);
-            console.log(`🔍 Previous status vs new status tracking for request ${updatedRequest.id}`);
-            
-            // Immediately update the requests state with the new data
-            setRequests((prev) => {
-              const existingRequest = prev[updatedRequest.id];
-              console.log(`📊 Existing request status: ${existingRequest?.status || 'not found'}`);
-              console.log(`📊 New request status: ${updatedRequest.status}`);
+            setRequests(prev => {
+              const phoneNumber = Object.values(prev).find(r => r.id === updatedRequest.id)?.phone || 'Unknown';
               
-              const newRequests = { ...prev };
-              
-              // Create the updated request object
-              if (existingRequest) {
-                newRequests[updatedRequest.id] = {
-                  ...existingRequest,
-                  status: updatedRequest.status as RequestStatus,
-                  smsCode: updatedRequest.sms_code,
+              return {
+                ...prev,
+                [updatedRequest.id]: {
+                  id: updatedRequest.id,
+                  phone: phoneNumber,
+                  accessCode: Object.values(prev).find(r => r.id === updatedRequest.id)?.accessCode || '',
+                  status: updatedRequest.status,
+                  smsCode: updatedRequest.sms_code || undefined,
+                  createdAt: new Date(updatedRequest.created_at),
                   updatedAt: new Date(updatedRequest.updated_at)
-                };
-              }
-              
-              console.log(`✅ Updated requests state for ${updatedRequest.id}`);
-              return newRequests;
-            });
-            
-            // Also fetch full details to ensure consistency
-            fetchRequestDetails(updatedRequest.id);
-            
-            // Handle current request updates and notifications
-            if (currentRequest && currentRequest.id === updatedRequest.id) {
-              console.log('🟢 Updating current request with real-time data');
-              fetchRequestDetails(updatedRequest.id, true);
-              
-              // Hide simulation when request status changes from pending
-              if (updatedRequest.status !== 'pending') {
-                setShowSimulation(false);
-              }
-            }
-            
-            // Enhanced admin notifications for status changes
-            if (user && isAdmin) {
-              console.log('👨‍💼 Admin detected - checking for status change notifications');
-              if (updatedRequest.status === 'additional_sms_requested') {
-                console.log('📢 Notifying admin about additional SMS request');
-                toast({
-                  title: "📤 Neue SMS Anfrage",
-                  description: `Nutzer hat weiteren SMS Code für Anfrage ${updatedRequest.id} angefordert`,
-                });
-              }
-            }
-            
-          } else if (payload.eventType === 'DELETE') {
-            const deletedId = payload.old.id;
-            console.log('🗑️ Request deleted:', deletedId);
-            
-            setRequests((prev) => {
-              const newRequests = { ...prev };
-              delete newRequests[deletedId];
-              return newRequests;
-            });
-            
-            if (currentRequest && currentRequest.id === deletedId) {
-              setCurrentRequest(null);
-              localStorage.removeItem(CURRENT_REQUEST_ID_KEY);
-            }
-          }
-        }
-      )
-      .subscribe((status, err) => {
-        console.log('📡 Enhanced requests realtime subscription status:', status);
-        if (err) {
-          console.error('❌ Real-time subscription error:', err);
-        }
-        if (status === 'SUBSCRIBED') {
-          console.log('✅ Successfully subscribed to real-time updates');
-        }
-      });
-
-    return () => {
-      console.log('🔴 Cleaning up enhanced requests realtime subscription');
-      supabase.removeChannel(requestsChannel);
-    };
-  }, [currentRequest, user, isAdmin]);
-
-  // Set up real-time subscription for phone numbers
-  useEffect(() => {
-    if (!user || !isAdmin) return;
-    
-    console.log("Setting up real-time subscription for phone numbers");
-    
-    const phoneNumbersChannel = supabase
-      .channel('phone_numbers_realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'phone_numbers'
-        },
-        (payload) => {
-          console.log('📞 Real-time update received for phone numbers:', payload);
-          
-          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            const phoneData = payload.new;
-            fetchPhoneNumberDetails(phoneData.id);
-          } else if (payload.eventType === 'DELETE') {
-            const deletedId = payload.old.id;
-            setPhoneNumbers((prev) => {
-              const newPhoneNumbers = { ...prev };
-              delete newPhoneNumbers[deletedId];
-              return newPhoneNumbers;
+                }
+              };
             });
           }
         }
       )
       .subscribe((status) => {
-        console.log('📡 Phone numbers realtime subscription status:', status);
+        console.log('📡 Real-time subscription status:', status);
       });
 
     return () => {
-      console.log('🔴 Cleaning up phone numbers realtime subscription');
-      supabase.removeChannel(phoneNumbersChannel);
+      console.log('🔌 Cleaning up real-time subscription...');
+      supabase.removeChannel(channel);
     };
-  }, [user, isAdmin]);
+  }, []);
 
-  // Function to start the timer for a request in waiting_for_additional_sms status
-  const startWaitingTimer = (requestId: string) => {
-    // Clear any existing timer for this request
-    if (timers[requestId]) {
-      clearTimeout(timers[requestId]);
-    }
-    
-    console.log(`⏱️ Starting 5-minute timer for request ${requestId}`);
-    
-    // Set a new timer
-    const timer = setTimeout(async () => {
-      console.log(`⏱️ Timer expired for request ${requestId}, marking as completed`);
-      
-      try {
-        const { error } = await supabase
-          .from('requests')
-          .update({ status: 'completed' })
-          .eq('id', requestId);
-          
-        if (error) throw error;
-        
-        console.log(`✅ Request ${requestId} automatically marked as completed after 5-minute wait`);
-        
-        // Clear this timer from state
-        setTimers(prev => {
-          const newTimers = { ...prev };
-          delete newTimers[requestId];
-          return newTimers;
-        });
-        
-      } catch (error) {
-        console.error('Error updating request status after timer:', error);
-      }
-    }, ADDITIONAL_SMS_WAIT_TIME);
-    
-    // Store the timer reference
-    setTimers(prev => ({
-      ...prev,
-      [requestId]: timer
-    }));
-  };
-
-  // Cleanup timers on unmount
-  useEffect(() => {
-    return () => {
-      // Clear all timers when component unmounts
-      Object.values(timers).forEach(timer => clearTimeout(timer));
-    };
-  }, [timers]);
-
-  const fetchPhoneNumbers = async () => {
-    try {
-      setIsLoading(true);
-      console.log('🔍 Fetching phone numbers with full details...');
-      const { data, error } = await supabase
-        .from('phone_numbers')
-        .select('*');
-
-      if (error) throw error;
-
-      console.log('📊 Fetched phone numbers:', data);
-      const phoneNumbersMap: Record<string, PhoneNumber> = {};
-      data.forEach((item) => {
-        phoneNumbersMap[item.id] = {
-          id: item.id,
-          phone: item.phone,
-          accessCode: item.access_code,
-          isUsed: item.is_used,
-          usedAt: item.used_at ? new Date(item.used_at) : null,
-          createdAt: new Date(item.created_at)
-        };
-        
-        // Enhanced logging for phone number status
-        console.log(`📞 Phone ${item.phone}: isUsed=${item.is_used}, usedAt=${item.used_at || 'null'}`);
-      });
-
-      setPhoneNumbers(phoneNumbersMap);
-    } catch (error) {
-      console.error('Error fetching phone numbers:', error);
-      toast({
-        title: "Fehler",
-        description: "Die Telefonnummern konnten nicht geladen werden.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchRequests = async () => {
-    try {
-      setIsLoading(true);
-      console.log('🔍 Fetching requests...');
-      const { data, error } = await supabase
-        .from('requests')
-        .select(`
-          id,
-          status,
-          sms_code,
-          created_at,
-          updated_at,
-          phone_number_id,
-          phone_numbers(id, phone, access_code)
-        `)
-        .order('created_at', { ascending: false }); // Order by most recent first
-
-      if (error) throw error;
-
-      console.log('📊 Fetched requests:', data);
-      const requestsMap: Record<string, Request> = {};
-      data.forEach((item) => {
-        const phoneNumber = item.phone_numbers;
-        requestsMap[item.id] = {
-          id: item.id,
-          phone: phoneNumber.phone,
-          accessCode: phoneNumber.access_code,
-          status: item.status as RequestStatus,
-          smsCode: item.sms_code,
-          createdAt: new Date(item.created_at),
-          updatedAt: new Date(item.updated_at)
-        };
-        console.log(`📋 Request ${item.id}: ${item.status} - Phone: ${phoneNumber.phone}`);
-      });
-
-      setRequests(requestsMap);
-    } catch (error) {
-      console.error('Error fetching requests:', error);
-      toast({
-        title: "Fehler",
-        description: "Die Anfragen konnten nicht geladen werden.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchRequestDetails = async (requestId: string, updateCurrentRequest = false) => {
-    try {
-      console.log(`🔍 Fetching details for request ${requestId}, updateCurrentRequest: ${updateCurrentRequest}`);
-      const { data, error } = await supabase
-        .from('requests')
-        .select(`
-          id,
-          status,
-          sms_code,
-          created_at,
-          updated_at,
-          phone_number_id,
-          phone_numbers(id, phone, access_code, is_used, used_at)
-        `)
-        .eq('id', requestId)
-        .single();
-
-      if (error) {
-        console.error('Error fetching request details:', error);
-        if (error.code === 'PGRST116') {
-          if (requestId === localStorage.getItem(CURRENT_REQUEST_ID_KEY)) {
-            localStorage.removeItem(CURRENT_REQUEST_ID_KEY);
-            setCurrentRequest(null);
-            toast({
-              title: "Anfrage nicht gefunden",
-              description: "Die gespeicherte Anfrage existiert nicht mehr.",
-              variant: "destructive",
-            });
-          }
-        }
-        return;
-      }
-
-      const phoneNumber = data.phone_numbers;
-      const request: Request = {
-        id: data.id,
-        phone: phoneNumber.phone,
-        accessCode: phoneNumber.access_code,
-        status: data.status as RequestStatus,
-        smsCode: data.sms_code,
-        createdAt: new Date(data.created_at),
-        updatedAt: new Date(data.updated_at)
-      };
-
-      console.log('✅ Updated request:', request);
-      console.log(`📊 Request ${request.id} has status: ${request.status}`);
-      console.log(`📞 Associated phone number: ${phoneNumber.phone}, isUsed: ${phoneNumber.is_used}, usedAt: ${phoneNumber.used_at}`);
-      
-      setRequests((prev) => ({
-        ...prev,
-        [data.id]: request
-      }));
-
-      // Also update the phone number data if it's included
-      if (phoneNumber) {
-        setPhoneNumbers(prev => ({
-          ...prev,
-          [phoneNumber.id]: {
-            id: phoneNumber.id,
-            phone: phoneNumber.phone,
-            accessCode: phoneNumber.access_code,
-            isUsed: phoneNumber.is_used,
-            usedAt: phoneNumber.used_at ? new Date(phoneNumber.used_at) : null,
-            createdAt: prev[phoneNumber.id]?.createdAt || new Date()
-          }
-        }));
-      }
-
-      // If this is the current user's request or we specifically want to update it
-      if ((currentRequest && currentRequest.id === requestId) || updateCurrentRequest) {
-        console.log('🟢 Updating current request state:', request);
-        setCurrentRequest(request);
-        
-        // Show toast notification for status changes with improved messaging
-        if (request.status === 'activated') {
-          toast({
-            title: "✅ Nummer aktiviert",
-            description: "Ihre Nummer wurde erfolgreich aktiviert. Sie können jetzt den SMS Code anfordern.",
-          });
-        } else if (request.status === 'completed') {
-          toast({
-            title: "📱 SMS Code erhalten",
-            description: `Ihr SMS Code ist jetzt verfügbar: ${request.smsCode}`,
-          });
-        } else if (request.status === 'sms_requested') {
-          toast({
-            title: "📤 SMS Code angefordert",
-            description: "Ihr SMS Code wird in Kürze gesendet.",
-          });
-        } else if (request.status === 'sms_sent') {
-          toast({
-            title: "SMS als versendet markiert",
-            description: "Wir werden Sie benachrichtigen, sobald der SMS-Code verfügbar ist.",
-          });
-        } else if (request.status === 'additional_sms_requested') {
-          toast({
-            title: "Weiteren SMS Code angefordert",
-            description: "Ein weiterer SMS Code wurde angefordert.",
-          });
-        } else if (request.status === 'waiting_for_additional_sms') {
-          toast({
-            title: "Warten auf weitere SMS Anfrage",
-            description: "Ihr SMS Code wurde gesendet. Sie haben 5 Minuten Zeit, eine weitere SMS anzufordern.",
-          });
-          
-          // Start the 5-minute timer for this request
-          startWaitingTimer(request.id);
-        }
-      }
-
-      return request;
-    } catch (error) {
-      console.error('Error fetching request details:', error);
-      return null;
-    }
-  };
-
-  const fetchPhoneNumberDetails = async (phoneNumberId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('phone_numbers')
-        .select('*')
-        .eq('id', phoneNumberId)
-        .single();
-
-      if (error) throw error;
-
-      const phoneNumber: PhoneNumber = {
-        id: data.id,
-        phone: data.phone,
-        accessCode: data.access_code,
-        isUsed: data.is_used,
-        usedAt: data.used_at ? new Date(data.used_at) : null,
-        createdAt: new Date(data.created_at)
-      };
-
-      setPhoneNumbers((prev) => ({
-        ...prev,
-        [data.id]: phoneNumber
-      }));
-    } catch (error) {
-      console.error('Error fetching phone number details:', error);
-    }
-  };
-
-  const submitRequest = async (phone: string, accessCode: string): Promise<boolean> => {
-    try {
-      setIsLoading(true);
-      
-      const { data: phoneNumberData, error: phoneNumberError } = await supabase
-        .from('phone_numbers')
-        .select('*')
-        .eq('phone', phone)
-        .eq('access_code', accessCode)
-        .single();
-      
-      if (phoneNumberError) {
-        if (phoneNumberError.code === 'PGRST116') {
-          toast({
-            title: "Ungültige Daten",
-            description: "Die Telefonnummer oder der Zugangscode ist ungültig.",
-            variant: "destructive",
-          });
-        } else {
-          throw phoneNumberError;
-        }
-        return false;
-      }
-      
-      // Check if the phone number has already been used
-      if (phoneNumberData.is_used) {
-        toast({
-          title: "Telefonnummer bereits verwendet",
-          description: "Diese Telefonnummer wurde bereits verwendet und ist nicht mehr verfügbar.",
-          variant: "destructive",
-        });
-        return false;
-      }
-      
-      // Show simulation before submitting
-      setShowSimulation(true);
-      
-      const { data: requestData, error: requestError } = await supabase
-        .from('requests')
-        .insert([
-          {
-            phone_number_id: phoneNumberData.id,
-            status: 'pending'
-          }
-        ])
-        .select()
-        .single();
-      
-      if (requestError) throw requestError;
-      
-      localStorage.setItem(CURRENT_REQUEST_ID_KEY, requestData.id);
-      console.log('💾 Saved request ID to localStorage:', requestData.id);
-      
-      const request = await fetchRequestDetails(requestData.id, true);
-      
-      if (request) {
-        setCurrentRequest(request);
-      }
-      
-      toast({
-        title: "Anfrage eingereicht",
-        description: "Ihre Nummer wird jetzt aktiviert.",
-      });
-      
-      return true;
-    } catch (error) {
-      console.error('Error submitting request:', error);
-      setShowSimulation(false);
-      toast({
-        title: "Fehler",
-        description: "Die Anfrage konnte nicht eingereicht werden.",
-        variant: "destructive",
-      });
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const resetCurrentRequest = () => {
-    localStorage.removeItem(CURRENT_REQUEST_ID_KEY);
-    setCurrentRequest(null);
-    setShowSimulation(false);
-    toast({
-      title: "Anfrage zurückgesetzt",
-      description: "Sie können jetzt eine neue Nummer aktivieren.",
-    });
-  };
-
-  const activateRequest = async (requestId: string): Promise<boolean> => {
-    try {
-      setIsLoading(true);
-      
-      const { error } = await supabase
-        .from('requests')
-        .update({ status: 'activated' })
-        .eq('id', requestId);
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Nummer aktiviert",
-        description: "Die Nummer wurde erfolgreich aktiviert.",
-      });
-      
-      return true;
-    } catch (error) {
-      console.error('Error activating request:', error);
-      toast({
-        title: "Fehler",
-        description: "Die Nummer konnte nicht aktiviert werden.",
-        variant: "destructive",
-      });
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const markSMSSent = async (requestId: string): Promise<boolean> => {
-    try {
-      setIsLoading(true);
-      console.log(`📤 SMSContext - markSMSSent called for request: ${requestId}`);
-      console.log(`📤 SMSContext - Current requests state:`, requests);
-      console.log(`📤 SMSContext - Current request for ${requestId}:`, requests[requestId]);
-      
-      // Check if request exists in our local state
-      const localRequest = requests[requestId];
-      if (localRequest) {
-        console.log(`📤 SMSContext - Local request status before update: ${localRequest.status}`);
-      }
-      
-      console.log(`📤 SMSContext - About to update database status to 'sms_requested' for request: ${requestId}`);
-      
-      const { data, error } = await supabase
-        .from('requests')
-        .update({ status: 'sms_requested' })
-        .eq('id', requestId)
-        .select();
-      
-      console.log(`📤 SMSContext - Database update response:`, { data, error });
-      
-      if (error) {
-        console.error(`❌ SMSContext - Database update failed:`, error);
-        throw error;
-      }
-      
-      console.log(`✅ SMSContext - Database update successful. Updated data:`, data);
-      console.log(`✅ SMSContext - Successfully marked SMS as requested for request: ${requestId}`);
-      
-      // Manually trigger a refetch of the request to ensure we have the latest data
-      console.log(`🔄 SMSContext - Manually fetching updated request details...`);
-      await fetchRequestDetails(requestId, true);
-      
-      toast({
-        title: "SMS Code angefordert",
-        description: "Der Admin wurde benachrichtigt, dass Sie einen SMS Code benötigen.",
-      });
-      
-      return true;
-    } catch (error) {
-      console.error('❌ SMSContext - Error marking SMS as requested:', error);
-      toast({
-        title: "Fehler",
-        description: "Die SMS konnte nicht als angefordert markiert werden.",
-        variant: "destructive",
-      });
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const requestSMS = async (requestId: string): Promise<boolean> => {
-    try {
-      setIsLoading(true);
-      console.log(`📤 Requesting SMS for request: ${requestId}`);
-      console.log(`🔍 Current request status before update:`, requests[requestId]?.status);
-      
-      // Force status to sms_requested, ensuring it overwrites any existing status including completed
-      const { data, error } = await supabase
-        .from('requests')
-        .update({ 
-          status: 'sms_requested', 
-          sms_code: null 
-        })
-        .eq('id', requestId)
-        .select();
-      
-      if (error) {
-        console.error('❌ Database update error:', error);
-        throw error;
-      }
-      
-      console.log(`✅ Database update successful:`, data);
-      console.log(`✅ Successfully requested SMS for request: ${requestId} with status: sms_requested`);
-      
-      // Immediately update local state to reflect the change
-      setRequests(prev => {
-        const updated = { ...prev };
-        if (updated[requestId]) {
-          updated[requestId] = {
-            ...updated[requestId],
-            status: 'sms_requested',
-            smsCode: undefined,
-            updatedAt: new Date()
-          };
-        }
-        console.log(`🔄 Updated local state for request ${requestId}:`, updated[requestId]);
-        return updated;
-      });
-      
-      // Also update current request if it matches
-      if (currentRequest && currentRequest.id === requestId) {
-        setCurrentRequest(prev => prev ? {
-          ...prev,
-          status: 'sms_requested',
-          smsCode: undefined,
-          updatedAt: new Date()
-        } : null);
-      }
-      
-      toast({
-        title: 'SMS angefordert',
-        description: "Die SMS wurde angefordert.",
-      });
-      
-      return true;
-    } catch (error) {
-      console.error('❌ Error requesting SMS:', error);
-      toast({
-        title: "Fehler",
-        description: "Die SMS konnte nicht angefordert werden.",
-        variant: "destructive",
-      });
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const confirmSMSSuccess = async (requestId: string): Promise<boolean> => {
-    try {
-      setIsLoading(true);
-      console.log(`✅ User confirming SMS success for request: ${requestId}`);
-      
-      const { error } = await supabase
-        .from('requests')
-        .update({ status: 'completed' })
-        .eq('id', requestId);
-      
-      if (error) throw error;
-      
-      console.log(`✅ Successfully confirmed SMS success for request: ${requestId}`);
-      
-      toast({
-        title: "SMS Empfang bestätigt",
-        description: "Vielen Dank für Ihre Bestätigung.",
-      });
-      
-      return true;
-    } catch (error) {
-      console.error('Error confirming SMS success:', error);
-      toast({
-        title: "Fehler",
-        description: "Der SMS-Empfang konnte nicht bestätigt werden.",
-        variant: "destructive",
-      });
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const submitSMSCode = async (requestId: string, smsCode: string): Promise<boolean> => {
-    try {
-      setIsLoading(true);
-      console.log(`📨 Admin submitting SMS code for request: ${requestId}, Code: ${smsCode}`);
-      
-      // Set status to activated instead of completed, allowing user to decide next steps
-      const { error } = await supabase
-        .from('requests')
-        .update({ 
-          sms_code: smsCode,
-          status: 'activated'
-        })
-        .eq('id', requestId);
-      
-      if (error) throw error;
-      
-      console.log(`✅ Successfully submitted SMS code for request: ${requestId} and set status to activated`);
-      
-      toast({
-        title: "SMS Code gesendet",
-        description: "Der SMS Code wurde erfolgreich gesendet. Die Nummer ist jetzt aktiviert.",
-      });
-      
-      return true;
-    } catch (error) {
-      console.error('Error submitting SMS code:', error);
-      toast({
-        title: "Fehler",
-        description: "Der SMS Code konnte nicht gesendet werden.",
-        variant: "destructive",
-      });
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const resetSMSCode = async (requestId: string): Promise<boolean> => {
-    try {
-      setIsLoading(true);
-      console.log(`🔄 Resetting SMS code for request: ${requestId}`);
-      
-      const { error } = await supabase
-        .from('requests')
-        .update({ status: 'sms_requested', sms_code: null })
-        .eq('id', requestId);
-      
-      if (error) throw error;
-      
-      console.log(`✅ Successfully reset SMS code for request: ${requestId}`);
-      
-      toast({
-        title: "SMS Code zurückgesetzt",
-        description: "Ein neuer SMS Code wurde angefordert.",
-      });
-      
-      return true;
-    } catch (error) {
-      console.error('Error resetting SMS code:', error);
-      toast({
-        title: "Fehler",
-        description: "Der SMS Code konnte nicht zurückgesetzt werden.",
-        variant: "destructive",
-      });
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const createPhoneNumber = async (phone: string, accessCode: string): Promise<boolean> => {
-    try {
-      setIsLoading(true);
-      
-      const { error } = await supabase
-        .from('phone_numbers')
-        .insert([
-          {
-            phone,
-            access_code: accessCode,
-            is_used: false
-          }
-        ]);
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Telefonnummer erstellt",
-        description: "Die Telefonnummer wurde erfolgreich erstellt.",
-      });
-      
-      return true;
-    } catch (error) {
-      console.error('Error creating phone number:', error);
-      toast({
-        title: "Fehler",
-        description: "Die Telefonnummer konnte nicht erstellt werden.",
-        variant: "destructive",
-      });
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const updatePhoneNumber = async (id: string, phone: string, accessCode: string): Promise<boolean> => {
-    try {
-      setIsLoading(true);
-      
-      const { error } = await supabase
-        .from('phone_numbers')
-        .update({
-          phone,
-          access_code: accessCode
-        })
-        .eq('id', id);
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Telefonnummer aktualisiert",
-        description: "Die Telefonnummer wurde erfolgreich aktualisiert.",
-      });
-      
-      return true;
-    } catch (error) {
-      console.error('Error updating phone number:', error);
-      toast({
-        title: "Fehler",
-        description: "Die Telefonnummer konnte nicht aktualisiert werden.",
-        variant: "destructive",
-      });
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const deletePhoneNumber = async (id: string): Promise<boolean> => {
-    try {
-      setIsLoading(true);
-      
-      const { error } = await supabase
-        .from('phone_numbers')
-        .delete()
-        .eq('id', id);
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Telefonnummer gelöscht",
-        description: "Die Telefonnummer wurde erfolgreich gelöscht.",
-      });
-      
-      return true;
-    } catch (error) {
-      console.error('Error deleting phone number:', error);
-      toast({
-        title: "Fehler",
-        description: "Die Telefonnummer konnte nicht gelöscht werden.",
-        variant: "destructive",
-      });
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const completeRequest = async (requestId: string): Promise<boolean> => {
-    try {
-      setIsLoading(true);
-      console.log(`✅ User completing request manually: ${requestId}`);
-      
-      // Enhanced logging before the update
-      console.log(`🔍 Checking current request status before completing...`);
-      const { data: currentData, error: checkError } = await supabase
-        .from('requests')
-        .select(`
-          id,
-          status,
-          phone_number_id,
-          phone_numbers(id, phone, is_used, used_at)
-        `)
-        .eq('id', requestId)
-        .single();
-        
-      if (checkError) {
-        console.error('❌ Error checking current request status:', checkError);
-      } else {
-        console.log(`📊 Current request status: ${currentData.status}`);
-        console.log(`📞 Current phone number status:`, currentData.phone_numbers);
-      }
-      
-      const { error } = await supabase
-        .from('requests')
-        .update({ status: 'completed' })
-        .eq('id', requestId);
-      
-      if (error) throw error;
-      
-      console.log(`✅ Successfully completed request: ${requestId}`);
-      
-      // After updating, let's check if the phone number was marked as used
-      console.log(`🔍 Checking if phone number was marked as used after completion...`);
-      setTimeout(async () => {
-        const { data: updatedData, error: verifyError } = await supabase
-          .from('requests')
-          .select(`
-            id,
-            status,
-            phone_number_id,
-            phone_numbers(id, phone, is_used, used_at)
-          `)
-          .eq('id', requestId)
-          .single();
-          
-        if (!verifyError && updatedData) {
-          console.log(`📊 Verification - Request status: ${updatedData.status}`);
-          console.log(`📞 Verification - Phone number status:`, updatedData.phone_numbers);
-          
-          if (updatedData.phone_numbers && !updatedData.phone_numbers.is_used) {
-            console.warn(`⚠️ WARNING: Phone number ${updatedData.phone_numbers.phone} was NOT marked as used after completion!`);
-            toast({
-              title: "Warnung",
-              description: "Die Telefonnummer wurde möglicherweise nicht korrekt als verwendet markiert.",
-              variant: "destructive",
-            });
-          } else {
-            console.log(`✅ SUCCESS: Phone number ${updatedData.phone_numbers?.phone} was correctly marked as used!`);
-          }
-        }
-      }, 1000); // Wait 1 second for the trigger to complete
-      
-      // Clear any existing timer for this request
-      if (timers[requestId]) {
-        clearTimeout(timers[requestId]);
-        
-        setTimers(prev => {
-          const newTimers = { ...prev };
-          delete newTimers[requestId];
-          return newTimers;
-        });
-        
-        console.log(`⏱️ Cleared timer for request ${requestId} as user manually completed the request`);
-      }
-      
-      // Reset the current request and clear localStorage to show initial form again
-      localStorage.removeItem(CURRENT_REQUEST_ID_KEY);
-      setCurrentRequest(null);
-      setShowSimulation(false);
-      
-      // Refresh phone numbers to show updated status
-      if (user && isAdmin) {
-        fetchPhoneNumbers();
-      }
-      
-      toast({
-        title: "Vorgang abgeschlossen",
-        description: "Vielen Dank für die Bestätigung. Der Vorgang wurde erfolgreich abgeschlossen.",
-      });
-      
-      return true;
-    } catch (error) {
-      console.error('Error completing request:', error);
-      toast({
-        title: "Fehler",
-        description: "Der Vorgang konnte nicht abgeschlossen werden.",
-        variant: "destructive",
-      });
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const getCurrentUserStatus = (): RequestStatus | null => {
-    return currentRequest ? currentRequest.status : null;
+  const value = {
+    requests,
+    currentRequest,
+    isLoading,
+    showSimulation,
+    setShowSimulation,
+    submitRequest,
+    activateRequest,
+    submitSMSCode,
+    completeRequest, // Make sure this is included in the context value
+    fetchRequests
   };
 
   return (
-    <SMSContext.Provider
-      value={{
-        requests,
-        phoneNumbers,
-        currentRequest,
-        isLoading,
-        showSimulation,
-        setShowSimulation,
-        submitRequest,
-        activateRequest,
-        markSMSSent,
-        requestSMS,
-        submitSMSCode,
-        resetSMSCode,
-        getCurrentUserStatus,
-        createPhoneNumber,
-        updatePhoneNumber,
-        deletePhoneNumber,
-        resetCurrentRequest,
-        confirmSMSSuccess,
-        completeRequest,
-      }}
-    >
+    <SMSContext.Provider value={value}>
       {children}
     </SMSContext.Provider>
   );
 };
 
-export const useSMS = () => {
+const useSMS = () => {
   const context = useContext(SMSContext);
   if (context === undefined) {
     throw new Error('useSMS must be used within a SMSProvider');
   }
   return context;
 };
+
+export { SMSProvider, useSMS };
