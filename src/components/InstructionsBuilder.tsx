@@ -180,7 +180,7 @@ const InstructionsBuilder = ({ instructions, onChange }: InstructionsBuilderProp
                     </SelectItem>
                   ))}
                 </SelectContent>
-              </SelectTrigger>
+              </Select>
             </div>
           </div>
           <div>
