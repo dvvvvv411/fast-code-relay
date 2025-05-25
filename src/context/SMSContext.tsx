@@ -79,7 +79,7 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
           phone: phoneData?.phone,
           accessCode: phoneData?.access_code,
           smsCode: request.sms_code,
-          updatedAt: new Date(request.updated_at),
+          updated_at: request.updated_at,
         };
       });
       setRequests(requestsMap);
