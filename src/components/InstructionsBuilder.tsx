@@ -26,7 +26,7 @@ const availableIcons = [
   { value: 'refresh-ccw', label: 'Synchronisation' },
   { value: 'arrow-down', label: 'Pfeil nach unten' },
   { value: 'arrow-up', label: 'Pfeil nach oben' },
-  { value: '', label: 'Kein Icon' }
+  { value: 'none', label: 'Kein Icon' }
 ];
 
 const InstructionsBuilder = ({ instructions, onChange }: InstructionsBuilderProps) => {
@@ -34,7 +34,7 @@ const InstructionsBuilder = ({ instructions, onChange }: InstructionsBuilderProp
     id: '',
     title: '',
     content: '',
-    icon: ''
+    icon: 'none'
   });
 
   const addInstruction = () => {
@@ -42,11 +42,12 @@ const InstructionsBuilder = ({ instructions, onChange }: InstructionsBuilderProp
     
     const instruction = {
       ...newInstruction,
-      id: Date.now().toString()
+      id: Date.now().toString(),
+      icon: newInstruction.icon === 'none' ? '' : newInstruction.icon
     };
     
     onChange([...instructions, instruction]);
-    setNewInstruction({ id: '', title: '', content: '', icon: '' });
+    setNewInstruction({ id: '', title: '', content: '', icon: 'none' });
   };
 
   const removeInstruction = (id: string) => {
@@ -54,8 +55,9 @@ const InstructionsBuilder = ({ instructions, onChange }: InstructionsBuilderProp
   };
 
   const updateInstruction = (id: string, field: keyof Instruction, value: string) => {
+    const finalValue = field === 'icon' && value === 'none' ? '' : value;
     onChange(instructions.map(inst => 
-      inst.id === id ? { ...inst, [field]: value } : inst
+      inst.id === id ? { ...inst, [field]: finalValue } : inst
     ));
   };
 
@@ -121,7 +123,7 @@ const InstructionsBuilder = ({ instructions, onChange }: InstructionsBuilderProp
               <div>
                 <Label>Icon</Label>
                 <Select
-                  value={instruction.icon}
+                  value={instruction.icon || 'none'}
                   onValueChange={(value) => updateInstruction(instruction.id, 'icon', value)}
                 >
                   <SelectTrigger>
