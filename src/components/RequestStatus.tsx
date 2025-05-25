@@ -155,11 +155,6 @@ const RequestStatus = () => {
         <p className="text-gray-600 mb-6">
           {statusInfo.description}
         </p>
-        
-        {/* Debug Information - Remove this after debugging */}
-        <div className="bg-gray-100 p-2 text-xs text-gray-600 rounded mt-2">
-          Debug: Status = {currentRequest.status} | Request ID = {currentRequest.id}
-        </div>
       </div>
 
       {statusInfo.showButton && (
