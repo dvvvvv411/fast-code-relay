@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle, MessageSquare, Clock, Loader, RefreshCw, Timer, Check } from 'lucide-react';
 
 const RequestStatus = () => {
-  const { currentRequest, markSMSSent, requestSMS, completeRequest, isLoading } = useSMS();
+  const { currentRequest, markSMSSent, requestSMS, completeRequest, isLoading, resetCurrentRequest } = useSMS();
   const [hasSentSMS, setHasSentSMS] = useState(false);
   const [smsClickTimestamp, setSmsClickTimestamp] = useState<string>('');
 
@@ -64,9 +64,11 @@ const RequestStatus = () => {
     requestSMS(currentRequest.id);
   };
 
-  const handleCompleteProcess = () => {
+  const handleCompleteProcess = async () => {
     console.log('✅ RequestStatus - handleCompleteProcess called for request:', currentRequest.id);
-    completeRequest(currentRequest.id);
+    await completeRequest(currentRequest.id);
+    // Reset the current request to show the initial form again
+    resetCurrentRequest();
   };
 
   const getStatusDisplay = () => {
