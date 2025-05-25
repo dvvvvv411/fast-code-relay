@@ -225,17 +225,10 @@ const AdminPanel = () => {
                   
                   {request.status === 'completed' && (
                     <div className="text-sm text-gray-500 flex flex-col gap-2 items-center">
+                      <div className="text-green-600 font-medium">✅ Abgeschlossen</div>
                       <div>
                         SMS Code: <span className="font-medium bg-green-100 px-2 py-1 rounded">{request.smsCode}</span>
                       </div>
-                      <Button 
-                        onClick={() => handleSendSMS(request.id)}
-                        size="sm"
-                        variant="outline"
-                        className="text-blue-500 border-blue-500 hover:bg-blue-50"
-                      >
-                        Neuen SMS Code senden
-                      </Button>
                     </div>
                   )}
                 </td>
