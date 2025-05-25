@@ -447,12 +447,12 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         
         // Try to refresh requests and try again
         console.log('🔄 SMSContext - Refreshing requests and retrying...');
-        const refreshedRequests = await fetchRequests();
+        const freshRequests = await fetchRequests();
         
-        if (refreshedRequests && refreshedRequests[requestId]) {
+        if (freshRequests && freshRequests[requestId]) {
           console.log('✅ SMSContext - Found request after refresh, proceeding...');
           // Update the local state reference
-          setRequests(refreshedRequests);
+          setRequests(freshRequests);
         } else {
           toast({
             title: "Fehler",
@@ -463,7 +463,7 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       }
 
-      console.log('📋 SMSContext - Request to activate:', requestToActivate || refreshedRequests[requestId]);
+      console.log('📋 SMSContext - Request to activate:', requestToActivate || freshRequests[requestId]);
 
       // Update the request status to 'activated'
       const { data: requestData, error: requestError } = await supabase
