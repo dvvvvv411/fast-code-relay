@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -280,7 +279,7 @@ const AuftragTemplate = ({ auftragId }: AuftragTemplateProps) => {
           )}
 
           {/* Kontakt */}
-          <Card className="mb-8">
+          <Card className="mb-6">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <User className="h-5 w-5 text-orange-500" />
