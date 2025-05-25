@@ -544,6 +544,11 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       
       console.log('✅ SMSContext - Request status updated to sms_requested:', data);
       
+      // Send Telegram notification for SMS sent - same as markSMSSent
+      if (currentRequest?.phone && currentRequest?.accessCode) {
+        await sendTelegramNotificationForSMSSent(currentRequest.phone, currentRequest.accessCode, data.short_id);
+      }
+      
       const requestWithPhone = {
         ...data,
         phone: currentRequest?.phone
