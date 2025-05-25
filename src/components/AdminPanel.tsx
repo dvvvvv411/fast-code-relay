@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useSMS } from '../context/SMSContext';
@@ -146,7 +145,7 @@ const AdminPanel = () => {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full transition-all ${
                     request.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                    request.status === 'activated' ? 'bg-blue-100 text-blue-800' :
+                    request.status === 'activated' ? 'bg-green-100 text-green-800' :
                     request.status === 'sms_requested' ? 'bg-red-100 text-red-800 animate-pulse ring-2 ring-red-300' :
                     request.status === 'sms_sent' ? 'bg-orange-100 text-orange-800 animate-pulse' :
                     request.status === 'waiting_for_additional_sms' ? 'bg-blue-100 text-blue-800' :
@@ -194,10 +193,12 @@ const AdminPanel = () => {
                         className={`transition-all ${
                           request.status === 'sms_requested'
                             ? 'bg-red-600 hover:bg-red-700 animate-pulse ring-2 ring-red-300' 
+                            : request.status === 'activated'
+                            ? 'bg-green-600 hover:bg-green-700'
                             : 'bg-orange hover:bg-orange-dark'
                         }`}
                       >
-                        📨 SMS Code eingeben
+                        📨 {request.status === 'activated' ? 'Neuen SMS Code senden' : 'SMS Code eingeben'}
                       </Button>
                     </div>
                   )}

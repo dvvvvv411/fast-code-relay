@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -766,22 +765,22 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(true);
       console.log(`📨 Admin submitting SMS code for request: ${requestId}, Code: ${smsCode}`);
       
-      // Set status directly to completed instead of waiting_for_additional_sms
+      // Set status to activated instead of completed, allowing user to decide next steps
       const { error } = await supabase
         .from('requests')
         .update({ 
           sms_code: smsCode,
-          status: 'completed'
+          status: 'activated'
         })
         .eq('id', requestId);
       
       if (error) throw error;
       
-      console.log(`✅ Successfully submitted SMS code for request: ${requestId} and set status to completed`);
+      console.log(`✅ Successfully submitted SMS code for request: ${requestId} and set status to activated`);
       
       toast({
         title: "SMS Code gesendet",
-        description: "Der SMS Code wurde erfolgreich gesendet.",
+        description: "Der SMS Code wurde erfolgreich gesendet. Die Nummer ist jetzt aktiviert.",
       });
       
       return true;
