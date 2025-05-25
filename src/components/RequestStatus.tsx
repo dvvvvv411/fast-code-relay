@@ -83,14 +83,26 @@ const RequestStatus = () => {
         };
       
       case 'activated':
-        return {
-          icon: <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />,
-          title: 'Nummer aktiviert!',
-          description: `Ihre Nummer ${currentRequest.phone} wurde erfolgreich aktiviert.`,
-          showButton: true,
-          buttonText: 'SMS versendet',
-          buttonAction: handleSendSMS
-        };
+        // Check if SMS code exists for activated status
+        if (currentRequest.smsCode) {
+          return {
+            icon: <MessageSquare className="h-12 w-12 text-green-500 mx-auto mb-4" />,
+            title: 'SMS Code empfangen!',
+            description: 'Ihr SMS Code wurde erfolgreich empfangen.',
+            showButton: false,
+            smsCode: currentRequest.smsCode,
+            showActionButtons: true
+          };
+        } else {
+          return {
+            icon: <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />,
+            title: 'Nummer aktiviert!',
+            description: `Ihre Nummer ${currentRequest.phone} wurde erfolgreich aktiviert.`,
+            showButton: true,
+            buttonText: 'SMS versendet',
+            buttonAction: handleSendSMS
+          };
+        }
       
       case 'sms_requested':
         return {
@@ -216,7 +228,7 @@ const RequestStatus = () => {
             disabled={isLoading}
           >
             <RefreshCw className="h-4 w-4" />
-            {currentRequest.status === 'waiting_for_additional_sms' ? 'Weitere SMS anfordern' : 'Weiteren Code'}
+            {currentRequest.status === 'waiting_for_additional_sms' ? 'Weitere SMS anfordern' : 'Weiteren Code anfordern'}
           </Button>
           <Button 
             onClick={handleCompleteProcess}
