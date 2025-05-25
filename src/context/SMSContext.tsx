@@ -664,14 +664,10 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(true);
       console.log(`📤 Requesting additional SMS for request: ${requestId}`);
       
-      // Check current status to determine new status
-      const currentRequestData = requests[requestId];
-      const newStatus = currentRequestData?.status === 'completed' || 
-                        currentRequestData?.status === 'waiting_for_additional_sms' 
-                        ? 'additional_sms_requested' 
-                        : 'sms_requested';
+      // Always set status to sms_requested when user requests SMS
+      const newStatus = 'sms_requested';
       
-      console.log(`🔄 Current status: ${currentRequestData?.status}, New status: ${newStatus}`);
+      console.log(`🔄 Setting status to: ${newStatus}`);
       
       const { error } = await supabase
         .from('requests')
@@ -680,7 +676,7 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       
       if (error) throw error;
       
-      console.log(`✅ Successfully requested additional SMS for request: ${requestId} with status: ${newStatus}`);
+      console.log(`✅ Successfully requested SMS for request: ${requestId} with status: ${newStatus}`);
       
       // Clear any existing timer for this request
       if (timers[requestId]) {
@@ -692,15 +688,11 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
           return newTimers;
         });
         
-        console.log(`⏱️ Cleared timer for request ${requestId} as user requested additional SMS`);
+        console.log(`⏱️ Cleared timer for request ${requestId} as user requested SMS`);
       }
       
-      const toastMessage = newStatus === 'additional_sms_requested' 
-        ? 'Weiteren SMS Code angefordert'
-        : 'SMS angefordert';
-      
       toast({
-        title: toastMessage,
+        title: 'SMS angefordert',
         description: "Die SMS wurde angefordert.",
       });
       
