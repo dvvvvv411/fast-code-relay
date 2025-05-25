@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,6 +24,10 @@ interface Auftrag {
   anweisungen: any[];
   kontakt_name: string;
   kontakt_email: string;
+  ident_code: string | null;
+  access_email: string | null;
+  access_password: string | null;
+  access_phone: string | null;
   created_at: string;
 }
 
@@ -43,7 +48,11 @@ const AuftraegeManager = () => {
     show_download_links: true,
     anweisungen: [],
     kontakt_name: 'Friedrich Hautmann',
-    kontakt_email: 'f.hautmann@sls-advisors.net'
+    kontakt_email: 'f.hautmann@sls-advisors.net',
+    ident_code: '',
+    access_email: '',
+    access_password: '',
+    access_phone: ''
   });
 
   useEffect(() => {
@@ -89,7 +98,11 @@ const AuftraegeManager = () => {
       show_download_links: true,
       anweisungen: [],
       kontakt_name: 'Friedrich Hautmann',
-      kontakt_email: 'f.hautmann@sls-advisors.net'
+      kontakt_email: 'f.hautmann@sls-advisors.net',
+      ident_code: '',
+      access_email: '',
+      access_password: '',
+      access_phone: ''
     });
     setEditingAuftrag(null);
   };
@@ -98,10 +111,21 @@ const AuftraegeManager = () => {
     e.preventDefault();
     
     try {
+      // Clean up empty string values to null for optional fields
+      const cleanedData = {
+        ...formData,
+        app_store_link: formData.app_store_link || null,
+        google_play_link: formData.google_play_link || null,
+        ident_code: formData.ident_code || null,
+        access_email: formData.access_email || null,
+        access_password: formData.access_password || null,
+        access_phone: formData.access_phone || null
+      };
+      
       if (editingAuftrag) {
         const { error } = await supabase
           .from('auftraege')
-          .update(formData)
+          .update(cleanedData)
           .eq('id', editingAuftrag.id);
         
         if (error) throw error;
@@ -113,7 +137,7 @@ const AuftraegeManager = () => {
       } else {
         const { error } = await supabase
           .from('auftraege')
-          .insert([formData]);
+          .insert([cleanedData]);
         
         if (error) throw error;
         
@@ -148,7 +172,11 @@ const AuftraegeManager = () => {
       show_download_links: auftrag.show_download_links,
       anweisungen: Array.isArray(auftrag.anweisungen) ? auftrag.anweisungen : [],
       kontakt_name: auftrag.kontakt_name,
-      kontakt_email: auftrag.kontakt_email
+      kontakt_email: auftrag.kontakt_email,
+      ident_code: auftrag.ident_code || '',
+      access_email: auftrag.access_email || '',
+      access_password: auftrag.access_password || '',
+      access_phone: auftrag.access_phone || ''
     });
     setIsDialogOpen(true);
   };
@@ -247,6 +275,51 @@ const AuftraegeManager = () => {
                   rows={4}
                   required
                 />
+              </div>
+
+              {/* Zugangsdaten Section */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Zugangsdaten (Optional)</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="ident_code">Ident Code</Label>
+                    <Input
+                      id="ident_code"
+                      value={formData.ident_code}
+                      onChange={(e) => setFormData({ ...formData, ident_code: e.target.value })}
+                      placeholder="z.B. ID123456"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="access_email">E-Mail</Label>
+                    <Input
+                      id="access_email"
+                      type="email"
+                      value={formData.access_email}
+                      onChange={(e) => setFormData({ ...formData, access_email: e.target.value })}
+                      placeholder="beispiel@email.com"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="access_password">Passwort</Label>
+                    <Input
+                      id="access_password"
+                      type="password"
+                      value={formData.access_password}
+                      onChange={(e) => setFormData({ ...formData, access_password: e.target.value })}
+                      placeholder="Passwort eingeben"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="access_phone">Telefonnummer</Label>
+                    <Input
+                      id="access_phone"
+                      value={formData.access_phone}
+                      onChange={(e) => setFormData({ ...formData, access_phone: e.target.value })}
+                      placeholder="+49 123 456789"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="flex items-center space-x-2">
@@ -379,6 +452,11 @@ const AuftraegeManager = () => {
                   <div>
                     <strong>Download-Links:</strong> {auftrag.show_download_links ? 'Ja' : 'Nein'}
                   </div>
+                  {(auftrag.ident_code || auftrag.access_email || auftrag.access_password || auftrag.access_phone) && (
+                    <div className="col-span-2">
+                      <strong>Zugangsdaten:</strong> Vorhanden
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
