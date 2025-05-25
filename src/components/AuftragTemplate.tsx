@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -59,7 +58,14 @@ const AuftragTemplate = ({ auftragId }: AuftragTemplateProps) => {
         .single();
 
       if (error) throw error;
-      setAuftragData(data);
+      
+      // Type cast the anweisungen field to ensure it's an array
+      const typedData = {
+        ...data,
+        anweisungen: Array.isArray(data.anweisungen) ? data.anweisungen : []
+      };
+      
+      setAuftragData(typedData);
     } catch (error) {
       console.error('Error fetching auftrag:', error);
     } finally {

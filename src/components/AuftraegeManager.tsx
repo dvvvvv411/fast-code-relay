@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -59,7 +58,14 @@ const AuftraegeManager = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setAuftraege(data || []);
+      
+      // Type cast the anweisungen field to ensure it's an array
+      const typedData = (data || []).map(item => ({
+        ...item,
+        anweisungen: Array.isArray(item.anweisungen) ? item.anweisungen : []
+      }));
+      
+      setAuftraege(typedData);
     } catch (error) {
       console.error('Error fetching auftraege:', error);
       toast({
@@ -140,7 +146,7 @@ const AuftraegeManager = () => {
       app_store_link: auftrag.app_store_link || '',
       google_play_link: auftrag.google_play_link || '',
       show_download_links: auftrag.show_download_links,
-      anweisungen: auftrag.anweisungen,
+      anweisungen: Array.isArray(auftrag.anweisungen) ? auftrag.anweisungen : [],
       kontakt_name: auftrag.kontakt_name,
       kontakt_email: auftrag.kontakt_email
     });
