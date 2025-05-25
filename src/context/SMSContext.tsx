@@ -364,6 +364,18 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       console.log('🔄 SMSContext - Activating request:', requestId);
       
+      // Find the request in our local state
+      const requestToActivate = requests[requestId];
+      if (!requestToActivate) {
+        console.error('❌ SMSContext - Request not found in local state:', requestId);
+        toast({
+          title: "Fehler",
+          description: "Anfrage nicht gefunden",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Update the request status to 'activated'
       const { data: requestData, error: requestError } = await supabase
         .from('requests')
@@ -373,7 +385,7 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         .single();
   
       if (requestError) {
-        console.error('Error updating request status:', requestError);
+        console.error('❌ SMSContext - Error updating request status:', requestError);
         toast({
           title: "Fehler",
           description: "Anfrage konnte nicht aktiviert werden",
@@ -392,7 +404,7 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         .eq('id', phoneNumberId);
   
       if (phoneError) {
-        console.error('Error updating phone number:', phoneError);
+        console.error('❌ SMSContext - Error updating phone number:', phoneError);
         toast({
           title: "Fehler",
           description: "Telefonnummer konnte nicht aktualisiert werden",
@@ -409,7 +421,7 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         .single();
   
       if (getPhoneError) {
-        console.error('Error fetching updated phone number:', getPhoneError);
+        console.error('❌ SMSContext - Error fetching updated phone number:', getPhoneError);
       }
   
       // Update local state for phone numbers
@@ -433,7 +445,7 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   
       // Update local state for requests
       const updatedRequest: Request = {
-        ...currentRequest!,
+        ...requestToActivate,
         status: requestData.status,
         updatedAt: new Date(requestData.updated_at),
       };
