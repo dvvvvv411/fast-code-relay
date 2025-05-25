@@ -23,16 +23,17 @@ const PhoneNumberManager = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const generateAccessCode = () => {
-    // Generate 3 random uppercase letters
-    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    // Generate 3 random uppercase letters (excluding I, L, O)
+    const letters = 'ABCDEFGHJKMNPQRSTUVWXYZ';
     let code = '';
     for (let i = 0; i < 3; i++) {
       code += letters.charAt(Math.floor(Math.random() * letters.length));
     }
     
-    // Generate 3 random numbers
+    // Generate 3 random numbers (excluding 0 and 1)
+    const numbers = '23456789';
     for (let i = 0; i < 3; i++) {
-      code += Math.floor(Math.random() * 10).toString();
+      code += numbers.charAt(Math.floor(Math.random() * numbers.length));
     }
     
     setAccessCode(code);
