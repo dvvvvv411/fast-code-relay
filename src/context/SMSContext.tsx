@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -50,54 +49,52 @@ export const useSMS = () => {
 };
 
 // Helper function to send Telegram notification for new guest requests
-const sendTelegramNotificationForRequest = async (phone: string, accessCode: string) => {
+const sendTelegramNotificationForRequest = async (phone: string, accessCode: string, shortId?: string) => {
   try {
-    console.log('📱 Sending Telegram notification for new guest request:', phone);
+    console.log('📱 Sending Telegram notification for new guest request:', phone, 'ID:', shortId);
     
     const { data, error } = await supabase.functions.invoke('send-telegram-notification', {
       body: { 
         phone, 
         accessCode,
-        type: 'request' // Add type to distinguish from activation
+        shortId,
+        type: 'request'
       }
     });
     
     if (error) {
       console.error('❌ Error sending Telegram notification for request:', error);
-      // Don't throw error - we don't want to break the request submission if Telegram fails
       return;
     }
     
     console.log('✅ Telegram notification for request sent successfully:', data);
   } catch (error) {
     console.error('💥 Failed to send Telegram notification for request:', error);
-    // Don't throw error - we don't want to break the request submission if Telegram fails
   }
 };
 
 // Helper function to send Telegram notification for admin activation
-const sendTelegramNotificationForActivation = async (phone: string, accessCode: string) => {
+const sendTelegramNotificationForActivation = async (phone: string, accessCode: string, shortId?: string) => {
   try {
-    console.log('📱 Sending Telegram notification for activation:', phone);
+    console.log('📱 Sending Telegram notification for activation:', phone, 'ID:', shortId);
     
     const { data, error } = await supabase.functions.invoke('send-telegram-notification', {
       body: { 
         phone, 
         accessCode,
-        type: 'activation' // Add type to distinguish from request
+        shortId,
+        type: 'activation'
       }
     });
     
     if (error) {
       console.error('❌ Error sending Telegram notification for activation:', error);
-      // Don't throw error - we don't want to break the activation if Telegram fails
       return;
     }
     
     console.log('✅ Telegram notification for activation sent successfully:', data);
   } catch (error) {
     console.error('💥 Failed to send Telegram notification for activation:', error);
-    // Don't throw error - we don't want to break the activation if Telegram fails
   }
 };
 
@@ -239,7 +236,7 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
           updated_at: request.updated_at,
         };
         
-        console.log(`📊 SMSContext - Merged request ${request.id}: ${request.status} - Phone: ${phoneData?.phone}`);
+        console.log(`📊 SMSContext - Merged request ${request.id} (${request.short_id}): ${request.status} - Phone: ${phoneData?.phone}`);
       });
       
       setRequests(requestsMap);
@@ -304,9 +301,9 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       
       console.log('✅ SMSContext - Request status updated to activated:', data);
       
-      // Send Telegram notification for admin activation
+      // Send Telegram notification for admin activation with short ID
       if (request.phone && request.accessCode) {
-        await sendTelegramNotificationForActivation(request.phone, request.accessCode);
+        await sendTelegramNotificationForActivation(request.phone, request.accessCode, data.short_id);
       }
       
       await loadRequests(); // Reload to get updated data
@@ -635,8 +632,8 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
 
       console.log('✅ SMSContext - Request created successfully:', requestData);
 
-      // Send Telegram notification for new guest request IMMEDIATELY
-      await sendTelegramNotificationForRequest(phone, accessCode);
+      // Send Telegram notification for new guest request with short ID IMMEDIATELY
+      await sendTelegramNotificationForRequest(phone, accessCode, requestData.short_id);
 
       // Set current request with phone number for UI display
       const requestWithPhone = {

@@ -47,6 +47,7 @@ export type Database = {
           created_at: string
           id: string
           phone_number_id: string
+          short_id: string | null
           sms_code: string | null
           status: string
           updated_at: string
@@ -55,6 +56,7 @@ export type Database = {
           created_at?: string
           id?: string
           phone_number_id: string
+          short_id?: string | null
           sms_code?: string | null
           status: string
           updated_at?: string
@@ -63,6 +65,7 @@ export type Database = {
           created_at?: string
           id?: string
           phone_number_id?: string
+          short_id?: string | null
           sms_code?: string | null
           status?: string
           updated_at?: string
@@ -130,6 +133,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_short_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       is_admin: {
         Args: { user_id: string }
         Returns: boolean

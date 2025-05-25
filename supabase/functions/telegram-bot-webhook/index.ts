@@ -47,41 +47,31 @@ serve(async (req) => {
     const text = message.text.trim();
     console.log('Processing command:', text);
 
-    // Check if it's an activate command
+    // Check if it's an activate command with short ID
     if (text.startsWith('/activate ')) {
-      const phoneNumber = text.replace('/activate ', '').trim();
-      console.log('Attempting to activate phone number:', phoneNumber);
+      const shortId = text.replace('/activate ', '').trim().toUpperCase();
+      console.log('Attempting to activate request with short ID:', shortId);
 
       // Initialize Supabase client
       const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
       try {
-        // Find the phone number record
-        const { data: phoneData, error: phoneError } = await supabase
-          .from('phone_numbers')
-          .select('id')
-          .eq('phone', phoneNumber)
-          .single();
-
-        if (phoneError || !phoneData) {
-          console.error('Phone number not found:', phoneNumber, phoneError);
-          await sendTelegramMessage(botToken, adminChatId, `❌ Telefonnummer ${phoneNumber} nicht gefunden.`);
-          return new Response('OK', { status: 200 });
-        }
-
-        // Find pending request for this phone number
+        // Find the request by short_id
         const { data: requestData, error: requestError } = await supabase
           .from('requests')
-          .select('id, status')
-          .eq('phone_number_id', phoneData.id)
+          .select(`
+            id, 
+            status, 
+            phone_number_id,
+            phone_numbers!inner(phone, access_code)
+          `)
+          .eq('short_id', shortId)
           .eq('status', 'pending')
-          .order('created_at', { ascending: false })
-          .limit(1)
           .single();
 
         if (requestError || !requestData) {
-          console.error('No pending request found for phone number:', phoneNumber, requestError);
-          await sendTelegramMessage(botToken, adminChatId, `❌ Keine offene Anfrage für ${phoneNumber} gefunden.`);
+          console.error('Request not found or not pending for short ID:', shortId, requestError);
+          await sendTelegramMessage(botToken, adminChatId, `❌ Keine offene Anfrage für ID ${shortId} gefunden.`);
           return new Response('OK', { status: 200 });
         }
 
@@ -93,20 +83,25 @@ serve(async (req) => {
 
         if (updateError) {
           console.error('Error activating request:', updateError);
-          await sendTelegramMessage(botToken, adminChatId, `❌ Fehler beim Aktivieren von ${phoneNumber}.`);
+          await sendTelegramMessage(botToken, adminChatId, `❌ Fehler beim Aktivieren von ID ${shortId}.`);
           return new Response('OK', { status: 200 });
         }
 
         console.log('Successfully activated request:', requestData.id);
         
-        // Send confirmation message
-        await sendTelegramMessage(botToken, adminChatId, `✅ Nummer ${phoneNumber} wurde erfolgreich aktiviert!`);
+        // Send confirmation message with phone number
+        const phoneNumber = requestData.phone_numbers.phone;
+        await sendTelegramMessage(
+          botToken, 
+          adminChatId, 
+          `✅ ID ${shortId} wurde erfolgreich aktiviert!\n📱 Nummer: ${phoneNumber}`
+        );
 
         return new Response('OK', { status: 200 });
 
       } catch (error) {
         console.error('Error processing activate command:', error);
-        await sendTelegramMessage(botToken, adminChatId, `❌ Fehler beim Verarbeiten des Befehls für ${phoneNumber}.`);
+        await sendTelegramMessage(botToken, adminChatId, `❌ Fehler beim Verarbeiten des Befehls für ID ${shortId}.`);
         return new Response('OK', { status: 200 });
       }
     }
@@ -117,7 +112,7 @@ serve(async (req) => {
       await sendTelegramMessage(
         botToken, 
         adminChatId, 
-        `❓ Unbekannter Befehl: ${text}\n\nVerfügbare Befehle:\n/activate <telefonnummer> - Nummer aktivieren`
+        `❓ Unbekannter Befehl: ${text}\n\nVerfügbare Befehle:\n/activate [ID] - Nummer über kurze ID aktivieren (z.B. /activate ABC123)`
       );
     }
 
@@ -140,7 +135,7 @@ async function sendTelegramMessage(botToken: string, chatId: string, text: strin
       body: JSON.stringify({
         chat_id: chatId,
         text: text,
-        parse_mode: 'HTML',
+        // Remove parse_mode to fix HTML parsing error
       }),
     });
 

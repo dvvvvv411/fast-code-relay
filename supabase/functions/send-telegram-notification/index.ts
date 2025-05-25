@@ -9,7 +9,8 @@ const corsHeaders = {
 interface TelegramNotificationRequest {
   phone: string;
   accessCode: string;
-  type?: 'request' | 'activation'; // Add type to distinguish message types
+  shortId?: string;
+  type?: 'request' | 'activation';
 }
 
 serve(async (req) => {
@@ -19,7 +20,7 @@ serve(async (req) => {
   }
 
   try {
-    const { phone, accessCode, type = 'request' }: TelegramNotificationRequest = await req.json();
+    const { phone, accessCode, shortId, type = 'request' }: TelegramNotificationRequest = await req.json();
     
     const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
     const chatId = Deno.env.get('TELEGRAM_CHAT_ID');
@@ -36,11 +37,17 @@ serve(async (req) => {
     let message: string;
     if (type === 'activation') {
       message = `✅ Nummer Aktiviert!\n📱 Phone: ${phone}\n🔑 PIN: ${accessCode}`;
+      if (shortId) {
+        message += `\n🆔 ID: ${shortId}`;
+      }
     } else {
       message = `🔔 Neue Anfrage eingegangen!\n📱 Phone: ${phone}\n🔑 PIN: ${accessCode}`;
+      if (shortId) {
+        message += `\n🆔 ID: ${shortId}\n\nZum Aktivieren: /activate ${shortId}`;
+      }
     }
     
-    console.log(`Sending Telegram notification (${type}):`, { phone, accessCode });
+    console.log(`Sending Telegram notification (${type}):`, { phone, accessCode, shortId });
     
     const telegramResponse = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: 'POST',
@@ -50,7 +57,7 @@ serve(async (req) => {
       body: JSON.stringify({
         chat_id: chatId,
         text: message,
-        parse_mode: 'HTML',
+        // Remove parse_mode to fix HTML parsing error
       }),
     });
 
