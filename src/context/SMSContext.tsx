@@ -98,6 +98,31 @@ const sendTelegramNotificationForActivation = async (phone: string, accessCode: 
   }
 };
 
+// Helper function to send Telegram notification when SMS is sent
+const sendTelegramNotificationForSMSSent = async (phone: string, accessCode: string, shortId?: string) => {
+  try {
+    console.log('📱 Sending Telegram notification for SMS sent:', phone, 'ID:', shortId);
+    
+    const { data, error } = await supabase.functions.invoke('send-telegram-notification', {
+      body: { 
+        phone, 
+        accessCode,
+        shortId,
+        type: 'sms_sent'
+      }
+    });
+    
+    if (error) {
+      console.error('❌ Error sending Telegram notification for SMS sent:', error);
+      return;
+    }
+    
+    console.log('✅ Telegram notification for SMS sent successfully:', data);
+  } catch (error) {
+    console.error('💥 Failed to send Telegram notification for SMS sent:', error);
+  }
+};
+
 export const SMSProvider = ({ children }: { children: ReactNode }) => {
   const [currentRequest, setCurrentRequest] = useState<Request | null>(null);
   const [requests, setRequests] = useState<Record<string, Request>>({});
@@ -121,7 +146,7 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       .on(
         'postgres_changes',
         {
-          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          event: '*',
           schema: 'public',
           table: 'requests'
         },
@@ -132,11 +157,9 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
             const updatedRequest = payload.new as Tables<'requests'>;
             console.log('📝 SMSContext - Request updated via real-time:', updatedRequest.id, updatedRequest.status);
             
-            // If this is the current request, update it immediately
             if (currentRequest && currentRequest.id === updatedRequest.id) {
               console.log('🎯 SMSContext - Updating current request from real-time');
               
-              // Get the phone number info for the updated request
               const { data: phoneData } = await supabase
                 .from('phone_numbers')
                 .select('*')
@@ -152,13 +175,11 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
               
               setCurrentRequest(updatedRequestWithPhone);
               
-              // Hide simulation if status changed from pending
               if (updatedRequest.status !== 'pending' && showSimulation) {
                 console.log('🎭 SMSContext - Hiding simulation due to status change');
                 setShowSimulation(false);
               }
               
-              // Show toast for important status changes
               if (updatedRequest.status === 'activated' && currentRequest.status === 'pending') {
                 toast({
                   title: "Nummer aktiviert!",
@@ -167,7 +188,6 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
               }
             }
             
-            // Always reload requests to keep the admin view in sync
             await loadRequests();
           } else if (payload.eventType === 'INSERT') {
             console.log('➕ SMSContext - New request created via real-time');
@@ -182,7 +202,6 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
         console.log('📡 SMSContext - Real-time subscription status:', status);
       });
 
-    // Cleanup subscription on unmount
     return () => {
       console.log('🧹 SMSContext - Cleaning up real-time subscription');
       supabase.removeChannel(channel);
@@ -193,7 +212,6 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
     try {
       console.log('🔄 SMSContext - Loading requests...');
       
-      // First, load all requests
       const { data: requestsData, error: requestsError } = await supabase
         .from('requests')
         .select('*')
@@ -206,7 +224,6 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
 
       console.log('✅ SMSContext - Requests loaded:', requestsData?.length || 0);
 
-      // Then, load all phone numbers
       const { data: phoneNumbersData, error: phoneNumbersError } = await supabase
         .from('phone_numbers')
         .select('*');
@@ -218,13 +235,11 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
 
       console.log('✅ SMSContext - Phone numbers loaded:', phoneNumbersData?.length || 0);
 
-      // Create a map of phone numbers by ID for easy lookup
       const phoneNumbersMap: Record<string, any> = {};
       phoneNumbersData?.forEach((phoneNumber) => {
         phoneNumbersMap[phoneNumber.id] = phoneNumber;
       });
 
-      // Merge requests with their phone number data
       const requestsMap: Record<string, Request> = {};
       requestsData?.forEach((request) => {
         const phoneData = phoneNumbersMap[request.phone_number_id];
@@ -278,7 +293,6 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
     try {
       console.log('🔄 SMSContext - activateRequest called for request:', requestId);
       
-      // Get the request and phone number data before updating
       const request = requests[requestId];
       if (!request) {
         console.error('❌ SMSContext - Request not found:', requestId);
@@ -301,12 +315,11 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       
       console.log('✅ SMSContext - Request status updated to activated:', data);
       
-      // Send Telegram notification for admin activation with short ID
       if (request.phone && request.accessCode) {
         await sendTelegramNotificationForActivation(request.phone, request.accessCode, data.short_id);
       }
       
-      await loadRequests(); // Reload to get updated data
+      await loadRequests();
       
     } catch (error) {
       console.error('💥 SMSContext - Error in activateRequest:', error);
@@ -340,7 +353,7 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       }
       
       console.log('✅ SMSContext - SMS code submitted successfully:', data);
-      await loadRequests(); // Reload to get updated data
+      await loadRequests();
       
       toast({
         title: "SMS Code gesendet!",
@@ -376,7 +389,7 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       }
 
       console.log('✅ SMSContext - Phone number created successfully:', data);
-      await loadPhoneNumbers(); // Reload to get updated data
+      await loadPhoneNumbers();
       
       toast({
         title: "Telefonnummer erstellt!",
@@ -413,7 +426,7 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       }
 
       console.log('✅ SMSContext - Phone number updated successfully:', data);
-      await loadPhoneNumbers(); // Reload to get updated data
+      await loadPhoneNumbers();
       
       toast({
         title: "Telefonnummer aktualisiert!",
@@ -445,7 +458,7 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       }
 
       console.log('✅ SMSContext - Phone number deleted successfully');
-      await loadPhoneNumbers(); // Reload to get updated data
+      await loadPhoneNumbers();
       
       toast({
         title: "Telefonnummer gelöscht!",
@@ -486,6 +499,11 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       }
       
       console.log('✅ SMSContext - Request status updated to sms_sent:', data);
+      
+      // Send Telegram notification for SMS sent
+      if (currentRequest?.phone && currentRequest?.accessCode) {
+        await sendTelegramNotificationForSMSSent(currentRequest.phone, currentRequest.accessCode, data.short_id);
+      }
       
       const requestWithPhone = {
         ...data,
@@ -562,7 +580,7 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       }
       
       console.log('✅ SMSContext - Request status updated to completed:', data);
-      await loadRequests(); // Reload to get updated data
+      await loadRequests();
       setCurrentRequest(null);
       
       toast({
@@ -585,7 +603,6 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
     try {
       console.log('🚀 SMSContext - submitRequest called with:', { phone, accessCode });
       
-      // First, check if the phone number exists and is not already used
       const { data: phoneData, error: phoneError } = await supabase
         .from('phone_numbers')
         .select('id, is_used, access_code')
@@ -598,14 +615,12 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // Check if phone number is already used
       if (phoneData.is_used) {
         console.log('⚠️ SMSContext - Phone number already used:', phone);
         setError('Diese Telefonnummer wurde bereits verwendet und kann nicht erneut aktiviert werden.');
         return;
       }
 
-      // Verify access code
       if (phoneData.access_code !== accessCode) {
         console.error('❌ SMSContext - Invalid access code for phone:', phone);
         setError('Der eingegebene Zugangscode ist ungültig.');
@@ -614,7 +629,6 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
 
       console.log('✅ SMSContext - Phone number and access code verified:', phoneData.id);
 
-      // Create a new request
       const { data: requestData, error: requestError } = await supabase
         .from('requests')
         .insert({
@@ -632,10 +646,8 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
 
       console.log('✅ SMSContext - Request created successfully:', requestData);
 
-      // Send Telegram notification for new guest request with short ID IMMEDIATELY
       await sendTelegramNotificationForRequest(phone, accessCode, requestData.short_id);
 
-      // Set current request with phone number for UI display
       const requestWithPhone = {
         ...requestData,
         phone: phone,
@@ -645,7 +657,6 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       setCurrentRequest(requestWithPhone);
       setShowSimulation(true);
 
-      // Simulate activation process (4 minutes)
       setTimeout(async () => {
         try {
           console.log('🔄 SMSContext - Simulating activation completion for request:', requestData.id);
@@ -681,7 +692,7 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
         } catch (error) {
           console.error('💥 SMSContext - Error in activation simulation:', error);
         }
-      }, 240000); // 4 minutes = 240000ms
+      }, 240000);
 
     } catch (error) {
       console.error('💥 SMSContext - Unexpected error in submitRequest:', error);

