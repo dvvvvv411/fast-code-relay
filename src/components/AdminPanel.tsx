@@ -8,7 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PhoneNumberManager from './PhoneNumberManager';
 import AuftraegeManager from './AuftraegeManager';
 import FeedbackManager from './FeedbackManager';
-import { List, Phone, MessageSquare, Loader, AlertTriangle, Send, Timer, Filter, Eye, EyeOff, CheckCircle, FileText, Star } from 'lucide-react';
+import EmailManager from './EmailManager';
+import { List, Phone, MessageSquare, Loader, AlertTriangle, Send, Timer, Filter, Eye, EyeOff, CheckCircle, FileText, Star, Mail } from 'lucide-react';
 import SupportTickets from './SupportTickets';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -296,6 +297,10 @@ const AdminPanel = () => {
           <FileText size={18} />
           Aufträge
         </TabsTrigger>
+        <TabsTrigger value="mails" className="flex items-center gap-2 data-[state=active]:bg-orange data-[state=active]:text-white">
+          <Mail size={18} />
+          Mails
+        </TabsTrigger>
         <TabsTrigger value="supportTickets" className="flex items-center gap-2 data-[state=active]:bg-orange data-[state=active]:text-white">
           <MessageSquare size={18} />
           Support Tickets
@@ -384,6 +389,10 @@ const AdminPanel = () => {
       
       <TabsContent value="auftraege" className="mt-0">
         <AuftraegeManager />
+      </TabsContent>
+      
+      <TabsContent value="mails" className="mt-0">
+        <EmailManager />
       </TabsContent>
       
       <TabsContent value="supportTickets" className="mt-0">
