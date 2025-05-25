@@ -440,7 +440,7 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.log('📋 SMSContext - Current requests in state:', Object.keys(requests));
       
       // Find the request in our local state
-      const requestToActivate = requests[requestId];
+      let requestToActivate = requests[requestId];
       if (!requestToActivate) {
         console.error('❌ SMSContext - Request not found in local state:', requestId);
         console.log('📊 SMSContext - Available requests:', Object.keys(requests));
@@ -453,6 +453,7 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           console.log('✅ SMSContext - Found request after refresh, proceeding...');
           // Update the local state reference
           setRequests(freshRequests);
+          requestToActivate = freshRequests[requestId];
         } else {
           toast({
             title: "Fehler",
@@ -463,7 +464,7 @@ export const SMSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       }
 
-      console.log('📋 SMSContext - Request to activate:', requestToActivate || freshRequests[requestId]);
+      console.log('📋 SMSContext - Request to activate:', requestToActivate);
 
       // Update the request status to 'activated'
       const { data: requestData, error: requestError } = await supabase
