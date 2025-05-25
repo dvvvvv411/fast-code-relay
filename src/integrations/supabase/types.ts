@@ -9,54 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      auftraege: {
-        Row: {
-          anbieter: string
-          anweisungen: Json
-          app_store_link: string | null
-          auftragsnummer: string
-          created_at: string
-          google_play_link: string | null
-          id: string
-          kontakt_email: string
-          kontakt_name: string
-          projektziel: string
-          show_download_links: boolean
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          anbieter: string
-          anweisungen?: Json
-          app_store_link?: string | null
-          auftragsnummer: string
-          created_at?: string
-          google_play_link?: string | null
-          id?: string
-          kontakt_email?: string
-          kontakt_name?: string
-          projektziel: string
-          show_download_links?: boolean
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          anbieter?: string
-          anweisungen?: Json
-          app_store_link?: string | null
-          auftragsnummer?: string
-          created_at?: string
-          google_play_link?: string | null
-          id?: string
-          kontakt_email?: string
-          kontakt_name?: string
-          projektziel?: string
-          show_download_links?: boolean
-          title?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       phone_numbers: {
         Row: {
           access_code: string
