@@ -64,16 +64,43 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
 
   const loadRequests = async () => {
     try {
-      const { data, error } = await supabase
+      console.log('🔄 SMSContext - Loading requests...');
+      
+      // First, load all requests
+      const { data: requestsData, error: requestsError } = await supabase
         .from('requests')
-        .select('*, phone_numbers(phone, access_code)')
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (requestsError) {
+        console.error('❌ SMSContext - Error loading requests:', requestsError);
+        throw requestsError;
+      }
 
+      console.log('✅ SMSContext - Requests loaded:', requestsData?.length || 0);
+
+      // Then, load all phone numbers
+      const { data: phoneNumbersData, error: phoneNumbersError } = await supabase
+        .from('phone_numbers')
+        .select('*');
+
+      if (phoneNumbersError) {
+        console.error('❌ SMSContext - Error loading phone numbers:', phoneNumbersError);
+        throw phoneNumbersError;
+      }
+
+      console.log('✅ SMSContext - Phone numbers loaded:', phoneNumbersData?.length || 0);
+
+      // Create a map of phone numbers by ID for easy lookup
+      const phoneNumbersMap: Record<string, any> = {};
+      phoneNumbersData?.forEach((phoneNumber) => {
+        phoneNumbersMap[phoneNumber.id] = phoneNumber;
+      });
+
+      // Merge requests with their phone number data
       const requestsMap: Record<string, Request> = {};
-      data?.forEach((request) => {
-        const phoneData = request.phone_numbers as any;
+      requestsData?.forEach((request) => {
+        const phoneData = phoneNumbersMap[request.phone_number_id];
         requestsMap[request.id] = {
           ...request,
           phone: phoneData?.phone,
@@ -81,10 +108,14 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
           smsCode: request.sms_code,
           updated_at: request.updated_at,
         };
+        
+        console.log(`📊 SMSContext - Merged request ${request.id}: ${request.status} - Phone: ${phoneData?.phone}`);
       });
+      
       setRequests(requestsMap);
+      console.log('✅ SMSContext - All requests loaded and merged successfully');
     } catch (error) {
-      console.error('Error loading requests:', error);
+      console.error('💥 SMSContext - Error loading requests:', error);
     }
   };
 
