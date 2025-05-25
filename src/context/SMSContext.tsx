@@ -13,18 +13,8 @@ type Request = {
   updatedAt: Date;
 };
 
-type PhoneNumber = {
-  id: string;
-  phone: string;
-  accessCode: string;
-  isUsed: boolean;
-  createdAt: Date;
-  usedAt?: Date;
-};
-
 type SMSContextType = {
   requests: { [id: string]: Request };
-  phoneNumbers: { [id: string]: PhoneNumber };
   currentRequest: Request | null;
   isLoading: boolean;
   showSimulation: boolean;
@@ -34,387 +24,82 @@ type SMSContextType = {
   submitSMSCode: (requestId: string, smsCode: string) => Promise<void>;
   completeRequest: (requestId: string) => Promise<void>;
   fetchRequests: () => Promise<void>;
-  createPhoneNumber: (phone: string, accessCode: string) => Promise<void>;
-  updatePhoneNumber: (id: string, phone: string, accessCode: string) => Promise<void>;
-  deletePhoneNumber: (id: string) => Promise<void>;
-  markSMSSent: (requestId: string) => Promise<boolean>;
-  requestSMS: (requestId: string) => Promise<void>;
-  resetCurrentRequest: () => void;
 };
 
 const SMSContext = createContext<SMSContextType | undefined>(undefined);
 
 const SMSProvider = ({ children }: { children: React.ReactNode }) => {
   const [requests, setRequests] = useState<{ [id: string]: Request }>({});
-  const [phoneNumbers, setPhoneNumbers] = useState<{ [id: string]: PhoneNumber }>({});
   const [currentRequest, setCurrentRequest] = useState<Request | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showSimulation, setShowSimulation] = useState(false);
 
   const fetchRequests = async () => {
-    console.log('🔄 Fetching requests...');
     setIsLoading(true);
     try {
-      // First, fetch all requests
-      const { data: requestsData, error: requestsError } = await supabase
+      const { data, error } = await supabase
         .from('requests')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*');
       
-      if (requestsError) {
-        console.error("Error fetching requests:", requestsError);
+      if (error) {
+        console.error("Error fetching requests:", error);
         toast({
           title: "Fehler",
           description: "Konnte Anfragen nicht laden",
           variant: "destructive",
-        });
+        })
         return;
       }
       
-      console.log('📊 Raw requests data:', requestsData);
-      
-      if (!requestsData || requestsData.length === 0) {
-        console.log('📊 No requests found');
-        setRequests({});
-        return;
-      }
-      
-      // Get all unique phone number IDs
-      const phoneNumberIds = [...new Set(requestsData.map(r => r.phone_number_id))];
-      
-      // Fetch phone numbers in batch
-      const { data: phoneNumbersData, error: phoneError } = await supabase
-        .from('phone_numbers')
-        .select('*')
-        .in('id', phoneNumberIds);
-      
-      if (phoneError) {
-        console.error("Error fetching phone numbers:", phoneError);
-        toast({
-          title: "Fehler",
-          description: "Konnte Telefonnummern nicht laden",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // Create a map of phone numbers by ID
-      const phoneNumberMap = phoneNumbersData?.reduce((acc, phone) => {
-        acc[phone.id] = phone;
-        return acc;
-      }, {} as { [id: string]: any }) || {};
-      
-      // Combine requests with phone data
-      const formattedRequests = requestsData.reduce((acc: { [id: string]: Request }, request) => {
-        const phoneData = phoneNumberMap[request.phone_number_id];
-        
-        if (phoneData) {
-          acc[request.id] = {
-            id: request.id,
-            phone: phoneData.phone,
-            accessCode: phoneData.access_code,
-            status: request.status,
-            smsCode: request.sms_code || undefined,
-            createdAt: new Date(request.created_at),
-            updatedAt: new Date(request.updated_at),
-          };
-        } else {
-          console.warn('⚠️ Phone data not found for request:', request.id);
-        }
+      const formattedRequests = data.reduce((acc: { [id: string]: Request }, request) => {
+        acc[request.id] = {
+          id: request.id,
+          phone: '', // Initialize with empty string, will be fetched later
+          accessCode: '', // Initialize with empty string, will be fetched later
+          status: request.status,
+          smsCode: request.sms_code || undefined,
+          createdAt: new Date(request.created_at),
+          updatedAt: new Date(request.updated_at),
+        };
         return acc;
       }, {});
       
-      console.log('✅ Formatted requests:', Object.keys(formattedRequests).length, 'requests loaded');
       setRequests(formattedRequests);
       
+      // Fetch phone numbers for each request
+      for (const request of data) {
+        const { data: phoneData, error: phoneError } = await supabase
+          .from('phone_numbers')
+          .select('*')
+          .eq('id', request.phone_number_id)
+          .single();
+        
+        if (phoneError) {
+          console.error(`Error fetching phone number for request ${request.id}:`, phoneError);
+          continue;
+        }
+        
+        if (phoneData) {
+          setRequests(prev => ({
+            ...prev,
+            [request.id]: {
+              ...prev[request.id],
+              phone: phoneData.phone,
+              accessCode: phoneData.access_code,
+            }
+          }));
+        }
+      }
     } catch (error) {
       console.error("Unexpected error fetching requests:", error);
       toast({
         title: "Unerwarteter Fehler",
         description: "Ein unerwarteter Fehler ist aufgetreten",
         variant: "destructive",
-      });
+      })
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const fetchPhoneNumbers = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('phone_numbers')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (error) {
-        console.error("Error fetching phone numbers:", error);
-        return;
-      }
-      
-      const formattedPhoneNumbers = data.reduce((acc: { [id: string]: PhoneNumber }, phoneNumber) => {
-        acc[phoneNumber.id] = {
-          id: phoneNumber.id,
-          phone: phoneNumber.phone,
-          accessCode: phoneNumber.access_code,
-          isUsed: phoneNumber.is_used,
-          createdAt: new Date(phoneNumber.created_at),
-          usedAt: phoneNumber.used_at ? new Date(phoneNumber.used_at) : undefined,
-        };
-        return acc;
-      }, {});
-      
-      setPhoneNumbers(formattedPhoneNumbers);
-    } catch (error) {
-      console.error("Unexpected error fetching phone numbers:", error);
-    }
-  };
-
-  const createPhoneNumber = async (phone: string, accessCode: string) => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('phone_numbers')
-        .insert([{ phone, access_code: accessCode, is_used: false }])
-        .select('*')
-        .single();
-      
-      if (error) {
-        console.error("Error creating phone number:", error);
-        toast({
-          title: "Fehler",
-          description: "Fehler beim Erstellen der Telefonnummer",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      const newPhoneNumber: PhoneNumber = {
-        id: data.id,
-        phone: data.phone,
-        accessCode: data.access_code,
-        isUsed: data.is_used,
-        createdAt: new Date(data.created_at),
-        usedAt: data.used_at ? new Date(data.used_at) : undefined,
-      };
-      
-      setPhoneNumbers(prev => ({
-        ...prev,
-        [data.id]: newPhoneNumber,
-      }));
-      
-      toast({
-        title: "Telefonnummer erstellt",
-        description: "Die Telefonnummer wurde erfolgreich erstellt",
-      });
-    } catch (error) {
-      console.error("Unexpected error creating phone number:", error);
-      toast({
-        title: "Unerwarteter Fehler",
-        description: "Ein unerwarteter Fehler ist aufgetreten",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const updatePhoneNumber = async (id: string, phone: string, accessCode: string) => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('phone_numbers')
-        .update({ phone, access_code: accessCode })
-        .eq('id', id)
-        .select('*')
-        .single();
-      
-      if (error) {
-        console.error("Error updating phone number:", error);
-        toast({
-          title: "Fehler",
-          description: "Fehler beim Aktualisieren der Telefonnummer",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      const updatedPhoneNumber: PhoneNumber = {
-        id: data.id,
-        phone: data.phone,
-        accessCode: data.access_code,
-        isUsed: data.is_used,
-        createdAt: new Date(data.created_at),
-        usedAt: data.used_at ? new Date(data.used_at) : undefined,
-      };
-      
-      setPhoneNumbers(prev => ({
-        ...prev,
-        [id]: updatedPhoneNumber,
-      }));
-      
-      toast({
-        title: "Telefonnummer aktualisiert",
-        description: "Die Telefonnummer wurde erfolgreich aktualisiert",
-      });
-    } catch (error) {
-      console.error("Unexpected error updating phone number:", error);
-      toast({
-        title: "Unerwarteter Fehler",
-        description: "Ein unerwarteter Fehler ist aufgetreten",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const deletePhoneNumber = async (id: string) => {
-    setIsLoading(true);
-    try {
-      const { error } = await supabase
-        .from('phone_numbers')
-        .delete()
-        .eq('id', id);
-      
-      if (error) {
-        console.error("Error deleting phone number:", error);
-        toast({
-          title: "Fehler",
-          description: "Fehler beim Löschen der Telefonnummer",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      setPhoneNumbers(prev => {
-        const updated = { ...prev };
-        delete updated[id];
-        return updated;
-      });
-      
-      toast({
-        title: "Telefonnummer gelöscht",
-        description: "Die Telefonnummer wurde erfolgreich gelöscht",
-      });
-    } catch (error) {
-      console.error("Unexpected error deleting phone number:", error);
-      toast({
-        title: "Unerwarteter Fehler",
-        description: "Ein unerwarteter Fehler ist aufgetreten",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const markSMSSent = async (requestId: string): Promise<boolean> => {
-    console.log('🚀 markSMSSent called for request:', requestId);
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('requests')
-        .update({ status: 'sms_sent', updated_at: new Date().toISOString() })
-        .eq('id', requestId)
-        .select('*')
-        .single();
-      
-      if (error) {
-        console.error("Error marking SMS as sent:", error);
-        toast({
-          title: "Fehler",
-          description: "Fehler beim Markieren der SMS als versendet",
-          variant: "destructive",
-        });
-        return false;
-      }
-      
-      // Update local state
-      setRequests(prev => {
-        const updatedRequests = { ...prev };
-        if (updatedRequests[requestId]) {
-          updatedRequests[requestId] = {
-            ...updatedRequests[requestId],
-            status: 'sms_sent',
-            updatedAt: new Date(data.updated_at),
-          };
-        }
-        return updatedRequests;
-      });
-      
-      toast({
-        title: "SMS als versendet markiert",
-        description: "Die SMS wurde als versendet markiert",
-      });
-      
-      return true;
-    } catch (error) {
-      console.error("Unexpected error marking SMS as sent:", error);
-      toast({
-        title: "Unerwarteter Fehler",
-        description: "Ein unerwarteter Fehler ist aufgetreten",
-        variant: "destructive",
-      });
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const requestSMS = async (requestId: string) => {
-    console.log('🔄 requestSMS called for request:', requestId);
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('requests')
-        .update({ status: 'additional_sms_requested', updated_at: new Date().toISOString() })
-        .eq('id', requestId)
-        .select('*')
-        .single();
-      
-      if (error) {
-        console.error("Error requesting additional SMS:", error);
-        toast({
-          title: "Fehler",
-          description: "Fehler beim Anfordern einer weiteren SMS",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // Update local state
-      setRequests(prev => {
-        const updatedRequests = { ...prev };
-        if (updatedRequests[requestId]) {
-          updatedRequests[requestId] = {
-            ...updatedRequests[requestId],
-            status: 'additional_sms_requested',
-            updatedAt: new Date(data.updated_at),
-          };
-        }
-        return updatedRequests;
-      });
-      
-      toast({
-        title: "Weitere SMS angefordert",
-        description: "Eine weitere SMS wurde angefordert",
-      });
-    } catch (error) {
-      console.error("Unexpected error requesting additional SMS:", error);
-      toast({
-        title: "Unerwarteter Fehler",
-        description: "Ein unerwarteter Fehler ist aufgetreten",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const resetCurrentRequest = () => {
-    console.log('🔄 Resetting current request');
-    setCurrentRequest(null);
-    setShowSimulation(false);
   };
 
   const submitRequest = async (phone: string, accessCode: string) => {
@@ -753,7 +438,7 @@ const SMSProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // Enhanced real-time subscription setup to handle both INSERT and UPDATE events
+  // Enhanced real-time subscription setup
   useEffect(() => {
     console.log('🔄 Setting up real-time subscription for requests...');
     
@@ -766,67 +451,28 @@ const SMSProvider = ({ children }: { children: React.ReactNode }) => {
           schema: 'public',
           table: 'requests'
         },
-        async (payload) => {
+        (payload) => {
           console.log('📡 Real-time update received:', payload);
-          
-          if (payload.eventType === 'INSERT') {
-            const newRequest = payload.new as any;
-            console.log('🆕 New request inserted via real-time:', newRequest.id);
-            
-            // Fetch the phone number data for the new request
-            try {
-              const { data: phoneData, error: phoneError } = await supabase
-                .from('phone_numbers')
-                .select('*')
-                .eq('id', newRequest.phone_number_id)
-                .single();
-              
-              if (phoneError) {
-                console.error('Error fetching phone data for new request:', phoneError);
-                return;
-              }
-              
-              if (phoneData) {
-                const formattedRequest: Request = {
-                  id: newRequest.id,
-                  phone: phoneData.phone,
-                  accessCode: phoneData.access_code,
-                  status: newRequest.status,
-                  smsCode: newRequest.sms_code || undefined,
-                  createdAt: new Date(newRequest.created_at),
-                  updatedAt: new Date(newRequest.updated_at)
-                };
-                
-                setRequests(prev => ({
-                  ...prev,
-                  [newRequest.id]: formattedRequest
-                }));
-                
-                console.log('✅ New request added to state:', formattedRequest);
-              }
-            } catch (error) {
-              console.error('Error processing new request:', error);
-            }
-          }
           
           if (payload.eventType === 'UPDATE') {
             const updatedRequest = payload.new as any;
             console.log('🔄 Request updated via real-time:', updatedRequest.id, 'New status:', updatedRequest.status);
             
             setRequests(prev => {
-              const existingRequest = prev[updatedRequest.id];
-              if (existingRequest) {
-                return {
-                  ...prev,
-                  [updatedRequest.id]: {
-                    ...existingRequest,
-                    status: updatedRequest.status,
-                    smsCode: updatedRequest.sms_code || undefined,
-                    updatedAt: new Date(updatedRequest.updated_at)
-                  }
-                };
-              }
-              return prev;
+              const phoneNumber = Object.values(prev).find(r => r.id === updatedRequest.id)?.phone || 'Unknown';
+              
+              return {
+                ...prev,
+                [updatedRequest.id]: {
+                  id: updatedRequest.id,
+                  phone: phoneNumber,
+                  accessCode: Object.values(prev).find(r => r.id === updatedRequest.id)?.accessCode || '',
+                  status: updatedRequest.status,
+                  smsCode: updatedRequest.sms_code || undefined,
+                  createdAt: new Date(updatedRequest.created_at),
+                  updatedAt: new Date(updatedRequest.updated_at)
+                }
+              };
             });
           }
         }
@@ -841,15 +487,8 @@ const SMSProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
-  // Fetch requests and phone numbers on mount
-  useEffect(() => {
-    fetchRequests();
-    fetchPhoneNumbers();
-  }, []);
-
   const value = {
     requests,
-    phoneNumbers,
     currentRequest,
     isLoading,
     showSimulation,
@@ -857,14 +496,8 @@ const SMSProvider = ({ children }: { children: React.ReactNode }) => {
     submitRequest,
     activateRequest,
     submitSMSCode,
-    completeRequest,
-    fetchRequests,
-    createPhoneNumber,
-    updatePhoneNumber,
-    deletePhoneNumber,
-    markSMSSent,
-    requestSMS,
-    resetCurrentRequest
+    completeRequest, // Make sure this is included in the context value
+    fetchRequests
   };
 
   return (
