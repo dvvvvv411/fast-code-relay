@@ -4,7 +4,7 @@ import { useSMS } from '../context/SMSContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Edit, Trash, Loader, CheckCircle, XCircle, Shuffle } from 'lucide-react';
+import { Plus, Edit, Trash, Loader, CheckCircle, XCircle, Shuffle, ExternalLink } from 'lucide-react';
 import { 
   Table, 
   TableBody, 
@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/table';
 import { toast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import QuickAddDialog from './QuickAddDialog';
 
 const PhoneNumberManager = () => {
   const { phoneNumbers, createPhoneNumber, updatePhoneNumber, deletePhoneNumber, isLoading } = useSMS();
@@ -51,6 +52,10 @@ const PhoneNumberManager = () => {
       setPhone('');
       setAccessCode('');
     }
+  };
+
+  const handleQuickAdd = (phone: string, accessCode: string, sourceUrl: string, sourceDomain: string) => {
+    createPhoneNumber(phone, accessCode, sourceUrl, sourceDomain);
   };
 
   const handleEdit = (phoneNumber: string, accessCode: string, id: string) => {
@@ -158,6 +163,7 @@ const PhoneNumberManager = () => {
                 <Plus className="mr-1" size={18} />
                 {editingId ? 'Aktualisieren' : 'Telefonnummer hinzufügen'}
               </Button>
+              <QuickAddDialog onQuickAdd={handleQuickAdd} />
               {editingId && (
                 <Button type="button" variant="outline" onClick={cancelEdit}>
                   Abbrechen
@@ -184,6 +190,7 @@ const PhoneNumberManager = () => {
                   <TableHead>Telefonnummer</TableHead>
                   <TableHead>Zugangscode</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Domain</TableHead>
                   <TableHead>Erstellt am</TableHead>
                   <TableHead>Verwendet am</TableHead>
                   <TableHead className="text-right">Aktionen</TableHead>
@@ -207,12 +214,25 @@ const PhoneNumberManager = () => {
                         </div>
                       )}
                     </TableCell>
+                    <TableCell>
+                      {item.sourceDomain || '-'}
+                    </TableCell>
                     <TableCell>{item.createdAt.toLocaleDateString()}</TableCell>
                     <TableCell>
                       {item.usedAt ? item.usedAt.toLocaleDateString() : '-'}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end space-x-2">
+                        {item.sourceUrl && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => window.open(item.sourceUrl, '_blank')}
+                            title="SMS Service öffnen"
+                          >
+                            <ExternalLink size={16} />
+                          </Button>
+                        )}
                         <Button 
                           variant="ghost" 
                           size="sm" 
