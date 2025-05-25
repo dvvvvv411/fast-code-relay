@@ -4,7 +4,7 @@ import { useSMS } from '../context/SMSContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Edit, Trash, Loader, CheckCircle, XCircle, Shuffle } from 'lucide-react';
+import { Plus, Edit, Trash, Loader, CheckCircle, XCircle, Shuffle, ExternalLink } from 'lucide-react';
 import { 
   Table, 
   TableBody, 
@@ -15,12 +15,16 @@ import {
 } from '@/components/ui/table';
 import { toast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { QuickAddDialog } from './QuickAddDialog';
 
 const PhoneNumberManager = () => {
   const { phoneNumbers, createPhoneNumber, updatePhoneNumber, deletePhoneNumber, isLoading } = useSMS();
   const [phone, setPhone] = useState('');
   const [accessCode, setAccessCode] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
+  
+  // Store URLs in local state only (not in database)
+  const [phoneNumberUrls, setPhoneNumberUrls] = useState<Record<string, {url: string, domain: string}>>({});
 
   const generateAccessCode = () => {
     // Generate 3 random uppercase letters (excluding I, L, O)
@@ -36,7 +40,17 @@ const PhoneNumberManager = () => {
       code += numbers.charAt(Math.floor(Math.random() * numbers.length));
     }
     
-    setAccessCode(code);
+    return code;
+  };
+
+  const handleQuickAdd = (phoneNumber: string, accessCode: string, originalUrl: string, domain: string) => {
+    createPhoneNumber(phoneNumber, accessCode);
+    
+    // Store URL info in local state
+    setPhoneNumberUrls(prev => ({
+      ...prev,
+      [phoneNumber]: { url: originalUrl, domain }
+    }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -61,6 +75,16 @@ const PhoneNumberManager = () => {
 
   const handleDelete = (id: string) => {
     if (window.confirm('Sind Sie sicher, dass Sie diese Telefonnummer löschen möchten?')) {
+      // Find the phone number to remove from URL state
+      const phoneNumberToDelete = Object.values(phoneNumbers).find(pn => pn.id === id)?.phone;
+      if (phoneNumberToDelete && phoneNumberUrls[phoneNumberToDelete]) {
+        setPhoneNumberUrls(prev => {
+          const newUrls = { ...prev };
+          delete newUrls[phoneNumberToDelete];
+          return newUrls;
+        });
+      }
+      
       deletePhoneNumber(id);
     }
   };
@@ -69,6 +93,13 @@ const PhoneNumberManager = () => {
     setPhone('');
     setAccessCode('');
     setEditingId(null);
+  };
+
+  const handleOpenUrl = (phone: string) => {
+    const urlInfo = phoneNumberUrls[phone];
+    if (urlInfo) {
+      window.open(urlInfo.url, '_blank');
+    }
   };
 
   const phoneNumbersList = Object.values(phoneNumbers);
@@ -145,7 +176,7 @@ const PhoneNumberManager = () => {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={generateAccessCode}
+                  onClick={() => setAccessCode(generateAccessCode())}
                   className="px-3"
                   title="Zufälligen Zugangscode generieren"
                 >
@@ -158,6 +189,10 @@ const PhoneNumberManager = () => {
                 <Plus className="mr-1" size={18} />
                 {editingId ? 'Aktualisieren' : 'Telefonnummer hinzufügen'}
               </Button>
+              <QuickAddDialog 
+                onQuickAdd={handleQuickAdd}
+                generateAccessCode={generateAccessCode}
+              />
               {editingId && (
                 <Button type="button" variant="outline" onClick={cancelEdit}>
                   Abbrechen
@@ -184,55 +219,76 @@ const PhoneNumberManager = () => {
                   <TableHead>Telefonnummer</TableHead>
                   <TableHead>Zugangscode</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Domain</TableHead>
                   <TableHead>Erstellt am</TableHead>
                   <TableHead>Verwendet am</TableHead>
                   <TableHead className="text-right">Aktionen</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {phoneNumbersList.map((item) => (
-                  <TableRow key={item.id} className={item.isUsed ? 'bg-gray-50' : ''}>
-                    <TableCell className="font-medium">{item.phone}</TableCell>
-                    <TableCell>{item.accessCode}</TableCell>
-                    <TableCell>
-                      {item.isUsed ? (
-                        <div className="flex items-center gap-2 text-red-600">
-                          <XCircle size={16} />
-                          <span>Verwendet</span>
+                {phoneNumbersList.map((item) => {
+                  const urlInfo = phoneNumberUrls[item.phone];
+                  return (
+                    <TableRow key={item.id} className={item.isUsed ? 'bg-gray-50' : ''}>
+                      <TableCell className="font-medium">{item.phone}</TableCell>
+                      <TableCell>{item.accessCode}</TableCell>
+                      <TableCell>
+                        {item.isUsed ? (
+                          <div className="flex items-center gap-2 text-red-600">
+                            <XCircle size={16} />
+                            <span>Verwendet</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 text-green-600">
+                            <CheckCircle size={16} />
+                            <span>Verfügbar</span>
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {urlInfo ? (
+                          <span className="text-sm text-gray-600">{urlInfo.domain}</span>
+                        ) : (
+                          <span className="text-sm text-gray-400">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>{item.createdAt.toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        {item.usedAt ? item.usedAt.toLocaleDateString() : '-'}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end space-x-2">
+                          {urlInfo && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => handleOpenUrl(item.phone)}
+                              title="URL öffnen"
+                            >
+                              <ExternalLink size={16} />
+                            </Button>
+                          )}
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => handleEdit(item.phone, item.accessCode, item.id)}
+                            disabled={item.isUsed}
+                          >
+                            <Edit size={16} />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleDelete(item.id)}
+                            disabled={item.isUsed}
+                          >
+                            <Trash size={16} />
+                          </Button>
                         </div>
-                      ) : (
-                        <div className="flex items-center gap-2 text-green-600">
-                          <CheckCircle size={16} />
-                          <span>Verfügbar</span>
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell>{item.createdAt.toLocaleDateString()}</TableCell>
-                    <TableCell>
-                      {item.usedAt ? item.usedAt.toLocaleDateString() : '-'}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end space-x-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={() => handleEdit(item.phone, item.accessCode, item.id)}
-                          disabled={item.isUsed}
-                        >
-                          <Edit size={16} />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => handleDelete(item.id)}
-                          disabled={item.isUsed}
-                        >
-                          <Trash size={16} />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
