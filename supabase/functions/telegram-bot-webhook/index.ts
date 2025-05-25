@@ -179,13 +179,69 @@ serve(async (req) => {
       }
     }
 
+    // Check if it's a complete command with format /complete ID
+    if (text.startsWith('/complete ')) {
+      const shortId = text.replace('/complete ', '').trim().toUpperCase();
+      console.log('Attempting to complete request with short ID:', shortId);
+
+      try {
+        // Find the request by short_id
+        const { data: requestData, error: requestError } = await supabase
+          .from('requests')
+          .select(`
+            id, 
+            status, 
+            phone_number_id,
+            phone_numbers!inner(phone, access_code)
+          `)
+          .eq('short_id', shortId)
+          .in('status', ['activated', 'sms_requested', 'sms_sent', 'waiting_for_additional_sms'])
+          .single();
+
+        if (requestError || !requestData) {
+          console.error('Request not found or invalid status for short ID:', shortId, requestError);
+          await sendTelegramMessage(botToken, adminChatId, `❌ Keine passende Anfrage für ID ${shortId} gefunden oder falscher Status.`);
+          return new Response('OK', { status: 200 });
+        }
+
+        // Complete the request
+        const { error: updateError } = await supabase
+          .from('requests')
+          .update({ status: 'completed' })
+          .eq('id', requestData.id);
+
+        if (updateError) {
+          console.error('Error completing request:', updateError);
+          await sendTelegramMessage(botToken, adminChatId, `❌ Fehler beim Abschließen von ID ${shortId}.`);
+          return new Response('OK', { status: 200 });
+        }
+
+        console.log('Successfully completed request:', requestData.id);
+        
+        // Send confirmation message
+        const phoneNumber = requestData.phone_numbers.phone;
+        await sendTelegramMessage(
+          botToken, 
+          adminChatId, 
+          `✅ Auftrag ${shortId} wurde als abgeschlossen markiert!\n📱 Nummer: ${phoneNumber}`
+        );
+
+        return new Response('OK', { status: 200 });
+
+      } catch (error) {
+        console.error('Error processing complete command:', error);
+        await sendTelegramMessage(botToken, adminChatId, `❌ Fehler beim Verarbeiten des Complete-Befehls für ID ${shortId}.`);
+        return new Response('OK', { status: 200 });
+      }
+    }
+
     // Handle unknown commands
     if (text.startsWith('/')) {
       console.log('Unknown command:', text);
       await sendTelegramMessage(
         botToken, 
         adminChatId, 
-        `❓ Unbekannter Befehl: ${text}\n\nVerfügbare Befehle:\n/activate [ID] - Nummer über kurze ID aktivieren (z.B. /activate ABC123)\n/send [ID] [Code] - SMS Code senden (z.B. /send ABC123 123456)`
+        `❓ Unbekannter Befehl: ${text}\n\nVerfügbare Befehle:\n/activate [ID] - Nummer über kurze ID aktivieren (z.B. /activate ABC123)\n/send [ID] [Code] - SMS Code senden (z.B. /send ABC123 123456)\n/complete [ID] - Auftrag abschließen (z.B. /complete ABC123)`
       );
     }
 

@@ -123,6 +123,31 @@ const sendTelegramNotificationForSMSSent = async (phone: string, accessCode: str
   }
 };
 
+// Helper function to send Telegram notification when process is completed
+const sendTelegramNotificationForCompleted = async (phone: string, accessCode: string, shortId?: string) => {
+  try {
+    console.log('📱 Sending Telegram notification for completed:', phone, 'ID:', shortId);
+    
+    const { data, error } = await supabase.functions.invoke('send-telegram-notification', {
+      body: { 
+        phone, 
+        accessCode,
+        shortId,
+        type: 'completed'
+      }
+    });
+    
+    if (error) {
+      console.error('❌ Error sending Telegram notification for completed:', error);
+      return;
+    }
+    
+    console.log('✅ Telegram notification for completed sent successfully:', data);
+  } catch (error) {
+    console.error('💥 Failed to send Telegram notification for completed:', error);
+  }
+};
+
 export const SMSProvider = ({ children }: { children: ReactNode }) => {
   const [currentRequest, setCurrentRequest] = useState<Request | null>(null);
   const [requests, setRequests] = useState<Record<string, Request>>({});
@@ -585,6 +610,12 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       }
       
       console.log('✅ SMSContext - Request status updated to completed:', data);
+      
+      // Send Telegram notification for completed request
+      if (currentRequest?.phone && currentRequest?.accessCode) {
+        await sendTelegramNotificationForCompleted(currentRequest.phone, currentRequest.accessCode, data.short_id);
+      }
+      
       await loadRequests();
       setCurrentRequest(null);
       
