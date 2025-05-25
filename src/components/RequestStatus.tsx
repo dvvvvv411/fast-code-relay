@@ -8,7 +8,6 @@ const RequestStatus = () => {
   const { currentRequest, markSMSSent, requestSMS, completeRequest, isLoading } = useSMS();
   const [hasSentSMS, setHasSentSMS] = useState(false);
   const [smsClickTimestamp, setSmsClickTimestamp] = useState<string>('');
-  const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
   // Log the current request status whenever it changes for debugging
   useEffect(() => {
@@ -113,13 +112,10 @@ const RequestStatus = () => {
         };
       
       case 'sms_sent':
-      case 'additional_sms_requested':
         return {
           icon: <Loader className="h-12 w-12 text-orange animate-spin mx-auto mb-4" />,
           title: 'Warten auf SMS Code',
-          description: currentRequest.status === 'additional_sms_requested' 
-            ? 'Ihr weiterer SMS Code wird gerade verarbeitet. Dies kann einige Sekunden dauern.'
-            : 'Ihr SMS Code wird gerade verarbeitet. Dies kann einige Sekunden dauern.',
+          description: 'Ihr SMS Code wird gerade verarbeitet. Dies kann einige Sekunden dauern.',
           showButton: false
         };
       

@@ -393,7 +393,7 @@ const SMSProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from('requests')
-        .update({ status: 'additional_sms_requested', updated_at: new Date().toISOString() })
+        .update({ status: 'sms_requested', updated_at: new Date().toISOString() })
         .eq('id', requestId)
         .select('*')
         .single();
@@ -414,7 +414,7 @@ const SMSProvider = ({ children }: { children: React.ReactNode }) => {
         if (updatedRequests[requestId]) {
           updatedRequests[requestId] = {
             ...updatedRequests[requestId],
-            status: 'additional_sms_requested',
+            status: 'sms_requested',
             updatedAt: new Date(data.updated_at),
           };
         }
