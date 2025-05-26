@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from 'react';
+import { Helmet } from 'react-helmet-async';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import EvaluationForm from '@/components/EvaluationForm';
@@ -142,6 +143,11 @@ const AssignmentTemplate = ({ assignmentUrl }: AssignmentTemplateProps) => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      <Helmet>
+        <title>Expandere - Auftragsbearbeitung: {data.title}</title>
+        <meta name="description" content={`Persönlicher Auftrag für ${assignmentData.worker_first_name} ${assignmentData.worker_last_name} - ${data.anbieter} ${data.auftragsnummer}. ${data.projektziel.substring(0, 150)}...`} />
+      </Helmet>
+      
       <Header />
       <div className="container mx-auto px-4 py-8 flex-grow">
         <div className="max-w-4xl mx-auto">
