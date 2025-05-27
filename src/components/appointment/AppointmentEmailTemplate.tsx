@@ -26,28 +26,13 @@ const AppointmentEmailTemplate: React.FC<AppointmentEmailTemplateProps> = ({
 
   return (
     <div style={{ fontFamily: 'Arial, sans-serif', maxWidth: '600px', margin: '0 auto', backgroundColor: '#ffffff' }}>
-      {/* Header with Logo */}
+      {/* Header without Logo */}
       <div style={{ 
         backgroundColor: '#ff6b35', 
         padding: '30px 20px', 
         textAlign: 'center',
         borderRadius: '8px 8px 0 0'
       }}>
-        <div style={{ 
-          width: '80px', 
-          height: '80px', 
-          backgroundColor: 'white', 
-          borderRadius: '50%', 
-          margin: '0 auto 20px auto',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '24px',
-          fontWeight: 'bold',
-          color: '#ff6b35'
-        }}>
-          LOGO
-        </div>
         <h1 style={{ color: 'white', margin: '0', fontSize: '28px', fontWeight: 'bold' }}>
           Herzlichen Glückwunsch!
         </h1>
@@ -90,7 +75,7 @@ const AppointmentEmailTemplate: React.FC<AppointmentEmailTemplateProps> = ({
               transition: 'all 0.3s ease'
             }}
           >
-            Interview-Termin buchen
+            Termin buchen
           </a>
         </div>
 
@@ -106,7 +91,7 @@ const AppointmentEmailTemplate: React.FC<AppointmentEmailTemplateProps> = ({
             Was Sie erwartet:
           </h3>
           <ul style={{ color: '#555', lineHeight: '1.6', margin: '0', paddingLeft: '20px' }}>
-            <li style={{ marginBottom: '8px' }}>Persönliches Kennenlernen (ca. 45-60 Minuten)</li>
+            <li style={{ marginBottom: '8px' }}>Persönliches Kennenlernen (ca. 30 Minuten)</li>
             <li style={{ marginBottom: '8px' }}>Vorstellung der Position und des Teams</li>
             <li style={{ marginBottom: '8px' }}>Ihre Fragen zur Stelle und zum Unternehmen</li>
           </ul>
@@ -145,19 +130,64 @@ const AppointmentEmailTemplate: React.FC<AppointmentEmailTemplateProps> = ({
         </p>
       </div>
 
-      {/* Footer */}
+      {/* Expandere Branded Footer */}
       <div style={{ 
-        backgroundColor: '#f8f9fa', 
+        backgroundColor: '#2c3e50', 
         padding: '30px 20px', 
         textAlign: 'center', 
-        borderTop: '1px solid #e9ecef',
         borderRadius: '0 0 8px 8px'
       }}>
-        <p style={{ color: '#6c757d', fontSize: '12px', margin: '0 0 10px 0' }}>
+        <div style={{ marginBottom: '20px' }}>
+          <h3 style={{ 
+            color: '#ecf0f1', 
+            margin: '0 0 10px 0', 
+            fontSize: '20px', 
+            fontWeight: 'bold' 
+          }}>
+            Expandere
+          </h3>
+          <p style={{ color: '#bdc3c7', fontSize: '14px', margin: '0' }}>
+            Ihr Partner für innovative Lösungen
+          </p>
+        </div>
+        
+        <div style={{ marginBottom: '20px' }}>
+          <a 
+            href="https://expandere.com" 
+            style={{ 
+              color: '#3498db', 
+              textDecoration: 'none', 
+              fontSize: '14px',
+              marginRight: '20px'
+            }}
+          >
+            www.expandere.com
+          </a>
+          <a 
+            href="https://expandere.com/impressum" 
+            style={{ 
+              color: '#3498db', 
+              textDecoration: 'none', 
+              fontSize: '14px',
+              marginRight: '20px'
+            }}
+          >
+            Impressum
+          </a>
+          <a 
+            href="https://expandere.com/datenschutz" 
+            style={{ 
+              color: '#3498db', 
+              textDecoration: 'none', 
+              fontSize: '14px'
+            }}
+          >
+            Datenschutz
+          </a>
+        </div>
+        
+        <p style={{ color: '#95a5a6', fontSize: '12px', margin: '0' }}>
           Diese E-Mail wurde automatisch generiert. Bitte antworten Sie nicht auf diese E-Mail.
-        </p>
-        <p style={{ color: '#6c757d', fontSize: '12px', margin: '0' }}>
-          Bei Fragen wenden Sie sich bitte an: <a href="mailto:recruiting@unternehmen.de" style={{ color: '#ff6b35' }}>recruiting@unternehmen.de</a>
         </p>
       </div>
     </div>
