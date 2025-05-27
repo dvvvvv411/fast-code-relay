@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, Form } from '@/components/ui/form';
-import { Mail, Eye } from 'lucide-react';
+import { Mail, Eye, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import EmailPreviewDialog from './EmailPreviewDialog';
@@ -46,6 +46,7 @@ const EmailManager = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
   const [selectedPhoneNumber, setSelectedPhoneNumber] = useState<PhoneNumber | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   
   const form = useForm<EmailFormData>({
@@ -126,12 +127,58 @@ const EmailManager = () => {
     form.setValue('phoneNumberId', phoneNumberId);
   };
 
-  const onSubmit = (data: EmailFormData) => {
-    // E-Mail versenden Funktionalität wird später implementiert
-    toast({
-      title: "Info",
-      description: "E-Mail versenden Funktion ist noch nicht implementiert.",
-    });
+  const onSubmit = async (data: EmailFormData) => {
+    if (!data.assignmentId || !data.phoneNumberId) {
+      toast({
+        title: "Fehler",
+        description: "Bitte wählen Sie einen Auftrag und eine Telefonnummer aus.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const { data: response, error } = await supabase.functions.invoke('send-assignment-email', {
+        body: {
+          recipientEmail: data.recipientEmail,
+          recipientFirstName: data.recipientFirstName,
+          recipientLastName: data.recipientLastName,
+          assignmentId: data.assignmentId,
+          phoneNumberId: data.phoneNumberId,
+        }
+      });
+
+      if (error) {
+        console.error('Error calling send-assignment-email function:', error);
+        throw new Error(error.message || 'Fehler beim Versenden der E-Mail');
+      }
+
+      if (!response?.success) {
+        throw new Error(response?.error || 'Unbekannter Fehler beim Versenden der E-Mail');
+      }
+
+      toast({
+        title: "Erfolg",
+        description: "E-Mail wurde erfolgreich versendet!",
+      });
+
+      // Reset form
+      form.reset();
+      setSelectedAssignment(null);
+      setSelectedPhoneNumber(null);
+
+    } catch (error: any) {
+      console.error('Error sending assignment email:', error);
+      toast({
+        title: "Fehler",
+        description: error.message || "E-Mail konnte nicht versendet werden.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handlePreview = () => {
@@ -261,9 +308,17 @@ const EmailManager = () => {
               />
 
               <div className="flex gap-3 pt-4">
-                <Button type="submit" disabled className="flex items-center gap-2">
-                  <Mail className="h-4 w-4" />
-                  E-Mail versenden
+                <Button 
+                  type="submit" 
+                  disabled={isLoading}
+                  className="flex items-center gap-2"
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Mail className="h-4 w-4" />
+                  )}
+                  {isLoading ? "Wird versendet..." : "E-Mail versenden"}
                 </Button>
                 <Button 
                   type="button" 

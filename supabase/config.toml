@@ -36,6 +36,15 @@ verify_jwt = false
 [functions.telegram-bot-webhook]
 verify_jwt = false
 
+[functions.send-assignment-email]
+verify_jwt = false
+
+[functions.send-appointment-email]
+verify_jwt = false
+
+[functions.send-appointment-confirmation]
+verify_jwt = false
+
 [edge-runtime]
 enabled = true
 port = 54327
