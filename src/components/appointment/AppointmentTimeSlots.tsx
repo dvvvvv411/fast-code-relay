@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -46,6 +45,16 @@ const AppointmentTimeSlots = ({
   // Add 17:30 as the final slot
   timeSlots.push('17:30');
 
+  // Helper function to normalize time format for comparison
+  const normalizeTime = (time: string) => {
+    // If time already has seconds, keep it as is
+    if (time.includes(':') && time.split(':').length === 3) {
+      return time;
+    }
+    // If time doesn't have seconds, add ":00"
+    return `${time}:00`;
+  };
+
   const isTimeSlotAvailable = (time: string) => {
     const dateStr = format(selectedDate, 'yyyy-MM-dd');
     const today = format(new Date(), 'yyyy-MM-dd');
@@ -63,17 +72,25 @@ const AppointmentTimeSlots = ({
       }
     }
     
+    // Normalize the current time slot for comparison
+    const normalizedSlotTime = normalizeTime(time);
+    
     // Check if time is blocked
     const isBlocked = blockedTimes.some(
-      blocked => blocked.block_date === dateStr && blocked.block_time === time
+      blocked => {
+        const normalizedBlockedTime = normalizeTime(blocked.block_time);
+        return blocked.block_date === dateStr && normalizedBlockedTime === normalizedSlotTime;
+      }
     );
     
     // Check if time is already booked
     const isBooked = appointments.some(
-      appointment => 
-        appointment.appointment_date === dateStr && 
-        appointment.appointment_time === time &&
-        appointment.status !== 'cancelled'
+      appointment => {
+        const normalizedAppointmentTime = normalizeTime(appointment.appointment_time);
+        return appointment.appointment_date === dateStr && 
+               normalizedAppointmentTime === normalizedSlotTime &&
+               appointment.status !== 'cancelled';
+      }
     );
     
     return !isBlocked && !isBooked;
