@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,12 +8,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
-import { CalendarIcon, Plus, Trash2, Clock, Users, Ban } from 'lucide-react';
+import { CalendarIcon, Plus, Trash2, Clock, Users, Ban, Upload } from 'lucide-react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import RecipientImport from './RecipientImport';
 
 interface Recipient {
   id: string;
@@ -73,6 +73,9 @@ const AppointmentManager = () => {
     time: '',
     reason: ''
   });
+
+  // Add state for import panel visibility
+  const [showImportPanel, setShowImportPanel] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -395,50 +398,76 @@ const AppointmentManager = () => {
       {/* Recipients Tab */}
       {activeTab === 'recipients' && (
         <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Plus className="h-5 w-5" />
-                Neuen Empfänger hinzufügen
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="firstName">Vorname</Label>
-                  <Input
-                    id="firstName"
-                    value={newRecipient.firstName}
-                    onChange={(e) => setNewRecipient(prev => ({ ...prev, firstName: e.target.value }))}
-                    placeholder="Vorname eingeben"
-                  />
+          {/* Import/Manual toggle */}
+          <div className="flex space-x-2">
+            <Button
+              variant={!showImportPanel ? "default" : "outline"}
+              onClick={() => setShowImportPanel(false)}
+              className={!showImportPanel ? "bg-orange hover:bg-orange/90" : ""}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Manuell hinzufügen
+            </Button>
+            <Button
+              variant={showImportPanel ? "default" : "outline"}
+              onClick={() => setShowImportPanel(true)}
+              className={showImportPanel ? "bg-orange hover:bg-orange/90" : ""}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              TXT-Import
+            </Button>
+          </div>
+
+          {/* Import Panel */}
+          {showImportPanel ? (
+            <RecipientImport onImportComplete={loadRecipients} />
+          ) : (
+            // Manual Entry Panel
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Plus className="h-5 w-5" />
+                  Neuen Empfänger hinzufügen
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="firstName">Vorname</Label>
+                    <Input
+                      id="firstName"
+                      value={newRecipient.firstName}
+                      onChange={(e) => setNewRecipient(prev => ({ ...prev, firstName: e.target.value }))}
+                      placeholder="Vorname eingeben"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="lastName">Nachname</Label>
+                    <Input
+                      id="lastName"
+                      value={newRecipient.lastName}
+                      onChange={(e) => setNewRecipient(prev => ({ ...prev, lastName: e.target.value }))}
+                      placeholder="Nachname eingeben"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="email">E-Mail</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={newRecipient.email}
+                      onChange={(e) => setNewRecipient(prev => ({ ...prev, email: e.target.value }))}
+                      placeholder="E-Mail eingeben"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="lastName">Nachname</Label>
-                  <Input
-                    id="lastName"
-                    value={newRecipient.lastName}
-                    onChange={(e) => setNewRecipient(prev => ({ ...prev, lastName: e.target.value }))}
-                    placeholder="Nachname eingeben"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="email">E-Mail</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={newRecipient.email}
-                    onChange={(e) => setNewRecipient(prev => ({ ...prev, email: e.target.value }))}
-                    placeholder="E-Mail eingeben"
-                  />
-                </div>
-              </div>
-              <Button onClick={createRecipient} className="bg-orange hover:bg-orange/90">
-                <Plus className="h-4 w-4 mr-2" />
-                Empfänger erstellen
-              </Button>
-            </CardContent>
-          </Card>
+                <Button onClick={createRecipient} className="bg-orange hover:bg-orange/90">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Empfänger erstellen
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader>
