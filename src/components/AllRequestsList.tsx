@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useSMS } from '@/context/SMSContext';
 import { Button } from '@/components/ui/button';
@@ -12,11 +11,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { CheckCircle, Clock, MessageSquare, Timer, RefreshCw } from 'lucide-react';
+import { CheckCircle, Clock, MessageSquare, Timer, RefreshCw, Send } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const AllRequestsList = () => {
-  const { requests, activateRequest, isLoading } = useSMS();
+  const { requests, activateRequest, markSMSSent, requestSMS, completeRequest, isLoading } = useSMS();
   const [processingRequestId, setProcessingRequestId] = useState<string | null>(null);
 
   const requestsArray = Object.values(requests).sort(
@@ -78,6 +77,138 @@ const AllRequestsList = () => {
       });
     } finally {
       setProcessingRequestId(null);
+    }
+  };
+
+  const handleMarkSMSSent = async (requestId: string) => {
+    setProcessingRequestId(requestId);
+    try {
+      const success = await markSMSSent(requestId);
+      if (success) {
+        toast({
+          title: "SMS Code gesendet!",
+          description: "Der Status wurde auf 'SMS gesendet' aktualisiert.",
+        });
+      }
+    } catch (error) {
+      console.error('Error marking SMS as sent:', error);
+      toast({
+        title: "Fehler",
+        description: "Fehler beim Senden des SMS Codes.",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingRequestId(null);
+    }
+  };
+
+  const handleRequestSMS = async (requestId: string) => {
+    setProcessingRequestId(requestId);
+    try {
+      await requestSMS(requestId);
+      toast({
+        title: "Neuer SMS Code angefordert!",
+        description: "Ein neuer SMS Code wurde angefordert.",
+      });
+    } catch (error) {
+      console.error('Error requesting new SMS:', error);
+      toast({
+        title: "Fehler",
+        description: "Fehler beim Anfordern eines neuen SMS Codes.",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingRequestId(null);
+    }
+  };
+
+  const handleCompleteRequest = async (requestId: string) => {
+    setProcessingRequestId(requestId);
+    try {
+      await completeRequest(requestId);
+      toast({
+        title: "Anfrage abgeschlossen!",
+        description: "Die Anfrage wurde erfolgreich abgeschlossen.",
+      });
+    } catch (error) {
+      console.error('Error completing request:', error);
+      toast({
+        title: "Fehler",
+        description: "Fehler beim Abschließen der Anfrage.",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingRequestId(null);
+    }
+  };
+
+  const renderActionButton = (request: any) => {
+    const isProcessing = processingRequestId === request.id;
+    
+    switch (request.status) {
+      case 'pending':
+        return (
+          <Button
+            size="sm"
+            onClick={() => handleActivateRequest(request.id)}
+            disabled={isLoading || isProcessing}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            {isProcessing ? 'Aktiviere...' : 'Aktivieren'}
+          </Button>
+        );
+      
+      case 'activated':
+        return (
+          <Button
+            size="sm"
+            onClick={() => handleMarkSMSSent(request.id)}
+            disabled={isLoading || isProcessing}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            <Send className="h-4 w-4 mr-1" />
+            {isProcessing ? 'Sende...' : 'SMS Code senden'}
+          </Button>
+        );
+      
+      case 'sms_sent':
+      case 'sms_requested':
+        return (
+          <Button
+            size="sm"
+            onClick={() => handleRequestSMS(request.id)}
+            disabled={isLoading || isProcessing}
+            variant="outline"
+            className="border-blue-600 text-blue-600 hover:bg-blue-50"
+          >
+            <RefreshCw className="h-4 w-4 mr-1" />
+            {isProcessing ? 'Fordert an...' : 'Neuen SMS anfordern'}
+          </Button>
+        );
+      
+      case 'waiting_for_additional_sms':
+        return (
+          <Button
+            size="sm"
+            onClick={() => handleCompleteRequest(request.id)}
+            disabled={isLoading || isProcessing}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            <CheckCircle className="h-4 w-4 mr-1" />
+            {isProcessing ? 'Schließt ab...' : 'Abschließen'}
+          </Button>
+        );
+      
+      case 'completed':
+        return (
+          <Badge variant="default" className="bg-green-600">
+            <CheckCircle className="h-3 w-3 mr-1" />
+            Abgeschlossen
+          </Badge>
+        );
+      
+      default:
+        return null;
     }
   };
 
@@ -163,16 +294,7 @@ const AllRequestsList = () => {
                   {formatDate(request.updated_at)}
                 </TableCell>
                 <TableCell>
-                  {request.status === 'pending' && (
-                    <Button
-                      size="sm"
-                      onClick={() => handleActivateRequest(request.id)}
-                      disabled={isLoading || processingRequestId === request.id}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      {processingRequestId === request.id ? 'Aktiviere...' : 'Aktivieren'}
-                    </Button>
-                  )}
+                  {renderActionButton(request)}
                 </TableCell>
               </TableRow>
             ))}
