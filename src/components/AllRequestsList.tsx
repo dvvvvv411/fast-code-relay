@@ -34,7 +34,7 @@ const AllRequestsList = () => {
       case 'sms_sent':
         return <Timer className="h-4 w-4 text-blue-500" />;
       case 'sms_requested':
-        return <RefreshCw className="h-4 w-4 text-blue-500" />;
+        return <Timer className="h-4 w-4 text-blue-500" />;
       case 'waiting_for_additional_sms':
         return <Timer className="h-4 w-4 text-blue-500" />;
       case 'completed':
@@ -53,7 +53,7 @@ const AllRequestsList = () => {
       case 'sms_sent':
         return <Badge variant="default" className="bg-blue-500">SMS benötigt</Badge>;
       case 'sms_requested':
-        return <Badge variant="default" className="bg-blue-500">SMS angefordert</Badge>;
+        return <Badge variant="default" className="bg-blue-500">SMS benötigt</Badge>;
       case 'waiting_for_additional_sms':
         return <Badge variant="default" className="bg-blue-500">Weitere SMS</Badge>;
       case 'completed':
@@ -181,6 +181,7 @@ const AllRequestsList = () => {
         );
       
       case 'sms_sent':
+      case 'sms_requested':
         return (
           <Button
             size="sm"
@@ -190,20 +191,6 @@ const AllRequestsList = () => {
           >
             <Send className="h-4 w-4 mr-1" />
             {isProcessing ? 'Code eingeben...' : 'SMS Code eingeben'}
-          </Button>
-        );
-      
-      case 'sms_requested':
-        return (
-          <Button
-            size="sm"
-            onClick={() => handleRequestSMS(request.id)}
-            disabled={isLoading || isProcessing}
-            variant="outline"
-            className="border-blue-600 text-blue-600 hover:bg-blue-50"
-          >
-            <RefreshCw className="h-4 w-4 mr-1" />
-            {isProcessing ? 'Fordert an...' : 'Neuen SMS anfordern'}
           </Button>
         );
       
