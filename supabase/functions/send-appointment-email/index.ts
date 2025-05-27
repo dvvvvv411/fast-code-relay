@@ -157,9 +157,9 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email using Resend
     const emailResponse = await resend.emails.send({
-      from: "Expandere <noreply@expandere-agentur.com>",
+      from: "Expandere <noreply@email.expandere-agentur.com>",
       to: [recipient.email],
-      subject: "Herzlichen Glückwunsch - Terminbuchung für Ihr Bewerbungsgespräch",
+      subject: "Herzlichen Glückwunsch - Terminbuchung für Ihr Bewerbungsgespräch bei Expandere",
       html: htmlContent,
     });
 
