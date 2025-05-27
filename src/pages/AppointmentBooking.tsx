@@ -134,16 +134,50 @@ const AppointmentBooking = () => {
 
     setIsBooking(true);
     try {
-      const { error } = await supabase
+      const { data: appointmentData, error } = await supabase
         .from('appointments')
         .insert({
           recipient_id: recipient.id,
           appointment_date: format(selectedDate, 'yyyy-MM-dd'),
           appointment_time: selectedTime,
           status: 'confirmed'
-        });
+        })
+        .select()
+        .single();
 
       if (error) throw error;
+
+      // Send confirmation email
+      try {
+        const { data: emailData, error: emailError } = await supabase.functions.invoke('send-appointment-confirmation', {
+          body: {
+            appointmentId: appointmentData.id
+          }
+        });
+
+        if (emailError) {
+          console.error('Error sending confirmation email:', emailError);
+          // Don't fail the booking if email fails, just show a warning
+          toast({
+            title: "Termin gebucht",
+            description: "Ihr Termin wurde erfolgreich gebucht, aber die Bestätigungs-E-Mail konnte nicht versendet werden.",
+            variant: "default",
+          });
+        } else {
+          console.log('Confirmation email sent:', emailData);
+          toast({
+            title: "Termin erfolgreich gebucht",
+            description: "Eine Bestätigungs-E-Mail wurde an Sie gesendet.",
+          });
+        }
+      } catch (emailError) {
+        console.error('Error sending confirmation email:', emailError);
+        toast({
+          title: "Termin gebucht",
+          description: "Ihr Termin wurde erfolgreich gebucht, aber die Bestätigungs-E-Mail konnte nicht versendet werden.",
+          variant: "default",
+        });
+      }
 
       setCurrentStep('success');
       
