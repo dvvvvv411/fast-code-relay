@@ -11,9 +11,12 @@ import { cn } from '@/lib/utils';
 
 interface Appointment {
   id: string;
+  recipient_id: string;
   appointment_date: string;
   appointment_time: string;
   status: string;
+  created_at: string;
+  confirmed_at: string | null;
   recipient?: {
     first_name: string;
     last_name: string;
