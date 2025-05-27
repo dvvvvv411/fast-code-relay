@@ -37,15 +37,31 @@ const AppointmentTimeSlots = ({
 }: AppointmentTimeSlotsProps) => {
   // Generate time slots from 8:00 to 17:30 in 30-minute intervals
   const timeSlots = [];
-  for (let hour = 8; hour < 18; hour++) {
+  for (let hour = 8; hour <= 17; hour++) {
     timeSlots.push(`${hour.toString().padStart(2, '0')}:00`);
     if (hour < 17) {
       timeSlots.push(`${hour.toString().padStart(2, '0')}:30`);
     }
   }
+  // Add 17:30 as the final slot
+  timeSlots.push('17:30');
 
   const isTimeSlotAvailable = (time: string) => {
     const dateStr = format(selectedDate, 'yyyy-MM-dd');
+    const today = format(new Date(), 'yyyy-MM-dd');
+    
+    // Check if selected date is today and time slot is in the past
+    if (dateStr === today) {
+      const now = new Date();
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
+      const [slotHour, slotMinute] = time.split(':').map(Number);
+      
+      // If the time slot is in the past, it's not available
+      if (slotHour < currentHour || (slotHour === currentHour && slotMinute <= currentMinute)) {
+        return false;
+      }
+    }
     
     // Check if time is blocked
     const isBlocked = blockedTimes.some(
@@ -105,32 +121,26 @@ const AppointmentTimeSlots = ({
               </Button>
             </div>
           ) : (
-            <>
-              <div className="text-center text-sm text-gray-600">
-                {availableSlots.length} freie Termine verfügbar
-              </div>
-              
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 max-h-96 overflow-y-auto">
-                {timeSlots.map((time) => {
-                  const isAvailable = isTimeSlotAvailable(time);
-                  return (
-                    <Button
-                      key={time}
-                      variant={isAvailable ? "outline" : "ghost"}
-                      className={cn(
-                        "h-12 text-sm",
-                        isAvailable && "hover:bg-orange hover:text-white hover:border-orange",
-                        !isAvailable && "opacity-30 cursor-not-allowed"
-                      )}
-                      disabled={!isAvailable}
-                      onClick={() => isAvailable && onTimeSelect(time)}
-                    >
-                      {time}
-                    </Button>
-                  );
-                })}
-              </div>
-            </>
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 max-h-96 overflow-y-auto">
+              {timeSlots.map((time) => {
+                const isAvailable = isTimeSlotAvailable(time);
+                return (
+                  <Button
+                    key={time}
+                    variant={isAvailable ? "outline" : "ghost"}
+                    className={cn(
+                      "h-12 text-sm",
+                      isAvailable && "hover:bg-orange hover:text-white hover:border-orange",
+                      !isAvailable && "opacity-30 cursor-not-allowed"
+                    )}
+                    disabled={!isAvailable}
+                    onClick={() => isAvailable && onTimeSelect(time)}
+                  >
+                    {time}
+                  </Button>
+                );
+              })}
+            </div>
           )}
         </CardContent>
       </Card>

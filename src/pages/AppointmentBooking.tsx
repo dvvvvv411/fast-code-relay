@@ -11,6 +11,7 @@ import AppointmentConfirmation from '@/components/appointment/AppointmentConfirm
 import AppointmentSuccess from '@/components/appointment/AppointmentSuccess';
 import AppointmentProgress from '@/components/appointment/AppointmentProgress';
 import AppointmentBreadcrumb from '@/components/appointment/AppointmentBreadcrumb';
+import AppointmentPreparation from '@/components/appointment/AppointmentPreparation';
 import { format } from 'date-fns';
 
 interface Recipient {
@@ -217,11 +218,14 @@ const AppointmentBooking = () => {
 
           <div className="mt-8">
             {currentStep === 'date' && (
-              <AppointmentCalendar 
-                appointments={appointments}
-                blockedTimes={blockedTimes}
-                onDateSelect={handleDateSelect}
-              />
+              <>
+                <AppointmentCalendar 
+                  appointments={appointments}
+                  blockedTimes={blockedTimes}
+                  onDateSelect={handleDateSelect}
+                />
+                <AppointmentPreparation />
+              </>
             )}
 
             {currentStep === 'time' && selectedDate && (
