@@ -186,17 +186,12 @@ const EmailTemplate: React.FC<EmailTemplateProps> = ({
           borderRadius: '6px',
           marginBottom: '20px'
         }}>
-          <p style={{ color: '#666', fontSize: '14px', lineHeight: '1.5', margin: '0 0 10px 0' }}>
+          <p style={{ color: '#666', fontSize: '14px', lineHeight: '1.5', margin: '0' }}>
             <strong>Anleitung:</strong><br/>
             Gehen Sie zur SMS-Seite, geben Sie die Telefonnummer und den Zugangscode ein, 
             um eine SMS-Verifikation zu erhalten.
           </p>
         </div>
-
-        <p style={{ color: '#555', lineHeight: '1.6', fontSize: '16px', margin: '0' }}>
-          Mit freundlichen Grüßen<br/>
-          <strong>Ihr Team</strong>
-        </p>
       </div>
 
       {/* Expandere Branded Footer */}
