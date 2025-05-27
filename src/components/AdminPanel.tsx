@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import PhoneNumberManager from './PhoneNumberManager';
 import AuftraegeManager from './AuftraegeManager';
-import RequestStatus from './RequestStatus';
+import AllRequestsList from './AllRequestsList';
 import SupportTickets from './SupportTickets';
 import EmailManager from './EmailManager';
 import AppointmentManager from './AppointmentManager';
@@ -24,7 +24,7 @@ const AdminPanel = () => {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'requests':
-        return <RequestStatus />;
+        return <AllRequestsList />;
       case 'phones':
         return <PhoneNumberManager />;
       case 'auftraege':
@@ -38,7 +38,7 @@ const AdminPanel = () => {
       case 'feedback':
         return <FeedbackManager />;
       default:
-        return <RequestStatus />;
+        return <AllRequestsList />;
     }
   };
 
