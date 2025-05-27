@@ -8,6 +8,16 @@ import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
+interface Recipient {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  unique_token: string;
+  email_sent: boolean;
+  created_at: string;
+}
+
 interface Appointment {
   id: string;
   recipient_id: string;
@@ -16,11 +26,7 @@ interface Appointment {
   status: string;
   created_at: string;
   confirmed_at: string | null;
-  recipient?: {
-    first_name: string;
-    last_name: string;
-    email: string;
-  };
+  recipient?: Recipient;
 }
 
 interface AppointmentDetailViewProps {
