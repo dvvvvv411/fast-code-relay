@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useSMS } from '@/context/SMSContext';
 import { Button } from '@/components/ui/button';
@@ -33,7 +32,7 @@ const AllRequestsList = () => {
       case 'activated':
         return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'sms_sent':
-        return <MessageSquare className="h-4 w-4 text-blue-500" />;
+        return <Timer className="h-4 w-4 text-blue-500" />;
       case 'sms_requested':
         return <RefreshCw className="h-4 w-4 text-blue-500" />;
       case 'waiting_for_additional_sms':
@@ -52,9 +51,9 @@ const AllRequestsList = () => {
       case 'activated':
         return <Badge variant="default" className="bg-green-500">Aktiviert</Badge>;
       case 'sms_sent':
-        return <Badge variant="default" className="bg-blue-500">SMS Gesendet</Badge>;
+        return <Badge variant="default" className="bg-blue-500">SMS benötigt</Badge>;
       case 'sms_requested':
-        return <Badge variant="default" className="bg-blue-500">SMS Angefordert</Badge>;
+        return <Badge variant="default" className="bg-blue-500">SMS angefordert</Badge>;
       case 'waiting_for_additional_sms':
         return <Badge variant="default" className="bg-blue-500">Weitere SMS</Badge>;
       case 'completed':
@@ -84,7 +83,7 @@ const AllRequestsList = () => {
     }
   };
 
-  const handleMarkSMSSent = async (request: any) => {
+  const handleOpenSMSDialog = async (request: any) => {
     setSelectedRequestForSMS(request);
     setSmsDialogOpen(true);
   };
@@ -172,7 +171,7 @@ const AllRequestsList = () => {
         return (
           <Button
             size="sm"
-            onClick={() => handleMarkSMSSent(request)}
+            onClick={() => handleOpenSMSDialog(request)}
             disabled={isLoading || isProcessing}
             className="bg-blue-600 hover:bg-blue-700"
           >
@@ -182,6 +181,18 @@ const AllRequestsList = () => {
         );
       
       case 'sms_sent':
+        return (
+          <Button
+            size="sm"
+            onClick={() => handleOpenSMSDialog(request)}
+            disabled={isLoading || isProcessing}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            <Send className="h-4 w-4 mr-1" />
+            {isProcessing ? 'Code eingeben...' : 'SMS Code eingeben'}
+          </Button>
+        );
+      
       case 'sms_requested':
         return (
           <Button
