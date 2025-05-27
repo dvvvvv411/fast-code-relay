@@ -28,29 +28,25 @@ const AppointmentEmailTemplate: React.FC<AppointmentEmailTemplateProps> = ({
     <div style={{ fontFamily: 'Arial, sans-serif', maxWidth: '600px', margin: '0 auto', backgroundColor: '#ffffff' }}>
       {/* Header with Logo */}
       <div style={{ 
-        backgroundColor: '#1a1a1a', 
+        backgroundColor: '#ff6b35', 
         padding: '30px 20px', 
         textAlign: 'center',
         borderRadius: '8px 8px 0 0'
       }}>
         <div style={{ 
-          width: '120px', 
+          width: '80px', 
           height: '80px', 
+          backgroundColor: 'white', 
+          borderRadius: '50%', 
           margin: '0 auto 20px auto',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center'
+          justifyContent: 'center',
+          fontSize: '24px',
+          fontWeight: 'bold',
+          color: '#ff6b35'
         }}>
-          <img 
-            src="https://ulbgpsjexsgcpivphrxq.supabase.co/storage/v1/object/public/branding/logo_dark_1741580695335.png"
-            alt="Company Logo"
-            style={{
-              maxWidth: '120px',
-              maxHeight: '80px',
-              width: 'auto',
-              height: 'auto'
-            }}
-          />
+          LOGO
         </div>
         <h1 style={{ color: 'white', margin: '0', fontSize: '28px', fontWeight: 'bold' }}>
           Herzlichen Glückwunsch!
@@ -82,7 +78,7 @@ const AppointmentEmailTemplate: React.FC<AppointmentEmailTemplateProps> = ({
           <a 
             href={bookingUrl}
             style={{
-              backgroundColor: '#2563eb',
+              backgroundColor: '#ff6b35',
               color: 'white',
               padding: '18px 40px',
               textDecoration: 'none',
@@ -90,7 +86,7 @@ const AppointmentEmailTemplate: React.FC<AppointmentEmailTemplateProps> = ({
               display: 'inline-block',
               fontWeight: 'bold',
               fontSize: '16px',
-              boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)',
+              boxShadow: '0 4px 12px rgba(255, 107, 53, 0.3)',
               transition: 'all 0.3s ease'
             }}
           >
@@ -103,7 +99,7 @@ const AppointmentEmailTemplate: React.FC<AppointmentEmailTemplateProps> = ({
           backgroundColor: '#f8f9fa', 
           padding: '25px', 
           borderRadius: '8px', 
-          borderLeft: '4px solid #2563eb',
+          borderLeft: '4px solid #ff6b35',
           marginBottom: '30px'
         }}>
           <h3 style={{ color: '#333', margin: '0 0 15px 0', fontSize: '18px' }}>
@@ -129,7 +125,7 @@ const AppointmentEmailTemplate: React.FC<AppointmentEmailTemplateProps> = ({
           </p>
           <p style={{ margin: '0' }}>
             <a href={bookingUrl} style={{ 
-              color: '#2563eb', 
+              color: '#ff6b35', 
               wordBreak: 'break-all', 
               fontSize: '14px',
               textDecoration: 'none'
@@ -161,7 +157,7 @@ const AppointmentEmailTemplate: React.FC<AppointmentEmailTemplateProps> = ({
           Diese E-Mail wurde automatisch generiert. Bitte antworten Sie nicht auf diese E-Mail.
         </p>
         <p style={{ color: '#6c757d', fontSize: '12px', margin: '0' }}>
-          Bei Fragen wenden Sie sich bitte an: <a href="mailto:recruiting@unternehmen.de" style={{ color: '#2563eb' }}>recruiting@unternehmen.de</a>
+          Bei Fragen wenden Sie sich bitte an: <a href="mailto:recruiting@unternehmen.de" style={{ color: '#ff6b35' }}>recruiting@unternehmen.de</a>
         </p>
       </div>
     </div>
