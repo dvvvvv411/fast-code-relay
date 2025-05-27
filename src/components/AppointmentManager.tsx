@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
-import { CalendarIcon, Plus, Trash2, Clock, Users, Ban, Upload, List, Grid3X3 } from 'lucide-react';
+import { CalendarIcon, Plus, Trash2, Clock, Users, Ban, Upload, List, Grid3X3, Mail } from 'lucide-react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,6 +18,7 @@ import RecipientImport from './RecipientImport';
 import AppointmentCalendarView from './appointment/AppointmentCalendarView';
 import AppointmentListView from './appointment/AppointmentListView';
 import AppointmentDetailView from './appointment/AppointmentDetailView';
+import AppointmentEmailPreviewDialog from './appointment/AppointmentEmailPreviewDialog';
 
 interface Recipient {
   id: string;
@@ -56,6 +57,8 @@ const AppointmentManager = () => {
   const [overviewMode, setOverviewMode] = useState<'calendar' | 'list'>('list');
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [emailPreviewOpen, setEmailPreviewOpen] = useState(false);
+  const [selectedRecipientForPreview, setSelectedRecipientForPreview] = useState<Recipient | null>(null);
   const { toast } = useToast();
 
   // New recipient form
@@ -355,6 +358,15 @@ const AppointmentManager = () => {
     }
   };
 
+  const handleAppointmentSelect = (appointment: Appointment) => {
+    setSelectedAppointment(appointment);
+  };
+
+  const handleEmailPreview = (recipient: Recipient) => {
+    setSelectedRecipientForPreview(recipient);
+    setEmailPreviewOpen(true);
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'confirmed':
@@ -478,12 +490,12 @@ const AppointmentManager = () => {
           {overviewMode === 'calendar' ? (
             <AppointmentCalendarView
               appointments={appointments}
-              onAppointmentSelect={setSelectedAppointment}
+              onAppointmentSelect={handleAppointmentSelect}
             />
           ) : (
             <AppointmentListView
               appointments={appointments}
-              onAppointmentSelect={setSelectedAppointment}
+              onAppointmentSelect={handleAppointmentSelect}
             />
           )}
         </div>
@@ -583,6 +595,15 @@ const AppointmentManager = () => {
                         <Badge variant={recipient.email_sent ? "default" : "secondary"}>
                           {recipient.email_sent ? "E-Mail gesendet" : "E-Mail ausstehend"}
                         </Badge>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEmailPreview(recipient)}
+                          className="flex items-center gap-2"
+                        >
+                          <Mail className="h-4 w-4" />
+                          E-Mail Vorschau
+                        </Button>
                         <Button
                           variant="destructive"
                           size="sm"
@@ -830,6 +851,13 @@ const AppointmentManager = () => {
           </Card>
         </div>
       )}
+
+      {/* Email Preview Dialog */}
+      <AppointmentEmailPreviewDialog
+        isOpen={emailPreviewOpen}
+        onClose={() => setEmailPreviewOpen(false)}
+        recipient={selectedRecipientForPreview}
+      />
     </div>
   );
 };
