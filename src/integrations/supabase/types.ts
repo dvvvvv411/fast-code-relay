@@ -9,6 +9,74 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      appointment_recipients: {
+        Row: {
+          created_at: string
+          email: string
+          email_sent: boolean
+          first_name: string
+          id: string
+          last_name: string
+          unique_token: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          email_sent?: boolean
+          first_name: string
+          id?: string
+          last_name: string
+          unique_token: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          email_sent?: boolean
+          first_name?: string
+          id?: string
+          last_name?: string
+          unique_token?: string
+        }
+        Relationships: []
+      }
+      appointments: {
+        Row: {
+          appointment_date: string
+          appointment_time: string
+          confirmed_at: string | null
+          created_at: string
+          id: string
+          recipient_id: string
+          status: string
+        }
+        Insert: {
+          appointment_date: string
+          appointment_time: string
+          confirmed_at?: string | null
+          created_at?: string
+          id?: string
+          recipient_id: string
+          status?: string
+        }
+        Update: {
+          appointment_date?: string
+          appointment_time?: string
+          confirmed_at?: string | null
+          created_at?: string
+          id?: string
+          recipient_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "appointment_recipients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       auftraege: {
         Row: {
           anbieter: string
@@ -112,6 +180,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      blocked_times: {
+        Row: {
+          block_date: string
+          block_time: string
+          created_at: string
+          id: string
+          reason: string | null
+        }
+        Insert: {
+          block_date: string
+          block_time: string
+          created_at?: string
+          id?: string
+          reason?: string | null
+        }
+        Update: {
+          block_date?: string
+          block_time?: string
+          created_at?: string
+          id?: string
+          reason?: string | null
+        }
+        Relationships: []
       }
       evaluation_questions: {
         Row: {
