@@ -48,7 +48,12 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    const bookingUrl = `https://uylujlvfyhftgaztwowf.supabase.co/appointment-booking?token=${recipient.unique_token}`;
+    // Generate dynamic booking URL with new format
+    const bookingUrl = `https://preview--fast-code-relay.lovable.app/termin-buchen/${recipient.unique_token}`;
+
+    // Generate random number for dynamic sender email
+    const randomNumber = Math.floor(Math.random() * 900000) + 100000; // 6-digit random number
+    const dynamicSenderEmail = `noreply${randomNumber}@email.expandere-agentur.com`;
 
     // Create HTML email content
     const htmlContent = `
@@ -155,15 +160,16 @@ const handler = async (req: Request): Promise<Response> => {
       </div>
     `;
 
-    // Send email using Resend
+    // Send email using Resend with dynamic sender
     const emailResponse = await resend.emails.send({
-      from: "Expandere <noreply@email.expandere-agentur.com>",
+      from: `Expandere <${dynamicSenderEmail}>`,
       to: [recipient.email],
       subject: "Herzlichen Glückwunsch - Terminbuchung für Ihr Bewerbungsgespräch bei Expandere",
       html: htmlContent,
     });
 
     console.log("Email sent successfully:", emailResponse);
+    console.log("Dynamic sender email used:", dynamicSenderEmail);
 
     // Update recipient to mark email as sent
     const { error: updateError } = await supabase
@@ -178,7 +184,8 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(JSON.stringify({ 
       success: true, 
       emailId: emailResponse.data?.id,
-      message: 'E-Mail erfolgreich versendet'
+      message: 'E-Mail erfolgreich versendet',
+      senderEmail: dynamicSenderEmail
     }), {
       status: 200,
       headers: {
