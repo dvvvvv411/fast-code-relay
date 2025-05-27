@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useSMS } from '@/context/SMSContext';
 import { Button } from '@/components/ui/button';
@@ -13,10 +14,13 @@ import {
 } from '@/components/ui/table';
 import { CheckCircle, Clock, MessageSquare, Timer, RefreshCw, Send } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import SMSCodeDialog from './SMSCodeDialog';
 
 const AllRequestsList = () => {
-  const { requests, activateRequest, markSMSSent, requestSMS, completeRequest, isLoading } = useSMS();
+  const { requests, activateRequest, markSMSSent, requestSMS, completeRequest, submitSMSCode, isLoading } = useSMS();
   const [processingRequestId, setProcessingRequestId] = useState<string | null>(null);
+  const [smsDialogOpen, setSmsDialogOpen] = useState(false);
+  const [selectedRequestForSMS, setSelectedRequestForSMS] = useState<any>(null);
 
   const requestsArray = Object.values(requests).sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -80,18 +84,23 @@ const AllRequestsList = () => {
     }
   };
 
-  const handleMarkSMSSent = async (requestId: string) => {
-    setProcessingRequestId(requestId);
+  const handleMarkSMSSent = async (request: any) => {
+    setSelectedRequestForSMS(request);
+    setSmsDialogOpen(true);
+  };
+
+  const handleSMSCodeSubmit = async (smsCode: string) => {
+    if (!selectedRequestForSMS) return;
+    
+    setProcessingRequestId(selectedRequestForSMS.id);
     try {
-      const success = await markSMSSent(requestId);
-      if (success) {
-        toast({
-          title: "SMS Code gesendet!",
-          description: "Der Status wurde auf 'SMS gesendet' aktualisiert.",
-        });
-      }
+      await submitSMSCode(selectedRequestForSMS.id, smsCode);
+      toast({
+        title: "SMS Code gesendet!",
+        description: `Der SMS Code ${smsCode} wurde erfolgreich übermittelt.`,
+      });
     } catch (error) {
-      console.error('Error marking SMS as sent:', error);
+      console.error('Error submitting SMS code:', error);
       toast({
         title: "Fehler",
         description: "Fehler beim Senden des SMS Codes.",
@@ -99,6 +108,7 @@ const AllRequestsList = () => {
       });
     } finally {
       setProcessingRequestId(null);
+      setSelectedRequestForSMS(null);
     }
   };
 
@@ -162,7 +172,7 @@ const AllRequestsList = () => {
         return (
           <Button
             size="sm"
-            onClick={() => handleMarkSMSSent(request.id)}
+            onClick={() => handleMarkSMSSent(request)}
             disabled={isLoading || isProcessing}
             className="bg-blue-600 hover:bg-blue-700"
           >
@@ -239,69 +249,79 @@ const AllRequestsList = () => {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <MessageSquare className="h-5 w-5" />
-          Alle Anfragen ({requestsArray.length})
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>ID</TableHead>
-              <TableHead>Telefonnummer</TableHead>
-              <TableHead>Zugangscode</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>SMS Code</TableHead>
-              <TableHead>Erstellt</TableHead>
-              <TableHead>Aktualisiert</TableHead>
-              <TableHead>Aktionen</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {requestsArray.map((request) => (
-              <TableRow key={request.id}>
-                <TableCell className="font-mono text-sm">
-                  {request.short_id || request.id.slice(0, 8)}
-                </TableCell>
-                <TableCell className="font-medium">
-                  {request.phone || 'N/A'}
-                </TableCell>
-                <TableCell className="font-mono">
-                  {request.accessCode || 'N/A'}
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    {getStatusIcon(request.status)}
-                    {getStatusBadge(request.status)}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  {request.smsCode ? (
-                    <span className="font-mono font-bold text-green-600 bg-green-50 px-2 py-1 rounded">
-                      {request.smsCode}
-                    </span>
-                  ) : (
-                    <span className="text-gray-400">-</span>
-                  )}
-                </TableCell>
-                <TableCell className="text-sm text-gray-500">
-                  {formatDate(request.created_at)}
-                </TableCell>
-                <TableCell className="text-sm text-gray-500">
-                  {formatDate(request.updated_at)}
-                </TableCell>
-                <TableCell>
-                  {renderActionButton(request)}
-                </TableCell>
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5" />
+            Alle Anfragen ({requestsArray.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>ID</TableHead>
+                <TableHead>Telefonnummer</TableHead>
+                <TableHead>Zugangscode</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>SMS Code</TableHead>
+                <TableHead>Erstellt</TableHead>
+                <TableHead>Aktualisiert</TableHead>
+                <TableHead>Aktionen</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+            </TableHeader>
+            <TableBody>
+              {requestsArray.map((request) => (
+                <TableRow key={request.id}>
+                  <TableCell className="font-mono text-sm">
+                    {request.short_id || request.id.slice(0, 8)}
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    {request.phone || 'N/A'}
+                  </TableCell>
+                  <TableCell className="font-mono">
+                    {request.accessCode || 'N/A'}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      {getStatusIcon(request.status)}
+                      {getStatusBadge(request.status)}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {request.smsCode ? (
+                      <span className="font-mono font-bold text-green-600 bg-green-50 px-2 py-1 rounded">
+                        {request.smsCode}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-sm text-gray-500">
+                    {formatDate(request.created_at)}
+                  </TableCell>
+                  <TableCell className="text-sm text-gray-500">
+                    {formatDate(request.updated_at)}
+                  </TableCell>
+                  <TableCell>
+                    {renderActionButton(request)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <SMSCodeDialog
+        open={smsDialogOpen}
+        onOpenChange={setSmsDialogOpen}
+        onSubmit={handleSMSCodeSubmit}
+        isLoading={isLoading && processingRequestId === selectedRequestForSMS?.id}
+        phone={selectedRequestForSMS?.phone}
+      />
+    </>
   );
 };
 
