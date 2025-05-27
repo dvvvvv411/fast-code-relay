@@ -132,61 +132,64 @@ const AppointmentEmailTemplate: React.FC<AppointmentEmailTemplateProps> = ({
 
       {/* Expandere Branded Footer */}
       <div style={{ 
-        backgroundColor: '#2c3e50', 
+        backgroundColor: '#ff6b35', 
         padding: '30px 20px', 
         textAlign: 'center', 
         borderRadius: '0 0 8px 8px'
       }}>
         <div style={{ marginBottom: '20px' }}>
           <h3 style={{ 
-            color: '#ecf0f1', 
+            color: '#ffffff', 
             margin: '0 0 10px 0', 
             fontSize: '20px', 
             fontWeight: 'bold' 
           }}>
             Expandere
           </h3>
-          <p style={{ color: '#bdc3c7', fontSize: '14px', margin: '0' }}>
+          <p style={{ color: '#ffffff', fontSize: '14px', margin: '0', opacity: '0.9' }}>
             Ihr Partner für innovative Lösungen
           </p>
         </div>
         
         <div style={{ marginBottom: '20px' }}>
           <a 
-            href="https://expandere.com" 
+            href="https://expandere-agentur.com" 
             style={{ 
-              color: '#3498db', 
+              color: '#ffffff', 
               textDecoration: 'none', 
               fontSize: '14px',
-              marginRight: '20px'
+              marginRight: '20px',
+              opacity: '0.9'
             }}
           >
-            www.expandere.com
+            expandere-agentur.com
           </a>
           <a 
-            href="https://expandere.com/impressum" 
+            href="https://expandere-agentur.com/impressum" 
             style={{ 
-              color: '#3498db', 
+              color: '#ffffff', 
               textDecoration: 'none', 
               fontSize: '14px',
-              marginRight: '20px'
+              marginRight: '20px',
+              opacity: '0.9'
             }}
           >
             Impressum
           </a>
           <a 
-            href="https://expandere.com/datenschutz" 
+            href="https://expandere-agentur.com/datenschutz" 
             style={{ 
-              color: '#3498db', 
+              color: '#ffffff', 
               textDecoration: 'none', 
-              fontSize: '14px'
+              fontSize: '14px',
+              opacity: '0.9'
             }}
           >
             Datenschutz
           </a>
         </div>
         
-        <p style={{ color: '#95a5a6', fontSize: '12px', margin: '0' }}>
+        <p style={{ color: '#ffffff', fontSize: '12px', margin: '0', opacity: '0.8' }}>
           Diese E-Mail wurde automatisch generiert. Bitte antworten Sie nicht auf diese E-Mail.
         </p>
       </div>
