@@ -8,13 +8,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
-import { CalendarIcon, Plus, Trash2, Clock, Users, Ban, Upload } from 'lucide-react';
+import { CalendarIcon, Plus, Trash2, Clock, Users, Ban, Upload, List, Grid3X3 } from 'lucide-react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import RecipientImport from './RecipientImport';
+import AppointmentCalendarView from './appointment/AppointmentCalendarView';
+import AppointmentListView from './appointment/AppointmentListView';
+import AppointmentDetailView from './appointment/AppointmentDetailView';
 
 interface Recipient {
   id: string;
@@ -49,7 +52,9 @@ const AppointmentManager = () => {
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [blockedTimes, setBlockedTimes] = useState<BlockedTime[]>([]);
-  const [activeTab, setActiveTab] = useState<'recipients' | 'appointments' | 'blocked'>('recipients');
+  const [activeTab, setActiveTab] = useState<'overview' | 'recipients' | 'appointments' | 'blocked'>('overview');
+  const [overviewMode, setOverviewMode] = useState<'calendar' | 'list'>('list');
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
@@ -325,6 +330,31 @@ const AppointmentManager = () => {
     }
   };
 
+  const handleAppointmentStatusChange = async (appointmentId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .update({ status: newStatus })
+        .eq('id', appointmentId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Erfolg",
+        description: "Terminstatus wurde aktualisiert.",
+      });
+
+      loadAppointments();
+      setSelectedAppointment(null);
+    } catch (error: any) {
+      toast({
+        title: "Fehler",
+        description: error.message || "Status konnte nicht aktualisiert werden.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'confirmed':
@@ -353,10 +383,33 @@ const AppointmentManager = () => {
     );
   }
 
+  // If viewing appointment details
+  if (selectedAppointment) {
+    return (
+      <AppointmentDetailView
+        appointment={selectedAppointment}
+        onBack={() => setSelectedAppointment(null)}
+        onStatusChange={handleAppointmentStatusChange}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Tab Navigation */}
       <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+        <button
+          onClick={() => setActiveTab('overview')}
+          className={cn(
+            "flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md transition-colors",
+            activeTab === 'overview' 
+              ? "bg-white text-orange shadow-sm" 
+              : "text-gray-600 hover:text-gray-900"
+          )}
+        >
+          <Grid3X3 className="h-4 w-4" />
+          Übersicht ({appointments.length})
+        </button>
         <button
           onClick={() => setActiveTab('recipients')}
           className={cn(
@@ -394,6 +447,47 @@ const AppointmentManager = () => {
           Gesperrt ({blockedTimes.length})
         </button>
       </div>
+
+      {/* Overview Tab */}
+      {activeTab === 'overview' && (
+        <div className="space-y-6">
+          {/* View Mode Toggle */}
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold">Terminübersicht</h2>
+            <div className="flex space-x-2">
+              <Button
+                variant={overviewMode === 'list' ? "default" : "outline"}
+                onClick={() => setOverviewMode('list')}
+                className={overviewMode === 'list' ? "bg-orange hover:bg-orange/90" : ""}
+              >
+                <List className="h-4 w-4 mr-2" />
+                Liste
+              </Button>
+              <Button
+                variant={overviewMode === 'calendar' ? "default" : "outline"}
+                onClick={() => setOverviewMode('calendar')}
+                className={overviewMode === 'calendar' ? "bg-orange hover:bg-orange/90" : ""}
+              >
+                <CalendarIcon className="h-4 w-4 mr-2" />
+                Kalender
+              </Button>
+            </div>
+          </div>
+
+          {/* Overview Content */}
+          {overviewMode === 'calendar' ? (
+            <AppointmentCalendarView
+              appointments={appointments}
+              onAppointmentSelect={setSelectedAppointment}
+            />
+          ) : (
+            <AppointmentListView
+              appointments={appointments}
+              onAppointmentSelect={setSelectedAppointment}
+            />
+          )}
+        </div>
+      )}
 
       {/* Recipients Tab */}
       {activeTab === 'recipients' && (
