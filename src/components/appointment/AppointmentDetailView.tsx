@@ -1,32 +1,27 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Calendar, Clock, User, Mail, Check, X, AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ArrowLeft, Calendar, Clock, User, Mail, Edit3, Save, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-
-interface Recipient {
-  id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  unique_token: string;
-  email_sent: boolean;
-  created_at: string;
-}
+import { useState } from 'react';
+import AppointmentStatusHistory from './AppointmentStatusHistory';
 
 interface Appointment {
   id: string;
-  recipient_id: string;
   appointment_date: string;
   appointment_time: string;
   status: string;
   created_at: string;
   confirmed_at: string | null;
-  recipient?: Recipient;
+  recipient?: {
+    first_name: string;
+    last_name: string;
+    email: string;
+  };
 }
 
 interface AppointmentDetailViewProps {
@@ -36,12 +31,21 @@ interface AppointmentDetailViewProps {
 }
 
 const AppointmentDetailView = ({ appointment, onBack, onStatusChange }: AppointmentDetailViewProps) => {
+  const [isEditingStatus, setIsEditingStatus] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState(appointment.status);
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'confirmed':
         return 'bg-green-500';
       case 'cancelled':
         return 'bg-red-500';
+      case 'interessiert':
+        return 'bg-blue-500';
+      case 'abgelehnt':
+        return 'bg-red-400';
+      case 'mailbox':
+        return 'bg-yellow-600';
       default:
         return 'bg-yellow-500';
     }
@@ -53,182 +57,170 @@ const AppointmentDetailView = ({ appointment, onBack, onStatusChange }: Appointm
         return 'Bestätigt';
       case 'cancelled':
         return 'Abgesagt';
+      case 'interessiert':
+        return 'Interessiert';
+      case 'abgelehnt':
+        return 'Abgelehnt';
+      case 'mailbox':
+        return 'Mailbox';
       default:
         return 'Ausstehend';
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'confirmed':
-        return <Check className="h-4 w-4" />;
-      case 'cancelled':
-        return <X className="h-4 w-4" />;
-      default:
-        return <AlertCircle className="h-4 w-4" />;
-    }
+  const handleSaveStatus = () => {
+    onStatusChange(appointment.id, selectedStatus);
+    setIsEditingStatus(false);
+  };
+
+  const handleCancelEdit = () => {
+    setSelectedStatus(appointment.status);
+    setIsEditingStatus(false);
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      {/* Header with Back Button */}
+    <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center gap-4">
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="outline"
           onClick={onBack}
           className="flex items-center gap-2"
         >
           <ArrowLeft className="h-4 w-4" />
           Zurück zur Übersicht
         </Button>
+        <h2 className="text-2xl font-bold">Termindetails</h2>
       </div>
 
-      {/* Appointment Details */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Termindetails
-            </span>
-            <Badge 
-              variant="outline" 
-              className={cn("text-white flex items-center gap-2", getStatusColor(appointment.status))}
-            >
-              {getStatusIcon(appointment.status)}
-              {getStatusText(appointment.status)}
-            </Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Date and Time */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-600">Datum</label>
-              <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-                <Calendar className="h-4 w-4 text-gray-500" />
-                <span className="font-medium">
-                  {format(new Date(appointment.appointment_date), 'PPPP', { locale: de })}
-                </span>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-600">Uhrzeit</label>
-              <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-                <Clock className="h-4 w-4 text-gray-500" />
-                <span className="font-medium">{appointment.appointment_time}</span>
-              </div>
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Recipient Information */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <User className="h-5 w-5" />
-              Teilnehmer
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-600">Name</label>
-                <div className="p-3 bg-gray-50 rounded-lg">
-                  <span className="font-medium">
-                    {appointment.recipient?.first_name} {appointment.recipient?.last_name}
-                  </span>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-600">E-Mail</label>
-                <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-                  <Mail className="h-4 w-4 text-gray-500" />
-                  <span>{appointment.recipient?.email}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Timeline */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Verlauf</h3>
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                <div className="flex-1">
-                  <span className="font-medium">Termin erstellt</span>
-                  <p className="text-sm text-gray-600">
-                    {format(new Date(appointment.created_at), 'PPP um HH:mm', { locale: de })}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left Column - Appointment Details */}
+        <div className="space-y-6">
+          {/* Basic Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Termin-Informationen
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Datum</label>
+                  <p className="text-lg font-semibold">
+                    {format(new Date(appointment.appointment_date), 'PPP', { locale: de })}
                   </p>
                 </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Uhrzeit</label>
+                  <p className="text-lg font-semibold">{appointment.appointment_time}</p>
+                </div>
               </div>
               
+              <div>
+                <label className="text-sm font-medium text-gray-500">Status</label>
+                <div className="flex items-center gap-2 mt-1">
+                  {isEditingStatus ? (
+                    <div className="flex items-center gap-2">
+                      <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                        <SelectTrigger className="w-48">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pending">Ausstehend</SelectItem>
+                          <SelectItem value="confirmed">Bestätigt</SelectItem>
+                          <SelectItem value="interessiert">Interessiert</SelectItem>
+                          <SelectItem value="abgelehnt">Abgelehnt</SelectItem>
+                          <SelectItem value="mailbox">Mailbox</SelectItem>
+                          <SelectItem value="cancelled">Abgesagt</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        size="sm"
+                        onClick={handleSaveStatus}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        <Save className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleCancelEdit}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <Badge 
+                        variant="outline" 
+                        className={cn("text-white", getStatusColor(appointment.status))}
+                      >
+                        {getStatusText(appointment.status)}
+                      </Badge>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setIsEditingStatus(true)}
+                      >
+                        <Edit3 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-500">Erstellt am</label>
+                <p className="text-sm text-gray-700">
+                  {format(new Date(appointment.created_at), 'PPp', { locale: de })}
+                </p>
+              </div>
+
               {appointment.confirmed_at && (
-                <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <div className="flex-1">
-                    <span className="font-medium">Termin bestätigt</span>
-                    <p className="text-sm text-gray-600">
-                      {format(new Date(appointment.confirmed_at), 'PPP um HH:mm', { locale: de })}
-                    </p>
-                  </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Bestätigt am</label>
+                  <p className="text-sm text-gray-700">
+                    {format(new Date(appointment.confirmed_at), 'PPp', { locale: de })}
+                  </p>
                 </div>
               )}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          <Separator />
+          {/* Contact Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5" />
+                Kontakt-Informationen
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div>
+                <label className="text-sm font-medium text-gray-500">Name</label>
+                <p className="text-lg font-semibold">
+                  {appointment.recipient?.first_name} {appointment.recipient?.last_name}
+                </p>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium text-gray-500">E-Mail</label>
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-gray-500" />
+                  <p className="text-gray-700">{appointment.recipient?.email}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-          {/* Actions */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Aktionen</h3>
-            <div className="flex flex-wrap gap-3">
-              {appointment.status === 'pending' && (
-                <>
-                  <Button
-                    onClick={() => onStatusChange(appointment.id, 'confirmed')}
-                    className="bg-green-600 hover:bg-green-700 flex items-center gap-2"
-                  >
-                    <Check className="h-4 w-4" />
-                    Bestätigen
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    onClick={() => onStatusChange(appointment.id, 'cancelled')}
-                    className="flex items-center gap-2"
-                  >
-                    <X className="h-4 w-4" />
-                    Absagen
-                  </Button>
-                </>
-              )}
-              
-              {appointment.status === 'confirmed' && (
-                <Button
-                  variant="destructive"
-                  onClick={() => onStatusChange(appointment.id, 'cancelled')}
-                  className="flex items-center gap-2"
-                >
-                  <X className="h-4 w-4" />
-                  Absagen
-                </Button>
-              )}
-              
-              {appointment.status === 'cancelled' && (
-                <Button
-                  onClick={() => onStatusChange(appointment.id, 'pending')}
-                  variant="outline"
-                  className="flex items-center gap-2"
-                >
-                  <AlertCircle className="h-4 w-4" />
-                  Reaktivieren
-                </Button>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Right Column - Status History */}
+        <div>
+          <AppointmentStatusHistory appointmentId={appointment.id} />
+        </div>
+      </div>
     </div>
   );
 };

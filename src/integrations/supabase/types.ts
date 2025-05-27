@@ -39,6 +39,41 @@ export type Database = {
         }
         Relationships: []
       }
+      appointment_status_history: {
+        Row: {
+          appointment_id: string
+          changed_at: string
+          created_at: string
+          id: string
+          new_status: string
+          old_status: string | null
+        }
+        Insert: {
+          appointment_id: string
+          changed_at?: string
+          created_at?: string
+          id?: string
+          new_status: string
+          old_status?: string | null
+        }
+        Update: {
+          appointment_id?: string
+          changed_at?: string
+          created_at?: string
+          id?: string
+          new_status?: string
+          old_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointment_status_history_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       appointments: {
         Row: {
           appointment_date: string
