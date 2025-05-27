@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
-import { CalendarIcon, Plus, Trash2, Clock, Users, Ban, Upload, List, Grid3X3, Mail } from 'lucide-react';
+import { CalendarIcon, Plus, Trash2, Clock, Users, Ban, Upload, List, Grid3X3, Send } from 'lucide-react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,7 +19,6 @@ import RecipientImport from './RecipientImport';
 import AppointmentCalendarView from './appointment/AppointmentCalendarView';
 import AppointmentListView from './appointment/AppointmentListView';
 import AppointmentDetailView from './appointment/AppointmentDetailView';
-import AppointmentEmailPreviewDialog from './appointment/AppointmentEmailPreviewDialog';
 
 interface Recipient {
   id: string;
@@ -58,8 +57,7 @@ const AppointmentManager = () => {
   const [overviewMode, setOverviewMode] = useState<'calendar' | 'list'>('list');
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [emailPreviewOpen, setEmailPreviewOpen] = useState(false);
-  const [selectedRecipientForPreview, setSelectedRecipientForPreview] = useState<Recipient | null>(null);
+  const [sendingEmails, setSendingEmails] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
   // New recipient form
@@ -227,9 +225,43 @@ const AppointmentManager = () => {
     setSelectedAppointment(appointment);
   };
 
-  const handleEmailPreview = (recipient: Recipient) => {
-    setSelectedRecipientForPreview(recipient);
-    setEmailPreviewOpen(true);
+  const handleSendEmail = async (recipient: Recipient) => {
+    if (sendingEmails.has(recipient.id)) {
+      return; // Already sending
+    }
+
+    setSendingEmails(prev => new Set(prev).add(recipient.id));
+
+    try {
+      const { data, error } = await supabase.functions.invoke('send-appointment-email', {
+        body: {
+          recipientId: recipient.id
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Erfolg",
+        description: `E-Mail wurde erfolgreich an ${recipient.first_name} ${recipient.last_name} gesendet.`,
+      });
+
+      // Reload recipients to update email_sent status
+      loadRecipients();
+    } catch (error: any) {
+      console.error('Error sending email:', error);
+      toast({
+        title: "Fehler",
+        description: error.message || "E-Mail konnte nicht gesendet werden.",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingEmails(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(recipient.id);
+        return newSet;
+      });
+    }
   };
 
   if (isLoading) {
@@ -422,11 +454,12 @@ const AppointmentManager = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleEmailPreview(recipient)}
+                          onClick={() => handleSendEmail(recipient)}
+                          disabled={sendingEmails.has(recipient.id)}
                           className="flex items-center gap-2"
                         >
-                          <Mail className="h-4 w-4" />
-                          E-Mail Vorschau
+                          <Send className="h-4 w-4" />
+                          {sendingEmails.has(recipient.id) ? "Wird gesendet..." : "E-Mail versenden"}
                         </Button>
                         <Button
                           variant="destructive"
@@ -444,13 +477,6 @@ const AppointmentManager = () => {
           </Card>
         </div>
       )}
-
-      {/* Email Preview Dialog */}
-      <AppointmentEmailPreviewDialog
-        isOpen={emailPreviewOpen}
-        onClose={() => setEmailPreviewOpen(false)}
-        recipient={selectedRecipientForPreview}
-      />
     </div>
   );
 };
