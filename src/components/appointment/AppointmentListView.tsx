@@ -3,10 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Clock, User, Mail, Calendar, Eye, Star } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Clock, User, Mail, Calendar, Eye, Star, Heart, X, Voicemail, Filter } from 'lucide-react';
 import { format, isAfter, isBefore, startOfDay } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { useState } from 'react';
 
 interface Appointment {
   id: string;
@@ -25,14 +27,22 @@ interface Appointment {
 interface AppointmentListViewProps {
   appointments: Appointment[];
   onAppointmentSelect: (appointment: Appointment) => void;
+  onStatusChange?: (appointmentId: string, newStatus: string) => void;
 }
 
-const AppointmentListView = ({ appointments, onAppointmentSelect }: AppointmentListViewProps) => {
+const AppointmentListView = ({ appointments, onAppointmentSelect, onStatusChange }: AppointmentListViewProps) => {
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const now = new Date();
   const today = startOfDay(now);
 
+  // Filter appointments based on selected status
+  const filteredAppointments = appointments.filter(appointment => {
+    if (statusFilter === 'all') return true;
+    return appointment.status === statusFilter;
+  });
+
   // Sort appointments: upcoming first, then by date and time
-  const sortedAppointments = [...appointments].sort((a, b) => {
+  const sortedAppointments = [...filteredAppointments].sort((a, b) => {
     const dateA = new Date(`${a.appointment_date}T${a.appointment_time}`);
     const dateB = new Date(`${b.appointment_date}T${b.appointment_time}`);
     
@@ -59,6 +69,12 @@ const AppointmentListView = ({ appointments, onAppointmentSelect }: AppointmentL
         return 'bg-green-500';
       case 'cancelled':
         return 'bg-red-500';
+      case 'interessiert':
+        return 'bg-blue-500';
+      case 'abgelehnt':
+        return 'bg-red-400';
+      case 'mailbox':
+        return 'bg-yellow-600';
       default:
         return 'bg-yellow-500';
     }
@@ -70,8 +86,21 @@ const AppointmentListView = ({ appointments, onAppointmentSelect }: AppointmentL
         return 'Bestätigt';
       case 'cancelled':
         return 'Abgesagt';
+      case 'interessiert':
+        return 'Interessiert';
+      case 'abgelehnt':
+        return 'Abgelehnt';
+      case 'mailbox':
+        return 'Mailbox';
       default:
         return 'Ausstehend';
+    }
+  };
+
+  const handleQuickAction = (appointmentId: string, newStatus: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (onStatusChange) {
+      onStatusChange(appointmentId, newStatus);
     }
   };
 
@@ -141,10 +170,31 @@ const AppointmentListView = ({ appointments, onAppointmentSelect }: AppointmentL
       {/* All Appointments Table */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Alle Termine ({appointments.length})
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Alle Termine ({filteredAppointments.length})
+            </CardTitle>
+            
+            {/* Status Filter */}
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-gray-500" />
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Status filtern" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Alle Status</SelectItem>
+                  <SelectItem value="pending">Ausstehend</SelectItem>
+                  <SelectItem value="confirmed">Bestätigt</SelectItem>
+                  <SelectItem value="interessiert">Interessiert</SelectItem>
+                  <SelectItem value="abgelehnt">Abgelehnt</SelectItem>
+                  <SelectItem value="mailbox">Mailbox</SelectItem>
+                  <SelectItem value="cancelled">Abgesagt</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
@@ -155,6 +205,7 @@ const AppointmentListView = ({ appointments, onAppointmentSelect }: AppointmentL
                 <TableHead>Name</TableHead>
                 <TableHead>E-Mail</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Schnellaktionen</TableHead>
                 <TableHead>Erstellt</TableHead>
                 <TableHead>Aktionen</TableHead>
               </TableRow>
@@ -189,6 +240,37 @@ const AppointmentListView = ({ appointments, onAppointmentSelect }: AppointmentL
                       {getStatusText(appointment.status)}
                     </Badge>
                   </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => handleQuickAction(appointment.id, 'interessiert', e)}
+                        className="h-8 w-8 p-0 hover:bg-blue-100 hover:text-blue-600"
+                        title="Interessiert"
+                      >
+                        <Heart className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => handleQuickAction(appointment.id, 'abgelehnt', e)}
+                        className="h-8 w-8 p-0 hover:bg-red-100 hover:text-red-600"
+                        title="Abgelehnt"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => handleQuickAction(appointment.id, 'mailbox', e)}
+                        className="h-8 w-8 p-0 hover:bg-yellow-100 hover:text-yellow-600"
+                        title="Mailbox"
+                      >
+                        <Voicemail className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
                   <TableCell className="text-sm text-gray-500">
                     {format(new Date(appointment.created_at), 'dd.MM.yy', { locale: de })}
                   </TableCell>
@@ -209,10 +291,15 @@ const AppointmentListView = ({ appointments, onAppointmentSelect }: AppointmentL
             </TableBody>
           </Table>
           
-          {appointments.length === 0 && (
+          {sortedAppointments.length === 0 && (
             <div className="text-center py-8 text-gray-500">
               <Calendar className="h-12 w-12 mx-auto mb-2 opacity-50" />
-              <p>Keine Termine vorhanden</p>
+              <p>
+                {statusFilter === 'all' 
+                  ? 'Keine Termine vorhanden' 
+                  : `Keine Termine mit Status "${getStatusText(statusFilter)}" vorhanden`
+                }
+              </p>
             </div>
           )}
         </CardContent>
