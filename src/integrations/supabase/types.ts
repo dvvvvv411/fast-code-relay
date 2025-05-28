@@ -17,6 +17,7 @@ export type Database = {
           first_name: string
           id: string
           last_name: string
+          phone_note: string | null
           unique_token: string
         }
         Insert: {
@@ -26,6 +27,7 @@ export type Database = {
           first_name: string
           id?: string
           last_name: string
+          phone_note?: string | null
           unique_token: string
         }
         Update: {
@@ -35,6 +37,7 @@ export type Database = {
           first_name?: string
           id?: string
           last_name?: string
+          phone_note?: string | null
           unique_token?: string
         }
         Relationships: []

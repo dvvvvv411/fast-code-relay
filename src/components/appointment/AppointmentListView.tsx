@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Clock, User, Mail, Calendar, Eye, Star, Heart, X, Voicemail, Filter, RefreshCw } from 'lucide-react';
+import { Clock, User, Mail, Calendar, Eye, Star, Heart, X, Voicemail, Filter, RefreshCw, Phone } from 'lucide-react';
 import { format, isAfter, isBefore, startOfDay } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -21,6 +21,7 @@ interface Appointment {
     first_name: string;
     last_name: string;
     email: string;
+    phone_note?: string;
   };
 }
 
@@ -151,6 +152,12 @@ const AppointmentListView = ({
                   </span>
                   <Mail className="h-4 w-4 text-gray-600 ml-4" />
                   <span className="text-gray-600">{nextAppointment.recipient?.email}</span>
+                  {nextAppointment.recipient?.phone_note && (
+                    <>
+                      <Phone className="h-4 w-4 text-gray-600 ml-4" />
+                      <span className="text-gray-600">{nextAppointment.recipient.phone_note}</span>
+                    </>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -228,6 +235,7 @@ const AppointmentListView = ({
                 <TableHead>Uhrzeit</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>E-Mail</TableHead>
+                <TableHead>Telefon</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Schnellaktionen</TableHead>
                 <TableHead>Erstellt</TableHead>
@@ -255,6 +263,9 @@ const AppointmentListView = ({
                   </TableCell>
                   <TableCell className="text-gray-600">
                     {appointment.recipient?.email}
+                  </TableCell>
+                  <TableCell className="text-gray-600">
+                    {appointment.recipient?.phone_note || '-'}
                   </TableCell>
                   <TableCell>
                     <Badge 
