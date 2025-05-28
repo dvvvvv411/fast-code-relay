@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { CheckCircle, Clock, MessageSquare, Timer, RefreshCw, Send } from 'lucide-react';
+import { CheckCircle, Clock, MessageSquare, Timer, RefreshCw, Send, Eye, EyeOff } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import SMSCodeDialog from './SMSCodeDialog';
 
@@ -20,10 +20,19 @@ const AllRequestsList = () => {
   const [processingRequestId, setProcessingRequestId] = useState<string | null>(null);
   const [smsDialogOpen, setSmsDialogOpen] = useState(false);
   const [selectedRequestForSMS, setSelectedRequestForSMS] = useState<any>(null);
+  const [showCompleted, setShowCompleted] = useState(false);
 
   const requestsArray = Object.values(requests).sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
+
+  // Filter requests based on showCompleted state
+  const filteredRequests = requestsArray.filter(request => {
+    if (showCompleted) {
+      return true; // Show all requests
+    }
+    return request.status !== 'completed'; // Show only non-completed requests
+  });
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -250,10 +259,30 @@ const AllRequestsList = () => {
     <>
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5" />
-            Alle Anfragen ({requestsArray.length})
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5" />
+              Alle Anfragen ({filteredRequests.length})
+            </CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowCompleted(!showCompleted)}
+              className="flex items-center gap-2"
+            >
+              {showCompleted ? (
+                <>
+                  <EyeOff className="h-4 w-4" />
+                  Nur Aktive
+                </>
+              ) : (
+                <>
+                  <Eye className="h-4 w-4" />
+                  Alle anzeigen
+                </>
+              )}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
@@ -270,7 +299,7 @@ const AllRequestsList = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {requestsArray.map((request) => (
+              {filteredRequests.map((request) => (
                 <TableRow key={request.id}>
                   <TableCell className="font-mono text-sm">
                     {request.short_id || request.id.slice(0, 8)}
