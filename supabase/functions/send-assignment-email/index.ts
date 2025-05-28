@@ -241,7 +241,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Generate random prefix for email address
     const randomPrefix = Math.random().toString(36).substring(2, 12);
-    const fromEmail = `${randomPrefix}@email.expandere-agentur.net`;
+    const fromEmail = `${randomPrefix}@email.expandere-agentur.com`;
 
     // Generate email HTML
     const emailHtml = generateEmailTemplate(

@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -53,7 +52,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Generate random number for dynamic sender email
     const randomNumber = Math.floor(Math.random() * 900000) + 100000; // 6-digit random number
-    const dynamicSenderEmail = `noreply${randomNumber}@email.expandere-agentur.net`;
+    const dynamicSenderEmail = `noreply${randomNumber}@email.expandere-agentur.com`;
 
     // Create HTML email content
     const htmlContent = `
