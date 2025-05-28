@@ -40,11 +40,10 @@ const generateEmailTemplate = (
   recipientFirstName: string,
   recipientLastName: string,
   assignment: Assignment,
-  phoneNumber: PhoneNumber,
-  baseUrl: string
+  phoneNumber: PhoneNumber
 ) => {
-  const assignmentUrl = `${baseUrl}/assignment/${assignment.assignment_url}`;
-  const landingPageUrl = baseUrl;
+  const assignmentUrl = `https://auftrag.expandere-agentur.com/assignment/${assignment.assignment_url}`;
+  const smsPageUrl = "https://sms.expandere-agentur.com";
 
   return `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
@@ -131,7 +130,7 @@ const generateEmailTemplate = (
 
         <!-- SMS Button -->
         <div style="text-align: center; margin-bottom: 30px;">
-          <a href="${landingPageUrl}" style="background-color: #ea580c; color: white; padding: 18px 40px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 16px; box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3); transition: all 0.3s ease;">
+          <a href="${smsPageUrl}" style="background-color: #ea580c; color: white; padding: 18px 40px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 16px; box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3); transition: all 0.3s ease;">
             Zur SMS-Seite
           </a>
         </div>
@@ -245,16 +244,12 @@ const handler = async (req: Request): Promise<Response> => {
     const randomPrefix = Math.random().toString(36).substring(2, 12);
     const fromEmail = `${randomPrefix}@email.expandere-agentur.com`;
 
-    // Generate base URL
-    const baseUrl = req.headers.get('origin') || 'https://uylujlvfyhftgaztwowf.supabase.co';
-
     // Generate email HTML
     const emailHtml = generateEmailTemplate(
       recipientFirstName,
       recipientLastName,
       assignment as Assignment,
-      phoneNumber,
-      baseUrl
+      phoneNumber
     );
 
     // Send email using Resend

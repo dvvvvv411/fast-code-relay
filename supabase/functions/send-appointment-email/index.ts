@@ -48,8 +48,8 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Generate dynamic booking URL with new format
-    const bookingUrl = `https://preview--fast-code-relay.lovable.app/termin-buchen/${recipient.unique_token}`;
+    // Generate booking URL with correct domain
+    const bookingUrl = `https://termin.expandere-agentur.com/termin-buchen/${recipient.unique_token}`;
 
     // Generate random number for dynamic sender email
     const randomNumber = Math.floor(Math.random() * 900000) + 100000; // 6-digit random number
