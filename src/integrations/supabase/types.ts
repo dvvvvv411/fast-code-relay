@@ -170,6 +170,7 @@ export type Database = {
           created_at: string
           id: string
           ident_code: string | null
+          ident_link: string | null
           is_completed: boolean
           is_evaluated: boolean
           updated_at: string
@@ -185,6 +186,7 @@ export type Database = {
           created_at?: string
           id?: string
           ident_code?: string | null
+          ident_link?: string | null
           is_completed?: boolean
           is_evaluated?: boolean
           updated_at?: string
@@ -200,6 +202,7 @@ export type Database = {
           created_at?: string
           id?: string
           ident_code?: string | null
+          ident_link?: string | null
           is_completed?: boolean
           is_evaluated?: boolean
           updated_at?: string

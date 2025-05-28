@@ -21,6 +21,7 @@ const AssignmentDialog = ({ isOpen, onClose, auftragId, auftragTitle, onAssignme
     worker_first_name: '',
     worker_last_name: '',
     ident_code: '',
+    ident_link: '',
     access_email: '',
     access_password: '',
     access_phone: ''
@@ -33,6 +34,7 @@ const AssignmentDialog = ({ isOpen, onClose, auftragId, auftragTitle, onAssignme
       worker_first_name: '',
       worker_last_name: '',
       ident_code: '',
+      ident_link: '',
       access_email: '',
       access_password: '',
       access_phone: ''
@@ -84,6 +86,7 @@ const AssignmentDialog = ({ isOpen, onClose, auftragId, auftragTitle, onAssignme
         worker_first_name: formData.worker_first_name.trim(),
         worker_last_name: formData.worker_last_name.trim(),
         ident_code: formData.ident_code.trim() || null,
+        ident_link: formData.ident_link.trim() || null,
         access_email: formData.access_email.trim() || null,
         access_password: formData.access_password.trim() || null,
         access_phone: formData.access_phone.trim() || null,
@@ -173,6 +176,16 @@ const AssignmentDialog = ({ isOpen, onClose, auftragId, auftragTitle, onAssignme
               value={formData.ident_code}
               onChange={(e) => setFormData({ ...formData, ident_code: e.target.value })}
               placeholder="z.B. ID12345"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="ident_link">Identlink (Optional)</Label>
+            <Input
+              id="ident_link"
+              value={formData.ident_link}
+              onChange={(e) => setFormData({ ...formData, ident_link: e.target.value })}
+              placeholder="z.B. https://example.com/ident"
             />
           </div>
 
