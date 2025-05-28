@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
-import { CalendarIcon, Plus, Trash2, Clock, Users, Ban, Upload, List, Grid3X3, Send } from 'lucide-react';
+import { CalendarIcon, Plus, Trash2, Clock, Users, Ban, Upload, List, Grid3X3, Send, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
@@ -56,6 +56,7 @@ const AppointmentManager = () => {
   const [overviewMode, setOverviewMode] = useState<'calendar' | 'list'>('list');
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [sendingEmails, setSendingEmails] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
@@ -72,6 +73,109 @@ const AppointmentManager = () => {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Set up real-time subscriptions
+  useEffect(() => {
+    console.log('🔄 Setting up real-time subscriptions for appointments');
+    
+    const appointmentsChannel = supabase
+      .channel('appointments-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'appointments'
+        },
+        (payload) => {
+          console.log('📊 Appointments real-time update:', payload);
+          handleAppointmentRealTimeUpdate(payload);
+        }
+      )
+      .subscribe();
+
+    const recipientsChannel = supabase
+      .channel('recipients-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'appointment_recipients'
+        },
+        (payload) => {
+          console.log('👥 Recipients real-time update:', payload);
+          handleRecipientRealTimeUpdate(payload);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('🔄 Cleaning up real-time subscriptions');
+      supabase.removeChannel(appointmentsChannel);
+      supabase.removeChannel(recipientsChannel);
+    };
+  }, []);
+
+  const handleAppointmentRealTimeUpdate = (payload: any) => {
+    const { eventType, new: newRecord, old: oldRecord } = payload;
+    
+    setAppointments(prev => {
+      switch (eventType) {
+        case 'INSERT':
+          console.log('➕ New appointment added:', newRecord);
+          toast({
+            title: "Neuer Termin",
+            description: "Ein neuer Termin wurde erstellt.",
+          });
+          return [...prev, newRecord];
+          
+        case 'UPDATE':
+          console.log('✏️ Appointment updated:', newRecord);
+          if (oldRecord.status !== newRecord.status) {
+            toast({
+              title: "Termin aktualisiert",
+              description: `Terminstatus wurde auf "${newRecord.status}" geändert.`,
+            });
+          }
+          return prev.map(apt => apt.id === newRecord.id ? newRecord : apt);
+          
+        case 'DELETE':
+          console.log('🗑️ Appointment deleted:', oldRecord);
+          toast({
+            title: "Termin gelöscht",
+            description: "Ein Termin wurde gelöscht.",
+          });
+          return prev.filter(apt => apt.id !== oldRecord.id);
+          
+        default:
+          return prev;
+      }
+    });
+  };
+
+  const handleRecipientRealTimeUpdate = (payload: any) => {
+    const { eventType, new: newRecord, old: oldRecord } = payload;
+    
+    setRecipients(prev => {
+      switch (eventType) {
+        case 'INSERT':
+          console.log('➕ New recipient added:', newRecord);
+          return [...prev, newRecord];
+          
+        case 'UPDATE':
+          console.log('✏️ Recipient updated:', newRecord);
+          return prev.map(rec => rec.id === newRecord.id ? newRecord : rec);
+          
+        case 'DELETE':
+          console.log('🗑️ Recipient deleted:', oldRecord);
+          return prev.filter(rec => rec.id !== oldRecord.id);
+          
+        default:
+          return prev;
+      }
+    });
+  };
 
   const loadData = async () => {
     setIsLoading(true);
@@ -90,6 +194,28 @@ const AppointmentManager = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    console.log('🔄 Manual refresh triggered');
+    
+    try {
+      await loadData();
+      toast({
+        title: "Aktualisiert",
+        description: "Alle Daten wurden erfolgreich aktualisiert.",
+      });
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+      toast({
+        title: "Fehler",
+        description: "Daten konnten nicht aktualisiert werden.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -318,10 +444,19 @@ const AppointmentManager = () => {
       {/* Overview Tab */}
       {activeTab === 'overview' && (
         <div className="space-y-6">
-          {/* View Mode Toggle */}
+          {/* Header with refresh button */}
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold">Terminübersicht</h2>
             <div className="flex space-x-2">
+              <Button
+                variant="outline"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+                {isRefreshing ? "Wird aktualisiert..." : "Aktualisieren"}
+              </Button>
               <Button
                 variant={overviewMode === 'list' ? "default" : "outline"}
                 onClick={() => setOverviewMode('list')}

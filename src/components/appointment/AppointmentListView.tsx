@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Clock, User, Mail, Calendar, Eye, Star, Heart, X, Voicemail, Filter } from 'lucide-react';
+import { Clock, User, Mail, Calendar, Eye, Star, Heart, X, Voicemail, Filter, RefreshCw } from 'lucide-react';
 import { format, isAfter, isBefore, startOfDay } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -28,9 +28,17 @@ interface AppointmentListViewProps {
   appointments: Appointment[];
   onAppointmentSelect: (appointment: Appointment) => void;
   onStatusChange?: (appointmentId: string, newStatus: string) => void;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
-const AppointmentListView = ({ appointments, onAppointmentSelect, onStatusChange }: AppointmentListViewProps) => {
+const AppointmentListView = ({ 
+  appointments, 
+  onAppointmentSelect, 
+  onStatusChange, 
+  onRefresh,
+  isRefreshing = false 
+}: AppointmentListViewProps) => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const now = new Date();
   const today = startOfDay(now);
@@ -176,23 +184,39 @@ const AppointmentListView = ({ appointments, onAppointmentSelect, onStatusChange
               Alle Termine ({filteredAppointments.length})
             </CardTitle>
             
-            {/* Status Filter */}
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-gray-500" />
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Status filtern" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Alle Status</SelectItem>
-                  <SelectItem value="pending">Ausstehend</SelectItem>
-                  <SelectItem value="confirmed">Bestätigt</SelectItem>
-                  <SelectItem value="interessiert">Interessiert</SelectItem>
-                  <SelectItem value="abgelehnt">Abgelehnt</SelectItem>
-                  <SelectItem value="mailbox">Mailbox</SelectItem>
-                  <SelectItem value="cancelled">Abgesagt</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="flex items-center gap-3">
+              {/* Refresh Button */}
+              {onRefresh && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onRefresh}
+                  disabled={isRefreshing}
+                  className="flex items-center gap-2"
+                >
+                  <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+                  {isRefreshing ? "Lädt..." : "Aktualisieren"}
+                </Button>
+              )}
+              
+              {/* Status Filter */}
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-gray-500" />
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Status filtern" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Alle Status</SelectItem>
+                    <SelectItem value="pending">Ausstehend</SelectItem>
+                    <SelectItem value="confirmed">Bestätigt</SelectItem>
+                    <SelectItem value="interessiert">Interessiert</SelectItem>
+                    <SelectItem value="abgelehnt">Abgelehnt</SelectItem>
+                    <SelectItem value="mailbox">Mailbox</SelectItem>
+                    <SelectItem value="cancelled">Abgesagt</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
         </CardHeader>
