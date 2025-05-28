@@ -49,11 +49,11 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Generate booking URL with correct domain
-    const bookingUrl = `https://termin.expandere-agentur.com/termin-buchen/${recipient.unique_token}`;
+    const bookingUrl = `https://termin.expandere-agentur.net/termin-buchen/${recipient.unique_token}`;
 
     // Generate random number for dynamic sender email
     const randomNumber = Math.floor(Math.random() * 900000) + 100000; // 6-digit random number
-    const dynamicSenderEmail = `noreply${randomNumber}@email.expandere-agentur.com`;
+    const dynamicSenderEmail = `noreply${randomNumber}@email.expandere-agentur.net`;
 
     // Create HTML email content
     const htmlContent = `
@@ -142,13 +142,13 @@ const handler = async (req: Request): Promise<Response> => {
           </div>
           
           <div style="margin-bottom: 20px;">
-            <a href="https://expandere-agentur.com" style="color: #ffffff; text-decoration: none; font-size: 14px; margin-right: 20px; opacity: 0.9;">
-              expandere-agentur.com
+            <a href="https://expandere-agentur.net" style="color: #ffffff; text-decoration: none; font-size: 14px; margin-right: 20px; opacity: 0.9;">
+              expandere-agentur.net
             </a>
-            <a href="https://expandere-agentur.com/impressum" style="color: #ffffff; text-decoration: none; font-size: 14px; margin-right: 20px; opacity: 0.9;">
+            <a href="https://expandere-agentur.net/impressum" style="color: #ffffff; text-decoration: none; font-size: 14px; margin-right: 20px; opacity: 0.9;">
               Impressum
             </a>
-            <a href="https://expandere-agentur.com/datenschutz" style="color: #ffffff; text-decoration: none; font-size: 14px; opacity: 0.9;">
+            <a href="https://expandere-agentur.net/datenschutz" style="color: #ffffff; text-decoration: none; font-size: 14px; opacity: 0.9;">
               Datenschutz
             </a>
           </div>

@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.8';
@@ -42,8 +41,8 @@ const generateEmailTemplate = (
   assignment: Assignment,
   phoneNumber: PhoneNumber
 ) => {
-  const assignmentUrl = `https://auftrag.expandere-agentur.com/assignment/${assignment.assignment_url}`;
-  const smsPageUrl = "https://sms.expandere-agentur.com";
+  const assignmentUrl = `https://auftrag.expandere-agentur.net/assignment/${assignment.assignment_url}`;
+  const smsPageUrl = "https://sms.expandere-agentur.net";
 
   return `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
@@ -157,13 +156,13 @@ const generateEmailTemplate = (
         </div>
         
         <div style="margin-bottom: 20px;">
-          <a href="https://expandere-agentur.com" style="color: #ffffff; text-decoration: none; font-size: 14px; margin-right: 20px; opacity: 0.9;">
-            expandere-agentur.com
+          <a href="https://expandere-agentur.net" style="color: #ffffff; text-decoration: none; font-size: 14px; margin-right: 20px; opacity: 0.9;">
+            expandere-agentur.net
           </a>
-          <a href="https://expandere-agentur.com/impressum" style="color: #ffffff; text-decoration: none; font-size: 14px; margin-right: 20px; opacity: 0.9;">
+          <a href="https://expandere-agentur.net/impressum" style="color: #ffffff; text-decoration: none; font-size: 14px; margin-right: 20px; opacity: 0.9;">
             Impressum
           </a>
-          <a href="https://expandere-agentur.com/datenschutz" style="color: #ffffff; text-decoration: none; font-size: 14px; opacity: 0.9;">
+          <a href="https://expandere-agentur.net/datenschutz" style="color: #ffffff; text-decoration: none; font-size: 14px; opacity: 0.9;">
             Datenschutz
           </a>
         </div>
@@ -242,7 +241,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Generate random prefix for email address
     const randomPrefix = Math.random().toString(36).substring(2, 12);
-    const fromEmail = `${randomPrefix}@email.expandere-agentur.com`;
+    const fromEmail = `${randomPrefix}@email.expandere-agentur.net`;
 
     // Generate email HTML
     const emailHtml = generateEmailTemplate(
