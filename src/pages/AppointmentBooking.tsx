@@ -134,6 +134,10 @@ const AppointmentBooking = () => {
 
     setIsBooking(true);
     try {
+      console.log('Starting appointment booking for recipient:', recipient.id);
+      console.log('Selected date:', format(selectedDate, 'yyyy-MM-dd'));
+      console.log('Selected time:', selectedTime);
+
       const { data: appointmentData, error } = await supabase
         .from('appointments')
         .insert({
@@ -145,10 +149,16 @@ const AppointmentBooking = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating appointment:', error);
+        throw error;
+      }
+
+      console.log('Appointment created successfully:', appointmentData);
 
       // Send confirmation email
       try {
+        console.log('Sending confirmation email for appointment:', appointmentData.id);
         const { data: emailData, error: emailError } = await supabase.functions.invoke('send-appointment-confirmation', {
           body: {
             appointmentId: appointmentData.id
@@ -164,7 +174,7 @@ const AppointmentBooking = () => {
             variant: "default",
           });
         } else {
-          console.log('Confirmation email sent:', emailData);
+          console.log('Confirmation email sent successfully:', emailData);
           toast({
             title: "Termin erfolgreich gebucht",
             description: "Eine Bestätigungs-E-Mail wurde an Sie gesendet.",
@@ -185,7 +195,7 @@ const AppointmentBooking = () => {
       console.error('Error booking appointment:', error);
       toast({
         title: "Fehler",
-        description: error.message || "Termin konnte nicht gebucht werden.",
+        description: error.message || "Termin konnte nicht gebucht werden. Bitte versuchen Sie es erneut.",
         variant: "destructive",
       });
     } finally {
