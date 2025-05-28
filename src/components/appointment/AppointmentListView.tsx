@@ -1,10 +1,10 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Clock, User, Mail, Calendar, Eye, Star, Heart, X, Voicemail, Filter, RefreshCw, Phone } from 'lucide-react';
+import { Clock, User, Mail, Calendar, Eye, Star, Heart, X, Voicemail, Filter, RefreshCw, Phone, Check, Loader2 } from 'lucide-react';
 import { format, isAfter, isBefore, startOfDay } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -18,6 +18,7 @@ interface Appointment {
   created_at: string;
   confirmed_at: string | null;
   recipient?: {
+    id: string;
     first_name: string;
     last_name: string;
     email: string;
@@ -29,6 +30,7 @@ interface AppointmentListViewProps {
   appointments: Appointment[];
   onAppointmentSelect: (appointment: Appointment) => void;
   onStatusChange?: (appointmentId: string, newStatus: string) => void;
+  onPhoneNoteUpdate?: (recipientId: string, phoneNote: string) => Promise<void>;
   onRefresh?: () => void;
   isRefreshing?: boolean;
 }
@@ -36,11 +38,15 @@ interface AppointmentListViewProps {
 const AppointmentListView = ({ 
   appointments, 
   onAppointmentSelect, 
-  onStatusChange, 
+  onStatusChange,
+  onPhoneNoteUpdate, 
   onRefresh,
   isRefreshing = false 
 }: AppointmentListViewProps) => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [editingPhoneNote, setEditingPhoneNote] = useState<string | null>(null);
+  const [phoneNoteValue, setPhoneNoteValue] = useState<string>('');
+  const [updatingPhoneNote, setUpdatingPhoneNote] = useState<string | null>(null);
   const now = new Date();
   const today = startOfDay(now);
 
@@ -121,6 +127,43 @@ const AppointmentListView = ({
   const isPast = (appointment: Appointment) => {
     const appointmentDateTime = new Date(`${appointment.appointment_date}T${appointment.appointment_time}`);
     return isBefore(appointmentDateTime, now);
+  };
+
+  const handlePhoneNoteEdit = (recipientId: string, currentValue: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    setEditingPhoneNote(recipientId);
+    setPhoneNoteValue(currentValue || '');
+  };
+
+  const handlePhoneNoteSave = async (recipientId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (!onPhoneNoteUpdate) return;
+
+    setUpdatingPhoneNote(recipientId);
+    try {
+      await onPhoneNoteUpdate(recipientId, phoneNoteValue);
+      setEditingPhoneNote(null);
+    } catch (error) {
+      console.error('Error updating phone note:', error);
+    } finally {
+      setUpdatingPhoneNote(null);
+    }
+  };
+
+  const handlePhoneNoteCancel = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    setEditingPhoneNote(null);
+    setPhoneNoteValue('');
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent, recipientId: string) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      handlePhoneNoteSave(recipientId, event as any);
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      handlePhoneNoteCancel(event as any);
+    }
   };
 
   return (
@@ -264,8 +307,49 @@ const AppointmentListView = ({
                   <TableCell className="text-gray-600">
                     {appointment.recipient?.email}
                   </TableCell>
-                  <TableCell className="text-gray-600">
-                    {appointment.recipient?.phone_note || '-'}
+                  <TableCell className="text-gray-600" onClick={(e) => e.stopPropagation()}>
+                    {appointment.recipient && editingPhoneNote === appointment.recipient.id ? (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          value={phoneNoteValue}
+                          onChange={(e) => setPhoneNoteValue(e.target.value)}
+                          onKeyDown={(e) => handleKeyDown(e, appointment.recipient!.id)}
+                          placeholder="Telefonnummer eingeben"
+                          className="h-8 w-32"
+                          autoFocus
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => handlePhoneNoteSave(appointment.recipient!.id, e)}
+                          disabled={updatingPhoneNote === appointment.recipient.id}
+                          className="h-8 w-8 p-0"
+                        >
+                          {updatingPhoneNote === appointment.recipient.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Check className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handlePhoneNoteCancel}
+                          className="h-8 w-8 p-0"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div 
+                        className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded min-h-[2rem] flex items-center"
+                        onClick={(e) => appointment.recipient && handlePhoneNoteEdit(appointment.recipient.id, appointment.recipient.phone_note || '', e)}
+                      >
+                        {appointment.recipient?.phone_note || (
+                          <span className="text-gray-400 italic">Telefon hinzufügen</span>
+                        )}
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Badge 

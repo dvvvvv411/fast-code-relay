@@ -27,6 +27,7 @@ interface Recipient {
   unique_token: string;
   email_sent: boolean;
   created_at: string;
+  phone_note?: string;
 }
 
 interface Appointment {
@@ -346,13 +347,58 @@ const AppointmentManager = () => {
     }
   };
 
+  const handlePhoneNoteUpdate = async (recipientId: string, phoneNote: string) => {
+    try {
+      const { error } = await supabase
+        .from('appointment_recipients')
+        .update({ phone_note: phoneNote })
+        .eq('id', recipientId);
+
+      if (error) throw error;
+
+      // Update local state optimistically
+      setRecipients(prev => 
+        prev.map(recipient => 
+          recipient.id === recipientId 
+            ? { ...recipient, phone_note: phoneNote }
+            : recipient
+        )
+      );
+
+      // Update appointments state as well since they include recipient data
+      setAppointments(prev => 
+        prev.map(appointment => 
+          appointment.recipient?.id === recipientId 
+            ? { 
+                ...appointment, 
+                recipient: { ...appointment.recipient, phone_note: phoneNote }
+              }
+            : appointment
+        )
+      );
+
+      toast({
+        title: "Erfolg",
+        description: "Telefonnummer wurde aktualisiert.",
+      });
+    } catch (error: any) {
+      console.error('Error updating phone note:', error);
+      toast({
+        title: "Fehler",
+        description: error.message || "Telefonnummer konnte nicht aktualisiert werden.",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
   const handleAppointmentSelect = (appointment: Appointment) => {
     setSelectedAppointment(appointment);
   };
 
   const handleSendEmail = async (recipient: Recipient) => {
     if (sendingEmails.has(recipient.id)) {
-      return; // Already sending
+      return;
     }
 
     setSendingEmails(prev => new Set(prev).add(recipient.id));
@@ -371,7 +417,6 @@ const AppointmentManager = () => {
         description: `E-Mail wurde erfolgreich an ${recipient.first_name} ${recipient.last_name} gesendet.`,
       });
 
-      // Reload recipients to update email_sent status
       loadRecipients();
     } catch (error: any) {
       console.error('Error sending email:', error);
@@ -487,6 +532,9 @@ const AppointmentManager = () => {
               appointments={appointments}
               onAppointmentSelect={handleAppointmentSelect}
               onStatusChange={handleAppointmentStatusChange}
+              onPhoneNoteUpdate={handlePhoneNoteUpdate}
+              onRefresh={handleRefresh}
+              isRefreshing={isRefreshing}
             />
           )}
         </div>
