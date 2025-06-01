@@ -26,6 +26,9 @@ const availableIcons = [
   { value: 'refresh-ccw', label: 'Synchronisation' },
   { value: 'arrow-down', label: 'Pfeil nach unten' },
   { value: 'arrow-up', label: 'Pfeil nach oben' },
+  { value: 'mouse-pointer-click', label: 'Interaktion' },
+  { value: 'file-down', label: 'Dokumentation' },
+  { value: 'trash-2', label: 'Löschung ihrer Daten' },
   { value: 'none', label: 'Kein Icon' }
 ];
 

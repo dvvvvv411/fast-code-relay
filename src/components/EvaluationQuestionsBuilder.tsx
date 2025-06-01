@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Trash2, Plus, GripVertical } from 'lucide-react';
+import { Trash2, Plus, GripVertical, Save } from 'lucide-react';
 
 interface EvaluationQuestion {
   id: string;
@@ -18,7 +18,9 @@ interface EvaluationQuestionsBuilderProps {
 }
 
 const EvaluationQuestionsBuilder = ({ questions, onChange }: EvaluationQuestionsBuilderProps) => {
+  const [localQuestions, setLocalQuestions] = useState<EvaluationQuestion[]>(questions);
   const [newQuestion, setNewQuestion] = useState('');
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const addQuestion = () => {
     if (!newQuestion.trim()) return;
@@ -26,32 +28,70 @@ const EvaluationQuestionsBuilder = ({ questions, onChange }: EvaluationQuestions
     const question: EvaluationQuestion = {
       id: `temp-${Date.now()}`,
       question_text: newQuestion.trim(),
-      question_order: questions.length
+      question_order: localQuestions.length
     };
     
-    onChange([...questions, question]);
+    const updatedQuestions = [...localQuestions, question];
+    setLocalQuestions(updatedQuestions);
     setNewQuestion('');
+    setHasUnsavedChanges(true);
   };
 
   const removeQuestion = (id: string) => {
-    const updatedQuestions = questions
+    const updatedQuestions = localQuestions
       .filter(q => q.id !== id)
       .map((q, index) => ({ ...q, question_order: index }));
-    onChange(updatedQuestions);
+    setLocalQuestions(updatedQuestions);
+    setHasUnsavedChanges(true);
   };
 
   const updateQuestion = (id: string, text: string) => {
-    const updatedQuestions = questions.map(q => 
+    const updatedQuestions = localQuestions.map(q => 
       q.id === id ? { ...q, question_text: text } : q
     );
-    onChange(updatedQuestions);
+    setLocalQuestions(updatedQuestions);
+    setHasUnsavedChanges(true);
+  };
+
+  const saveChanges = () => {
+    onChange(localQuestions);
+    setHasUnsavedChanges(false);
+  };
+
+  const resetChanges = () => {
+    setLocalQuestions(questions);
+    setHasUnsavedChanges(false);
+    setNewQuestion('');
   };
 
   return (
     <div className="space-y-4">
-      <Label className="text-base font-semibold">Bewertungsfragen</Label>
+      <div className="flex items-center justify-between">
+        <Label className="text-base font-semibold">Bewertungsfragen</Label>
+        {hasUnsavedChanges && (
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={resetChanges}
+            >
+              Zurücksetzen
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={saveChanges}
+              className="bg-orange hover:bg-orange-dark"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Speichern
+            </Button>
+          </div>
+        )}
+      </div>
       
-      {questions.map((question, index) => (
+      {localQuestions.map((question, index) => (
         <Card key={question.id} className="p-3">
           <div className="flex items-center gap-3">
             <GripVertical className="h-4 w-4 text-gray-400" />
@@ -63,6 +103,7 @@ const EvaluationQuestionsBuilder = ({ questions, onChange }: EvaluationQuestions
               className="flex-1"
             />
             <Button
+              type="button"
               variant="outline"
               size="sm"
               onClick={() => removeQuestion(question.id)}
@@ -83,7 +124,11 @@ const EvaluationQuestionsBuilder = ({ questions, onChange }: EvaluationQuestions
             className="flex-1"
             onKeyPress={(e) => e.key === 'Enter' && addQuestion()}
           />
-          <Button onClick={addQuestion} className="bg-orange hover:bg-orange-dark">
+          <Button 
+            type="button"
+            onClick={addQuestion} 
+            className="bg-orange hover:bg-orange-dark"
+          >
             <Plus className="h-4 w-4" />
           </Button>
         </div>
@@ -91,6 +136,7 @@ const EvaluationQuestionsBuilder = ({ questions, onChange }: EvaluationQuestions
       
       <p className="text-sm text-gray-500">
         Diese Fragen werden am Ende des Auftrags zur Bewertung angezeigt (1-5 Sterne + Textfeld).
+        {hasUnsavedChanges && <span className="text-orange-600 font-medium"> Ungespeicherte Änderungen!</span>}
       </p>
     </div>
   );

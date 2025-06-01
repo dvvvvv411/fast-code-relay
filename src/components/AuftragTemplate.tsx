@@ -5,7 +5,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { FileText, Smartphone, Download, User, Mail, Target, Search, RefreshCw, ArrowDown, ArrowUp } from 'lucide-react';
+import { FileText, Smartphone, Download, User, Mail, Target, Search, RefreshCw, ArrowDown, ArrowUp, MousePointerClick, FileDown, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface AuftragData {
@@ -39,6 +39,9 @@ const iconMap = {
   'refresh-ccw': RefreshCw,
   'arrow-down': ArrowDown,
   'arrow-up': ArrowUp,
+  'mouse-pointer-click': MousePointerClick,
+  'file-down': FileDown,
+  'trash-2': Trash2,
 };
 
 const AuftragTemplate = ({ auftragId }: AuftragTemplateProps) => {

@@ -6,7 +6,7 @@ import Footer from '@/components/Footer';
 import EvaluationForm from '@/components/EvaluationForm';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { FileText, Smartphone, Download, User, Mail, Target, Search, RefreshCw, ArrowDown, ArrowUp, Key, Phone, Eye } from 'lucide-react';
+import { FileText, Smartphone, Download, User, Mail, Target, Search, RefreshCw, ArrowDown, ArrowUp, Key, Phone, Eye, MousePointerClick, FileDown, Trash2, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface AssignmentData {
@@ -15,6 +15,7 @@ interface AssignmentData {
   worker_first_name: string;
   worker_last_name: string;
   ident_code: string | null;
+  ident_link: string | null;
   access_email: string | null;
   access_password: string | null;
   access_phone: string | null;
@@ -51,6 +52,9 @@ const iconMap = {
   'refresh-ccw': RefreshCw,
   'arrow-down': ArrowDown,
   'arrow-up': ArrowUp,
+  'mouse-pointer-click': MousePointerClick,
+  'file-down': FileDown,
+  'trash-2': Trash2,
 };
 
 const AssignmentTemplate = ({ assignmentUrl }: AssignmentTemplateProps) => {
@@ -135,7 +139,7 @@ const AssignmentTemplate = ({ assignmentUrl }: AssignmentTemplateProps) => {
   }
 
   const data = assignmentData.auftraege;
-  const hasAccessData = assignmentData.ident_code || assignmentData.access_email || assignmentData.access_password || assignmentData.access_phone;
+  const hasAccessData = assignmentData.ident_code || assignmentData.ident_link || assignmentData.access_email || assignmentData.access_password || assignmentData.access_phone;
 
   const getIconComponent = (iconName: string) => {
     return iconMap[iconName as keyof typeof iconMap];
@@ -206,6 +210,20 @@ const AssignmentTemplate = ({ assignmentUrl }: AssignmentTemplateProps) => {
                       <p className="text-gray-700 font-mono bg-gray-100 px-3 py-1 rounded">
                         {assignmentData.ident_code}
                       </p>
+                    </div>
+                  )}
+                  {assignmentData.ident_link && (
+                    <div>
+                      <h3 className="font-semibold mb-2">Ident Link:</h3>
+                      <a 
+                        href={assignmentData.ident_link} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 underline flex items-center gap-2"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        Zur Identifikation
+                      </a>
                     </div>
                   )}
                   {assignmentData.access_email && (
