@@ -48,6 +48,9 @@ verify_jwt = false
 [functions.send-appointment-reminder]
 verify_jwt = false
 
+[functions.test-telegram-reminder]
+verify_jwt = false
+
 [edge-runtime]
 enabled = true
 port = 54327

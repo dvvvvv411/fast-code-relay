@@ -32,15 +32,19 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const telegramBotToken = Deno.env.get('TELEGRAM_REMINDER_BOT_TOKEN');
-    const telegramChatId = Deno.env.get('TELEGRAM_REMINDER_CHAT_ID');
+    const telegramChatIds = Deno.env.get('TELEGRAM_REMINDER_CHAT_ID');
     
-    if (!telegramBotToken || !telegramChatId) {
+    if (!telegramBotToken || !telegramChatIds) {
       console.error('Missing Telegram credentials for reminders');
       return new Response(
         JSON.stringify({ error: 'Missing Telegram credentials' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Parse chat IDs (comma-separated)
+    const chatIdArray = telegramChatIds.split(',').map(id => id.trim()).filter(id => id.length > 0);
+    console.log(`📱 Configured chat IDs:`, chatIdArray);
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -116,40 +120,54 @@ serve(async (req) => {
             })}\n\n` +
             `⏰ Der Termin beginnt in ca. 30 Minuten!`;
 
-          console.log(`📤 Sending reminder for appointment ${appointment.id}`);
+          console.log(`📤 Sending reminder for appointment ${appointment.id} to ${chatIdArray.length} chat(s)`);
 
-          // Send Telegram message
-          const telegramResponse = await fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              chat_id: telegramChatId,
-              text: message,
-            }),
-          });
+          let messageSentSuccessfully = false;
 
-          if (!telegramResponse.ok) {
-            const errorText = await telegramResponse.text();
-            console.error('Telegram API error:', errorText);
-            continue; // Skip this appointment but continue with others
+          // Send message to all configured chat IDs
+          for (const chatId of chatIdArray) {
+            try {
+              const telegramResponse = await fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  chat_id: chatId,
+                  text: message,
+                }),
+              });
+
+              if (telegramResponse.ok) {
+                console.log(`✅ Reminder sent successfully to chat ID: ${chatId}`);
+                messageSentSuccessfully = true;
+              } else {
+                const errorText = await telegramResponse.text();
+                console.error(`❌ Failed to send to chat ID ${chatId}:`, errorText);
+              }
+            } catch (error) {
+              console.error(`❌ Error sending to chat ID ${chatId}:`, error);
+            }
           }
 
-          // Mark reminder as sent
-          const { error: reminderError } = await supabase
-            .from('appointment_reminders')
-            .insert({
-              appointment_id: appointment.id,
-            });
+          // Mark reminder as sent if at least one message was sent successfully
+          if (messageSentSuccessfully) {
+            const { error: reminderError } = await supabase
+              .from('appointment_reminders')
+              .insert({
+                appointment_id: appointment.id,
+              });
 
-          if (reminderError) {
-            console.error('Error recording reminder:', reminderError);
-            // Continue anyway since the message was sent
+            if (reminderError) {
+              console.error('Error recording reminder:', reminderError);
+              // Continue anyway since the message was sent
+            }
+
+            remindersSent++;
+            console.log(`✅ Reminder sent for appointment ${appointment.id}`);
+          } else {
+            console.error(`❌ Failed to send reminder for appointment ${appointment.id} to any chat`);
           }
-
-          remindersSent++;
-          console.log(`✅ Reminder sent for appointment ${appointment.id}`);
         }
       } catch (error) {
         console.error(`Error processing appointment ${appointment.id}:`, error);
@@ -163,7 +181,8 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         remindersSent,
-        message: `Sent ${remindersSent} appointment reminders`
+        chatIds: chatIdArray.length,
+        message: `Sent ${remindersSent} appointment reminders to ${chatIdArray.length} chat(s)`
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
