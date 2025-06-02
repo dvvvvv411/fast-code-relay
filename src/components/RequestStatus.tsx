@@ -2,7 +2,8 @@
 import { useState, useEffect } from 'react';
 import { useSMS } from '../context/SMSContext';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, MessageSquare, Clock, Loader, RefreshCw, Timer, Check } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { CheckCircle, MessageSquare, Clock, Loader, RefreshCw, Timer, Check, AlertTriangle } from 'lucide-react';
 
 const RequestStatus = () => {
   const { currentRequest, markSMSSent, requestSMS, completeRequest, isLoading, resetCurrentRequest } = useSMS();
@@ -101,7 +102,8 @@ const RequestStatus = () => {
             description: `Ihre Nummer ${currentRequest.phone} wurde erfolgreich aktiviert.`,
             showButton: true,
             buttonText: 'SMS versendet',
-            buttonAction: handleSendSMS
+            buttonAction: handleSendSMS,
+            showNotification: true
           };
         }
       
@@ -166,6 +168,15 @@ const RequestStatus = () => {
           {statusInfo.description}
         </p>
       </div>
+
+      {statusInfo.showNotification && (
+        <Alert className="mb-6 border-orange-200 bg-orange-50">
+          <AlertTriangle className="h-4 w-4 text-orange-600" />
+          <AlertDescription className="text-orange-800">
+            <strong>Wichtiger Hinweis:</strong> Klicken Sie erst auf "SMS versendet", nachdem Sie den SMS-Code erhalten haben.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {statusInfo.showButton && (
         <div className="flex justify-center">
