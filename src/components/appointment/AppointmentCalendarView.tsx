@@ -8,6 +8,7 @@ import { CalendarIcon, ChevronLeft, ChevronRight, Clock, User, Phone } from 'luc
 import { format, isSameDay } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { toast } from '@/hooks/use-toast';
 
 interface Recipient {
   id: string;
@@ -71,6 +72,62 @@ const AppointmentCalendarView = ({ appointments, onAppointmentSelect }: Appointm
     }
   };
 
+  const copyToClipboard = async (text: string): Promise<boolean> => {
+    try {
+      // Try modern clipboard API first
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+      
+      // Fallback for older browsers or non-secure contexts
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      return successful;
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error);
+      return false;
+    }
+  };
+
+  const handleAppointmentClick = async (appointment: Appointment) => {
+    // If there's a phone number, copy it to clipboard
+    if (appointment.recipient?.phone_note) {
+      const success = await copyToClipboard(appointment.recipient.phone_note);
+      
+      if (success) {
+        toast({
+          title: "Telefonnummer kopiert",
+          description: `${appointment.recipient.phone_note} wurde in die Zwischenablage kopiert.`,
+        });
+      } else {
+        toast({
+          title: "Fehler beim Kopieren",
+          description: "Die Telefonnummer konnte nicht kopiert werden.",
+          variant: "destructive",
+        });
+      }
+    } else {
+      toast({
+        title: "Keine Telefonnummer",
+        description: "Für diesen Termin ist keine Telefonnummer hinterlegt.",
+        variant: "destructive",
+      });
+    }
+    
+    // Always call the original appointment select handler
+    onAppointmentSelect(appointment);
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Calendar */}
@@ -130,7 +187,8 @@ const AppointmentCalendarView = ({ appointments, onAppointmentSelect }: Appointm
                 <div
                   key={appointment.id}
                   className="p-3 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
-                  onClick={() => onAppointmentSelect(appointment)}
+                  onClick={() => handleAppointmentClick(appointment)}
+                  title={appointment.recipient?.phone_note ? `Klicken um Telefonnummer zu kopieren: ${appointment.recipient.phone_note}` : "Klicken für Details"}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
