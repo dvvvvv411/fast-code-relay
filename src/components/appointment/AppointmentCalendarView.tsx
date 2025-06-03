@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon, ChevronLeft, ChevronRight, Clock, User } from 'lucide-react';
+import { CalendarIcon, ChevronLeft, ChevronRight, Clock, User, Phone } from 'lucide-react';
 import { format, isSameDay } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -17,6 +17,7 @@ interface Recipient {
   unique_token: string;
   email_sent: boolean;
   created_at: string;
+  phone_note?: string;
 }
 
 interface Appointment {
@@ -143,6 +144,12 @@ const AppointmentCalendarView = ({ appointments, onAppointmentSelect }: Appointm
                             {appointment.recipient?.first_name} {appointment.recipient?.last_name}
                           </span>
                         </div>
+                        {appointment.recipient?.phone_note && (
+                          <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
+                            <Phone className="h-3 w-3" />
+                            <span>{appointment.recipient.phone_note}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <Badge 
