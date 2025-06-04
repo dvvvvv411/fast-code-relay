@@ -122,9 +122,14 @@ const EmailManager = () => {
   };
 
   const handlePhoneNumberChange = (phoneNumberId: string) => {
-    const phoneNumber = phoneNumbers.find(p => p.id === phoneNumberId);
-    setSelectedPhoneNumber(phoneNumber || null);
-    form.setValue('phoneNumberId', phoneNumberId);
+    if (phoneNumberId === 'none') {
+      setSelectedPhoneNumber(null);
+      form.setValue('phoneNumberId', '');
+    } else {
+      const phoneNumber = phoneNumbers.find(p => p.id === phoneNumberId);
+      setSelectedPhoneNumber(phoneNumber || null);
+      form.setValue('phoneNumberId', phoneNumberId);
+    }
   };
 
   const onSubmit = async (data: EmailFormData) => {
@@ -293,14 +298,14 @@ const EmailManager = () => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Telefonnummer (optional)</FormLabel>
-                    <Select onValueChange={handlePhoneNumberChange} value={field.value}>
+                    <Select onValueChange={handlePhoneNumberChange} value={field.value || 'none'}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Telefonnummer auswählen (optional)" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Keine Telefonnummer</SelectItem>
+                        <SelectItem value="none">Keine Telefonnummer</SelectItem>
                         {phoneNumbers.map((phone) => (
                           <SelectItem key={phone.id} value={phone.id}>
                             {phone.phone} (Code: {phone.access_code})
