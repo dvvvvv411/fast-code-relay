@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.8';
 
@@ -48,84 +49,6 @@ serve(async (req) => {
 
     // Initialize Supabase client
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Check if it's the termine command
-    if (text === '/termine') {
-      console.log('Processing /termine command');
-
-      try {
-        // Get current date in Germany timezone
-        const now = new Date();
-        const germanTime = new Intl.DateTimeFormat('de-DE', {
-          timeZone: 'Europe/Berlin',
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit'
-        }).format(now);
-        
-        // Convert to YYYY-MM-DD format for database query
-        const [day, month, year] = germanTime.split('.');
-        const todayDate = `${year}-${month}-${day}`;
-        
-        console.log('Querying appointments for date:', todayDate);
-
-        // Query appointments for today with recipient information
-        const { data: appointments, error } = await supabase
-          .from('appointments')
-          .select(`
-            appointment_time,
-            appointment_recipients!inner(first_name, last_name, phone_note)
-          `)
-          .eq('appointment_date', todayDate)
-          .eq('status', 'confirmed')
-          .order('appointment_time', { ascending: true });
-
-        if (error) {
-          console.error('Error fetching appointments:', error);
-          await sendTelegramMessage(botToken, adminChatId, `❌ Fehler beim Laden der Termine: ${error.message}`);
-          return new Response('OK', { status: 200 });
-        }
-
-        console.log(`Found ${appointments?.length || 0} appointments for today`);
-
-        // Format the response
-        let responseText = `📅 **Termine für heute (${germanTime})**\n\n`;
-
-        if (!appointments || appointments.length === 0) {
-          responseText += '🎉 Keine Termine für heute geplant!';
-        } else {
-          responseText += '```\n';
-          responseText += '┌──────────┬─────────────────────┬──────────────────┐\n';
-          responseText += '│   Zeit   │        Name         │     Telefon      │\n';
-          responseText += '├──────────┼─────────────────────┼──────────────────┤\n';
-
-          appointments.forEach((appointment) => {
-            const time = appointment.appointment_time.substring(0, 5); // HH:MM format
-            const fullName = `${appointment.appointment_recipients.first_name} ${appointment.appointment_recipients.last_name}`;
-            const phone = appointment.appointment_recipients.phone_note || 'Nicht verfügbar';
-            
-            // Pad strings to fit table columns
-            const paddedTime = time.padEnd(8);
-            const paddedName = fullName.length > 19 ? fullName.substring(0, 16) + '...' : fullName.padEnd(19);
-            const paddedPhone = phone.length > 16 ? phone.substring(0, 13) + '...' : phone.padEnd(16);
-            
-            responseText += `│ ${paddedTime} │ ${paddedName} │ ${paddedPhone} │\n`;
-          });
-
-          responseText += '└──────────┴─────────────────────┴──────────────────┘\n';
-          responseText += '```\n\n';
-          responseText += `📊 **Gesamt: ${appointments.length} Termine**`;
-        }
-
-        await sendTelegramMessage(botToken, adminChatId, responseText);
-        return new Response('OK', { status: 200 });
-
-      } catch (error) {
-        console.error('Error processing /termine command:', error);
-        await sendTelegramMessage(botToken, adminChatId, `❌ Fehler beim Verarbeiten des /termine Befehls.`);
-        return new Response('OK', { status: 200 });
-      }
-    }
 
     // Check if it's an activate command with short ID
     if (text.startsWith('/activate ')) {
@@ -318,7 +241,7 @@ serve(async (req) => {
       await sendTelegramMessage(
         botToken, 
         adminChatId, 
-        `❓ Unbekannter Befehl: ${text}\n\nVerfügbare Befehle:\n/activate [ID] - Nummer über kurze ID aktivieren (z.B. /activate ABC123)\n/send [ID] [Code] - SMS Code senden (z.B. /send ABC123 123456)\n/complete [ID] - Auftrag abschließen (z.B. /complete ABC123)\n/termine - Heutige Termine anzeigen`
+        `❓ Unbekannter Befehl: ${text}\n\nVerfügbare Befehle:\n/activate [ID] - Nummer über kurze ID aktivieren (z.B. /activate ABC123)\n/send [ID] [Code] - SMS Code senden (z.B. /send ABC123 123456)\n/complete [ID] - Auftrag abschließen (z.B. /complete ABC123)`
       );
     }
 
