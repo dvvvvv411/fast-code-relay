@@ -33,6 +33,7 @@ interface AppointmentListViewProps {
   onPhoneNoteUpdate?: (recipientId: string, phoneNote: string) => Promise<void>;
   onRefresh?: () => void;
   isRefreshing?: boolean;
+  onMissedEmailPreview?: (appointment: Appointment) => void;
 }
 
 const AppointmentListView = ({ 
@@ -41,7 +42,8 @@ const AppointmentListView = ({
   onStatusChange,
   onPhoneNoteUpdate, 
   onRefresh,
-  isRefreshing = false 
+  isRefreshing = false,
+  onMissedEmailPreview
 }: AppointmentListViewProps) => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [editingPhoneNote, setEditingPhoneNote] = useState<string | null>(null);
@@ -163,6 +165,13 @@ const AppointmentListView = ({
     } else if (event.key === 'Escape') {
       event.preventDefault();
       handlePhoneNoteCancel(event as any);
+    }
+  };
+
+  const handleMissedEmailClick = (appointment: Appointment, event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (onMissedEmailPreview) {
+      onMissedEmailPreview(appointment);
     }
   };
 
@@ -394,16 +403,30 @@ const AppointmentListView = ({
                     {format(new Date(appointment.created_at), 'dd.MM.yy', { locale: de })}
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onAppointmentSelect(appointment);
-                      }}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onAppointmentSelect(appointment);
+                        }}
+                        title="Details anzeigen"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      {isPast(appointment) && onMissedEmailPreview && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => handleMissedEmailClick(appointment, e)}
+                          className="hover:bg-orange/10 hover:text-orange"
+                          title="Verpasster Termin E-Mail"
+                        >
+                          <Mail className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

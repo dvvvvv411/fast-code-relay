@@ -18,6 +18,7 @@ import RecipientImport from './RecipientImport';
 import AppointmentCalendarView from './appointment/AppointmentCalendarView';
 import AppointmentListView from './appointment/AppointmentListView';
 import AppointmentDetailView from './appointment/AppointmentDetailView';
+import MissedAppointmentEmailPreviewDialog from './appointment/MissedAppointmentEmailPreviewDialog';
 
 interface Recipient {
   id: string;
@@ -59,6 +60,8 @@ const AppointmentManager = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [sendingEmails, setSendingEmails] = useState<Set<string>>(new Set());
+  const [missedEmailPreviewOpen, setMissedEmailPreviewOpen] = useState(false);
+  const [selectedMissedAppointment, setSelectedMissedAppointment] = useState<Appointment | null>(null);
   const { toast } = useToast();
 
   // New recipient form
@@ -396,6 +399,11 @@ const AppointmentManager = () => {
     setSelectedAppointment(appointment);
   };
 
+  const handleMissedEmailPreview = (appointment: Appointment) => {
+    setSelectedMissedAppointment(appointment);
+    setMissedEmailPreviewOpen(true);
+  };
+
   const handleSendEmail = async (recipient: Recipient) => {
     if (sendingEmails.has(recipient.id)) {
       return;
@@ -535,6 +543,7 @@ const AppointmentManager = () => {
               onPhoneNoteUpdate={handlePhoneNoteUpdate}
               onRefresh={handleRefresh}
               isRefreshing={isRefreshing}
+              onMissedEmailPreview={handleMissedEmailPreview}
             />
           )}
         </div>
@@ -660,6 +669,16 @@ const AppointmentManager = () => {
           </Card>
         </div>
       )}
+
+      {/* Missed Appointment Email Preview Dialog */}
+      <MissedAppointmentEmailPreviewDialog
+        isOpen={missedEmailPreviewOpen}
+        onClose={() => {
+          setMissedEmailPreviewOpen(false);
+          setSelectedMissedAppointment(null);
+        }}
+        appointment={selectedMissedAppointment}
+      />
     </div>
   );
 };
