@@ -264,7 +264,7 @@ async function sendTelegramMessage(botToken: string, chatId: string, text: strin
       body: JSON.stringify({
         chat_id: chatId,
         text: text,
-        parse_mode: 'Markdown',
+        // Remove parse_mode to fix HTML parsing error
       }),
     });
 

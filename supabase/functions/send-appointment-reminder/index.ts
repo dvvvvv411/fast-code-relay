@@ -20,12 +20,23 @@ interface AppointmentWithRecipient {
   };
 }
 
-// Helper function to convert UTC to German time
-function convertToGermanTime(date: Date): Date {
-  // Germany is UTC+1 (CET) or UTC+2 (CEST)
-  // This is a simplified approach - for production use a proper timezone library
-  const germanOffset = date.getMonth() >= 2 && date.getMonth() <= 9 ? 2 : 1; // Rough DST calculation
-  return new Date(date.getTime() + (germanOffset * 60 * 60 * 1000));
+// Convert UTC time to German time (handles both CET and CEST)
+function convertToGermanTime(utcDate: Date): Date {
+  const germanTime = new Date(utcDate.toLocaleString("en-US", {timeZone: "Europe/Berlin"}));
+  return germanTime;
+}
+
+// Format time for German locale
+function formatGermanDateTime(date: Date): string {
+  return date.toLocaleString('de-DE', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Europe/Berlin'
+  });
 }
 
 serve(async (req) => {
@@ -35,7 +46,6 @@ serve(async (req) => {
   }
 
   try {
-    const startTime = Date.now();
     console.log('🔔 Appointment reminder function triggered at:', new Date().toISOString());
     
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -43,46 +53,47 @@ serve(async (req) => {
     const telegramBotToken = Deno.env.get('TELEGRAM_REMINDER_BOT_TOKEN');
     const telegramChatIds = Deno.env.get('TELEGRAM_REMINDER_CHAT_ID');
     
+    console.log('🔧 Environment check:');
+    console.log('- Supabase URL:', supabaseUrl ? 'Set' : 'Missing');
+    console.log('- Service Key:', supabaseServiceKey ? 'Set' : 'Missing');
+    console.log('- Telegram Bot Token:', telegramBotToken ? 'Set' : 'Missing');
+    console.log('- Telegram Chat IDs:', telegramChatIds ? 'Set' : 'Missing');
+    
     if (!telegramBotToken || !telegramChatIds) {
       console.error('❌ Missing Telegram credentials for reminders');
-      console.log('Available env vars:', Object.keys(Deno.env.toObject()));
       return new Response(
         JSON.stringify({ error: 'Missing Telegram credentials' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Parse chat IDs (comma-separated) and validate
-    const chatIdArray = telegramChatIds.split(',')
-      .map(id => id.trim())
-      .filter(id => id.length > 0 && /^\d+$/.test(id));
-    
-    console.log(`📱 Configured chat IDs: ${JSON.stringify(chatIdArray)}`);
-    
-    if (chatIdArray.length === 0) {
-      console.error('❌ No valid chat IDs configured');
-      return new Response(
-        JSON.stringify({ error: 'No valid chat IDs configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // Parse chat IDs (comma-separated)
+    const chatIdArray = telegramChatIds.split(',').map(id => id.trim()).filter(id => id.length > 0);
+    console.log(`📱 Configured chat IDs (${chatIdArray.length}):`, chatIdArray);
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get current time in German timezone
-    const nowUTC = new Date();
-    const nowGerman = convertToGermanTime(nowUTC);
+    const nowUtc = new Date();
+    const nowGerman = convertToGermanTime(nowUtc);
     
-    // OPTIMIZED TIMING: Look for appointments 28-32 minutes from now (tighter window)
-    const reminderStartTime = new Date(nowGerman.getTime() + 28 * 60 * 1000);
-    const reminderEndTime = new Date(nowGerman.getTime() + 32 * 60 * 1000);
+    // Calculate 30 minutes from now in German time
+    const reminderTimeGerman = new Date(nowGerman.getTime() + 30 * 60 * 1000);
     
-    console.log(`⏰ Current German time: ${nowGerman.toLocaleString('de-DE')}`);
-    console.log(`🕐 Reminder window: ${reminderStartTime.toLocaleString('de-DE')} - ${reminderEndTime.toLocaleString('de-DE')}`);
+    console.log('⏰ Time check:');
+    console.log('- UTC now:', nowUtc.toISOString());
+    console.log('- German now:', nowGerman.toLocaleString('de-DE', {timeZone: 'Europe/Berlin'}));
+    console.log('- German reminder time:', reminderTimeGerman.toLocaleString('de-DE', {timeZone: 'Europe/Berlin'}));
+    
+    // Format for database query (use German date)
+    const reminderDate = reminderTimeGerman.toISOString().split('T')[0];
+    const reminderTime = reminderTimeGerman.toTimeString().split(' ')[0].substring(0, 5); // HH:MM format
+    
+    console.log('🔍 Searching for appointments:');
+    console.log('- Date:', reminderDate);
+    console.log('- Time:', reminderTime);
 
-    // Find appointments that are confirmed and within the reminder window
-    const targetDate = reminderStartTime.toISOString().split('T')[0];
-    
+    // Find appointments that are 30 minutes away and haven't had reminders sent yet
     const { data: appointments, error: appointmentsError } = await supabase
       .from('appointments')
       .select(`
@@ -98,184 +109,156 @@ serve(async (req) => {
         )
       `)
       .eq('status', 'confirmed')
-      .eq('appointment_date', targetDate);
+      .eq('appointment_date', reminderDate)
+      .not('id', 'in', `(
+        SELECT appointment_id 
+        FROM appointment_reminders
+      )`);
 
     if (appointmentsError) {
       console.error('❌ Error fetching appointments:', appointmentsError);
       throw appointmentsError;
     }
 
-    console.log(`📅 Found ${appointments?.length || 0} confirmed appointments for date ${targetDate}`);
+    console.log(`📅 Found ${appointments?.length || 0} appointments to check`);
 
     if (!appointments || appointments.length === 0) {
-      const duration = Date.now() - startTime;
-      console.log(`ℹ️  No confirmed appointments found for today (${duration}ms)`);
+      console.log('ℹ️ No appointments need reminders at this time');
       return new Response(
-        JSON.stringify({ 
-          message: 'No confirmed appointments found for today', 
-          germanTime: nowGerman.toLocaleString('de-DE'),
-          duration: `${duration}ms`
-        }),
+        JSON.stringify({ message: 'No appointments need reminders at this time', checkedTime: nowGerman.toISOString() }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     let remindersSent = 0;
-    let appointmentsChecked = 0;
-    let duplicatesSkipped = 0;
-    let errors = 0;
+    const processedAppointments = [];
 
     for (const appointment of appointments as AppointmentWithRecipient[]) {
       try {
-        appointmentsChecked++;
+        // Parse appointment time and convert to German timezone for comparison
+        const appointmentDateTime = new Date(`${appointment.appointment_date}T${appointment.appointment_time}:00`);
+        const appointmentGerman = convertToGermanTime(appointmentDateTime);
         
-        // Create appointment datetime in German timezone
-        const appointmentDateTime = new Date(`${appointment.appointment_date}T${appointment.appointment_time}`);
-        
-        console.log(`📋 Checking appointment ${appointment.id}: ${appointmentDateTime.toLocaleString('de-DE')}`);
-        
-        // Check if appointment is within reminder window
-        const isInReminderWindow = appointmentDateTime >= reminderStartTime && appointmentDateTime <= reminderEndTime;
-        
-        if (!isInReminderWindow) {
-          const timeDiff = (appointmentDateTime.getTime() - nowGerman.getTime()) / (1000 * 60);
-          console.log(`   ⏭️  Outside reminder window (${Math.round(timeDiff)} minutes away)`);
-          continue;
-        }
+        // Calculate time difference in minutes
+        const timeDiff = appointmentGerman.getTime() - nowGerman.getTime();
+        const minutesDiff = Math.round(timeDiff / (1000 * 60));
 
-        // IMPROVED DUPLICATE PREVENTION: Check if reminder was already sent with a grace period
-        const { data: existingReminder, error: reminderCheckError } = await supabase
-          .from('appointment_reminders')
-          .select('id, reminder_sent_at')
-          .eq('appointment_id', appointment.id)
-          .maybeSingle();
+        console.log(`📊 Appointment ${appointment.id}:`);
+        console.log(`   - Scheduled: ${appointmentGerman.toLocaleString('de-DE', {timeZone: 'Europe/Berlin'})}`);
+        console.log(`   - Minutes away: ${minutesDiff}`);
 
-        if (reminderCheckError) {
-          console.error(`❌ Error checking existing reminder for ${appointment.id}:`, reminderCheckError);
-          errors++;
-          continue;
-        }
+        // Send reminder if appointment is between 25-35 minutes away (to account for cron timing variations)
+        if (minutesDiff >= 25 && minutesDiff <= 35) {
+          const recipient = appointment.recipient;
+          
+          // Format the reminder message
+          const message = `🔔 Terminerinnerung!\n\n` +
+            `👤 Name: ${recipient.first_name} ${recipient.last_name}\n` +
+            `📧 E-Mail: ${recipient.email}\n` +
+            `📱 Telefon: ${recipient.phone_note || 'Nicht angegeben'}\n` +
+            `🕐 Termin: ${formatGermanDateTime(appointmentGerman)}\n\n` +
+            `⏰ Der Termin beginnt in ca. ${minutesDiff} Minuten!`;
 
-        if (existingReminder) {
-          duplicatesSkipped++;
-          const sentAt = new Date(existingReminder.reminder_sent_at);
-          console.log(`   ✅ Reminder already sent for appointment ${appointment.id} at ${sentAt.toLocaleString('de-DE')}`);
-          continue;
-        }
+          console.log(`📤 Sending reminder for appointment ${appointment.id} to ${chatIdArray.length} chat(s)`);
 
-        const recipient = appointment.recipient;
-        const timeDiff = Math.round((appointmentDateTime.getTime() - nowGerman.getTime()) / (1000 * 60));
-        
-        // Format the reminder message in German
-        const message = `🚨 TERMINERINNERUNG!\n\n` +
-          `👤 Name: ${recipient.first_name} ${recipient.last_name}\n` +
-          `📧 E-Mail: ${recipient.email}\n` +
-          `📱 Telefon: ${recipient.phone_note || 'Nicht angegeben'}\n` +
-          `🕐 Termin: ${appointmentDateTime.toLocaleString('de-DE', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-          })}\n\n` +
-          `⏰ Der Termin beginnt in ca. ${timeDiff} Minuten!\n` +
-          `🎯 Appointment ID: ${appointment.id}`;
+          let messageSentSuccessfully = false;
 
-        console.log(`📤 Sending reminder for appointment ${appointment.id} to ${chatIdArray.length} chat(s)`);
+          // Send message to all configured chat IDs
+          for (const chatId of chatIdArray) {
+            try {
+              const telegramResponse = await fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  chat_id: chatId,
+                  text: message,
+                  parse_mode: 'HTML'
+                }),
+              });
 
-        let messageSentSuccessfully = false;
-        const chatResults = [];
-
-        // Send message to all configured chat IDs
-        for (const chatId of chatIdArray) {
-          try {
-            console.log(`   📱 Sending to chat ID: ${chatId}`);
-            
-            const telegramResponse = await fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                chat_id: chatId,
-                text: message,
-                parse_mode: 'HTML',
-              }),
-            });
-
-            const responseData = await telegramResponse.json();
-
-            if (telegramResponse.ok) {
-              console.log(`   ✅ Reminder sent successfully to chat ID: ${chatId} (message_id: ${responseData.result?.message_id})`);
-              messageSentSuccessfully = true;
-              chatResults.push({ chatId, success: true, messageId: responseData.result?.message_id });
-            } else {
-              console.error(`   ❌ Failed to send to chat ID ${chatId}:`, responseData);
-              chatResults.push({ chatId, success: false, error: responseData });
-              errors++;
+              if (telegramResponse.ok) {
+                console.log(`✅ Reminder sent successfully to chat ID: ${chatId}`);
+                messageSentSuccessfully = true;
+              } else {
+                const errorText = await telegramResponse.text();
+                console.error(`❌ Failed to send to chat ID ${chatId}:`, errorText);
+              }
+            } catch (error) {
+              console.error(`❌ Error sending to chat ID ${chatId}:`, error);
             }
-          } catch (error) {
-            console.error(`   ❌ Error sending to chat ID ${chatId}:`, error);
-            chatResults.push({ chatId, success: false, error: error.message });
-            errors++;
           }
-        }
 
-        // Record reminder as sent only if at least one message was sent successfully
-        if (messageSentSuccessfully) {
-          const { error: reminderError } = await supabase
-            .from('appointment_reminders')
-            .insert({
-              appointment_id: appointment.id,
+          // Mark reminder as sent if at least one message was sent successfully
+          if (messageSentSuccessfully) {
+            const { error: reminderError } = await supabase
+              .from('appointment_reminders')
+              .insert({
+                appointment_id: appointment.id,
+              });
+
+            if (reminderError) {
+              console.error('❌ Error recording reminder:', reminderError);
+              // Continue anyway since the message was sent
+            } else {
+              console.log(`✅ Reminder recorded in database for appointment ${appointment.id}`);
+            }
+
+            remindersSent++;
+            processedAppointments.push({
+              appointmentId: appointment.id,
+              status: 'sent',
+              minutesAway: minutesDiff
             });
-
-          if (reminderError) {
-            console.error(`❌ Error recording reminder for ${appointment.id}:`, reminderError);
-            errors++;
           } else {
-            console.log(`   ✅ Reminder recorded in database for appointment ${appointment.id}`);
+            console.error(`❌ Failed to send reminder for appointment ${appointment.id} to any chat`);
+            processedAppointments.push({
+              appointmentId: appointment.id,
+              status: 'failed',
+              minutesAway: minutesDiff
+            });
           }
-
-          remindersSent++;
         } else {
-          console.error(`   ❌ Failed to send reminder for appointment ${appointment.id} to any chat`);
-          errors++;
+          console.log(`⏭️ Appointment ${appointment.id} is ${minutesDiff} minutes away, not in reminder window (25-35 minutes)`);
+          processedAppointments.push({
+            appointmentId: appointment.id,
+            status: 'not_in_window',
+            minutesAway: minutesDiff
+          });
         }
       } catch (error) {
         console.error(`❌ Error processing appointment ${appointment.id}:`, error);
-        errors++;
+        processedAppointments.push({
+          appointmentId: appointment.id,
+          status: 'error',
+          error: error.message
+        });
       }
     }
 
-    const duration = Date.now() - startTime;
-    const summary = {
-      success: true,
-      germanTime: nowGerman.toLocaleString('de-DE'),
-      appointmentsChecked,
-      remindersSent,
-      duplicatesSkipped,
-      errors,
-      chatIds: chatIdArray.length,
-      duration: `${duration}ms`,
-      message: `Checked ${appointmentsChecked} appointments, sent ${remindersSent} reminders, skipped ${duplicatesSkipped} duplicates, ${errors} errors`
-    };
-
-    console.log(`🎉 Function completed:`, summary);
+    console.log(`🎉 Reminder check completed: ${remindersSent} reminders sent out of ${appointments.length} appointments checked`);
 
     return new Response(
-      JSON.stringify(summary),
+      JSON.stringify({ 
+        success: true, 
+        remindersSent,
+        totalChecked: appointments.length,
+        chatIds: chatIdArray.length,
+        germanTime: nowGerman.toISOString(),
+        processedAppointments,
+        message: `Sent ${remindersSent} appointment reminders to ${chatIdArray.length} chat(s)`
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    const duration = Date.now() - Date.now();
-    console.error('💥 Error in send-appointment-reminder function:', error);
+    console.error('❌ Error in send-appointment-reminder function:', error);
     return new Response(
       JSON.stringify({ 
         error: error.message,
-        germanTime: convertToGermanTime(new Date()).toLocaleString('de-DE'),
-        duration: `${duration}ms`
+        timestamp: new Date().toISOString(),
+        function: 'send-appointment-reminder'
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
