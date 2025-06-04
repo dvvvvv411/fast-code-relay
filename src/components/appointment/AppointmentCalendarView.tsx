@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -123,9 +122,6 @@ const AppointmentCalendarView = ({ appointments, onAppointmentSelect }: Appointm
         variant: "destructive",
       });
     }
-    
-    // Always call the original appointment select handler
-    onAppointmentSelect(appointment);
   };
 
   return (
