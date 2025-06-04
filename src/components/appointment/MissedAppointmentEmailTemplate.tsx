@@ -66,40 +66,18 @@ const MissedAppointmentEmailTemplate: React.FC<MissedAppointmentEmailTemplatePro
 
         <p style={{ color: '#555', lineHeight: '1.6', fontSize: '16px', marginBottom: '30px' }}>
           Kein Problem! Wir verstehen, dass unvorhergesehene Dinge passieren können. 
-          Gerne können Sie einen neuen Termin buchen oder uns direkt anrufen.
+          Gerne können Sie uns direkt anrufen oder einen neuen Termin buchen.
         </p>
 
-        {/* Call to Action Buttons */}
+        {/* Call to Action Buttons - Swapped Order */}
         <div style={{ textAlign: 'center', margin: '40px 0' }}>
-          <a 
-            href={bookingUrl}
-            style={{
-              backgroundColor: '#ff6b35',
-              color: 'white',
-              padding: '18px 40px',
-              textDecoration: 'none',
-              borderRadius: '8px',
-              display: 'inline-block',
-              fontWeight: 'bold',
-              fontSize: '16px',
-              boxShadow: '0 4px 12px rgba(255, 107, 53, 0.3)',
-              transition: 'all 0.3s ease',
-              marginBottom: '20px'
-            }}
-          >
-            Neuen Termin buchen
-          </a>
-          
-          <div style={{ margin: '20px 0', color: '#666', fontSize: '14px' }}>
-            oder
-          </div>
-          
           <div style={{ 
             backgroundColor: '#f8f9fa', 
             padding: '20px', 
             borderRadius: '8px',
             border: '2px solid #ff6b35',
-            display: 'inline-block'
+            display: 'inline-block',
+            marginBottom: '20px'
           }}>
             <p style={{ margin: '0 0 10px 0', color: '#333', fontSize: '16px', fontWeight: 'bold' }}>
               Rufen Sie uns direkt an:
@@ -113,9 +91,31 @@ const MissedAppointmentEmailTemplate: React.FC<MissedAppointmentEmailTemplatePro
               +49 0711 25299903
             </a>
           </div>
+          
+          <div style={{ margin: '20px 0', color: '#666', fontSize: '14px' }}>
+            oder
+          </div>
+          
+          <a 
+            href={bookingUrl}
+            style={{
+              backgroundColor: '#ff6b35',
+              color: 'white',
+              padding: '18px 40px',
+              textDecoration: 'none',
+              borderRadius: '8px',
+              display: 'inline-block',
+              fontWeight: 'bold',
+              fontSize: '16px',
+              boxShadow: '0 4px 12px rgba(255, 107, 53, 0.3)',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            Neuen Termin buchen
+          </a>
         </div>
 
-        {/* Important Notice */}
+        {/* Important Notice - Updated Text */}
         <div style={{ 
           backgroundColor: '#fff3f0', 
           padding: '25px', 
@@ -127,8 +127,9 @@ const MissedAppointmentEmailTemplate: React.FC<MissedAppointmentEmailTemplatePro
             Wichtiger Hinweis:
           </h3>
           <p style={{ color: '#555', lineHeight: '1.6', margin: '0', fontSize: '16px' }}>
-            Bitte erscheinen Sie 15 Minuten vor Ihrem neuen Termin, um eine reibungslose Abwicklung zu gewährleisten. 
-            Falls Sie Fragen haben, zögern Sie nicht, uns anzurufen.
+            Sie haben 15 Minuten Zeit, uns anzurufen und Ihren aktuellen Termin wahrzunehmen. 
+            Nach dieser Zeit buchen Sie bitte einen neuen Termin über den Link oben. 
+            Erscheinen Sie dann 15 Minuten vor Ihrem neuen Termin für eine reibungslose Abwicklung.
           </p>
         </div>
 
