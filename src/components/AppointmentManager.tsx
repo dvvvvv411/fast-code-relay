@@ -18,7 +18,6 @@ import RecipientImport from './RecipientImport';
 import AppointmentCalendarView from './appointment/AppointmentCalendarView';
 import AppointmentListView from './appointment/AppointmentListView';
 import AppointmentDetailView from './appointment/AppointmentDetailView';
-import MissedAppointmentEmailPreviewDialog from './appointment/MissedAppointmentEmailPreviewDialog';
 
 interface Recipient {
   id: string;
@@ -60,8 +59,6 @@ const AppointmentManager = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [sendingEmails, setSendingEmails] = useState<Set<string>>(new Set());
-  const [missedEmailPreviewOpen, setMissedEmailPreviewOpen] = useState(false);
-  const [selectedMissedAppointment, setSelectedMissedAppointment] = useState<Appointment | null>(null);
   const { toast } = useToast();
 
   // New recipient form
@@ -399,11 +396,6 @@ const AppointmentManager = () => {
     setSelectedAppointment(appointment);
   };
 
-  const handleMissedEmailPreview = (appointment: Appointment) => {
-    setSelectedMissedAppointment(appointment);
-    setMissedEmailPreviewOpen(true);
-  };
-
   const handleSendEmail = async (recipient: Recipient) => {
     if (sendingEmails.has(recipient.id)) {
       return;
@@ -438,6 +430,39 @@ const AppointmentManager = () => {
         const newSet = new Set(prev);
         newSet.delete(recipient.id);
         return newSet;
+      });
+    }
+  };
+
+  const handleSendMissedAppointmentEmail = async (appointment: Appointment) => {
+    if (!appointment.recipient) {
+      toast({
+        title: "Fehler",
+        description: "Empfänger-Informationen nicht verfügbar.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('send-missed-appointment-email', {
+        body: {
+          appointmentId: appointment.id
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Erfolg",
+        description: `E-Mail für verpassten Termin wurde erfolgreich an ${appointment.recipient.first_name} ${appointment.recipient.last_name} gesendet.`,
+      });
+    } catch (error: any) {
+      console.error('Error sending missed appointment email:', error);
+      toast({
+        title: "Fehler",
+        description: error.message || "E-Mail für verpassten Termin konnte nicht gesendet werden.",
+        variant: "destructive",
       });
     }
   };
@@ -543,7 +568,7 @@ const AppointmentManager = () => {
               onPhoneNoteUpdate={handlePhoneNoteUpdate}
               onRefresh={handleRefresh}
               isRefreshing={isRefreshing}
-              onMissedEmailPreview={handleMissedEmailPreview}
+              onMissedEmailSend={handleSendMissedAppointmentEmail}
             />
           )}
         </div>
@@ -669,16 +694,6 @@ const AppointmentManager = () => {
           </Card>
         </div>
       )}
-
-      {/* Missed Appointment Email Preview Dialog */}
-      <MissedAppointmentEmailPreviewDialog
-        isOpen={missedEmailPreviewOpen}
-        onClose={() => {
-          setMissedEmailPreviewOpen(false);
-          setSelectedMissedAppointment(null);
-        }}
-        appointment={selectedMissedAppointment}
-      />
     </div>
   );
 };

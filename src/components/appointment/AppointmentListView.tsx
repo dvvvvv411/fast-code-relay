@@ -33,7 +33,7 @@ interface AppointmentListViewProps {
   onPhoneNoteUpdate?: (recipientId: string, phoneNote: string) => Promise<void>;
   onRefresh?: () => void;
   isRefreshing?: boolean;
-  onMissedEmailPreview?: (appointment: Appointment) => void;
+  onMissedEmailSend?: (appointment: Appointment) => void;
 }
 
 const AppointmentListView = ({ 
@@ -43,7 +43,7 @@ const AppointmentListView = ({
   onPhoneNoteUpdate, 
   onRefresh,
   isRefreshing = false,
-  onMissedEmailPreview
+  onMissedEmailSend
 }: AppointmentListViewProps) => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [editingPhoneNote, setEditingPhoneNote] = useState<string | null>(null);
@@ -170,8 +170,8 @@ const AppointmentListView = ({
 
   const handleMissedEmailClick = (appointment: Appointment, event: React.MouseEvent) => {
     event.stopPropagation();
-    if (onMissedEmailPreview) {
-      onMissedEmailPreview(appointment);
+    if (onMissedEmailSend) {
+      onMissedEmailSend(appointment);
     }
   };
 
@@ -415,13 +415,13 @@ const AppointmentListView = ({
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      {isPast(appointment) && onMissedEmailPreview && (
+                      {isPast(appointment) && onMissedEmailSend && (
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={(e) => handleMissedEmailClick(appointment, e)}
                           className="hover:bg-orange/10 hover:text-orange"
-                          title="Verpasster Termin E-Mail"
+                          title="E-Mail für verpassten Termin senden"
                         >
                           <Mail className="h-4 w-4" />
                         </Button>
