@@ -34,6 +34,10 @@ serve(async (req) => {
     
     if (!botToken || !adminChatIds || !supabaseUrl || !supabaseServiceKey) {
       console.error('Missing required environment variables');
+      console.log('Bot Token exists:', !!botToken);
+      console.log('Admin Chat IDs exist:', !!adminChatIds);
+      console.log('Supabase URL exists:', !!supabaseUrl);
+      console.log('Service Key exists:', !!supabaseServiceKey);
       return new Response('Missing environment variables', { status: 500 });
     }
 
@@ -42,6 +46,8 @@ serve(async (req) => {
       .map(id => id.trim())
       .filter(id => id.length > 0 && /^\d+$/.test(id));
 
+    console.log('Configured chat IDs:', chatIdArray);
+
     // Check if this is a message from an authorized admin
     const message = update.message;
     if (!message || !message.text) {
@@ -49,9 +55,14 @@ serve(async (req) => {
       return new Response('OK', { status: 200 });
     }
 
+    console.log('Message from chat ID:', message.chat.id);
     const isAuthorizedAdmin = chatIdArray.includes(message.chat.id.toString());
+    console.log('Is authorized admin:', isAuthorizedAdmin);
+    
     if (!isAuthorizedAdmin) {
       console.log('Message not from authorized admin, ignoring');
+      await sendTelegramMessage(botToken, message.chat.id.toString(), 
+        `❌ Nicht autorisiert. Ihre Chat-ID ist: ${message.chat.id}\nKonfigurierte IDs: ${chatIdArray.join(', ')}`);
       return new Response('OK', { status: 200 });
     }
 
@@ -134,7 +145,7 @@ serve(async (req) => {
 
       } catch (error) {
         console.error('Error processing /termine command:', error);
-        await sendTelegramMessage(botToken, message.chat.id.toString(), `❌ Fehler beim Verarbeiten des /termine Befehls.`);
+        await sendTelegramMessage(botToken, message.chat.id.toString(), `❌ Fehler beim Verarbeiten des /termine Befehls: ${error.message}`);
         return new Response('OK', { status: 200 });
       }
     }
