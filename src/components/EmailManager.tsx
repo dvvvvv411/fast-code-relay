@@ -128,10 +128,10 @@ const EmailManager = () => {
   };
 
   const onSubmit = async (data: EmailFormData) => {
-    if (!data.assignmentId || !data.phoneNumberId) {
+    if (!data.assignmentId) {
       toast({
         title: "Fehler",
-        description: "Bitte wählen Sie einen Auftrag und eine Telefonnummer aus.",
+        description: "Bitte wählen Sie einen Auftrag aus.",
         variant: "destructive",
       });
       return;
@@ -140,14 +140,20 @@ const EmailManager = () => {
     setIsLoading(true);
 
     try {
+      const requestBody: any = {
+        recipientEmail: data.recipientEmail,
+        recipientFirstName: data.recipientFirstName,
+        recipientLastName: data.recipientLastName,
+        assignmentId: data.assignmentId,
+      };
+
+      // Only include phone number if one is selected
+      if (data.phoneNumberId) {
+        requestBody.phoneNumberId = data.phoneNumberId;
+      }
+
       const { data: response, error } = await supabase.functions.invoke('send-assignment-email', {
-        body: {
-          recipientEmail: data.recipientEmail,
-          recipientFirstName: data.recipientFirstName,
-          recipientLastName: data.recipientLastName,
-          assignmentId: data.assignmentId,
-          phoneNumberId: data.phoneNumberId,
-        }
+        body: requestBody
       });
 
       if (error) {
@@ -183,10 +189,10 @@ const EmailManager = () => {
 
   const handlePreview = () => {
     const formData = form.getValues();
-    if (!formData.assignmentId || !formData.phoneNumberId) {
+    if (!formData.assignmentId) {
       toast({
         title: "Fehler",
-        description: "Bitte wählen Sie einen Auftrag und eine Telefonnummer aus.",
+        description: "Bitte wählen Sie einen Auftrag aus.",
         variant: "destructive",
       });
       return;
@@ -284,17 +290,17 @@ const EmailManager = () => {
               <FormField
                 control={form.control}
                 name="phoneNumberId"
-                rules={{ required: "Telefonnummer ist erforderlich" }}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Telefonnummer</FormLabel>
+                    <FormLabel>Telefonnummer (optional)</FormLabel>
                     <Select onValueChange={handlePhoneNumberChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Telefonnummer auswählen" />
+                          <SelectValue placeholder="Telefonnummer auswählen (optional)" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
+                        <SelectItem value="">Keine Telefonnummer</SelectItem>
                         {phoneNumbers.map((phone) => (
                           <SelectItem key={phone.id} value={phone.id}>
                             {phone.phone} (Code: {phone.access_code})

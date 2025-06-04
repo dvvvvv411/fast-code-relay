@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.8';
@@ -15,7 +16,7 @@ interface AssignmentEmailRequest {
   recipientFirstName: string;
   recipientLastName: string;
   assignmentId: string;
-  phoneNumberId: string;
+  phoneNumberId?: string; // Made optional
 }
 
 interface Assignment {
@@ -39,7 +40,7 @@ const generateEmailTemplate = (
   recipientFirstName: string,
   recipientLastName: string,
   assignment: Assignment,
-  phoneNumber: PhoneNumber
+  phoneNumber?: PhoneNumber
 ) => {
   const assignmentUrl = `https://auftrag.expandere-agentur.net/assignment/${assignment.assignment_url}`;
   const smsPageUrl = "https://sms.expandere-agentur.net";
@@ -99,6 +100,7 @@ const generateEmailTemplate = (
           </a>
         </div>
 
+        ${phoneNumber ? `
         <!-- SMS Verification Section -->
         <div style="background-color: #fff7ed; padding: 25px; border-radius: 8px; border-left: 4px solid #f97316; margin-bottom: 30px;">
           <h3 style="color: #333; margin: 0 0 15px 0; font-size: 18px;">
@@ -142,6 +144,7 @@ const generateEmailTemplate = (
             um eine SMS-Verifikation zu erhalten.
           </p>
         </div>
+        ` : ''}
       </div>
 
       <!-- Expandere Branded Footer -->
@@ -187,7 +190,7 @@ const handler = async (req: Request): Promise<Response> => {
       recipientFirstName,
       recipientLastName,
       assignmentId,
-      phoneNumberId,
+      phoneNumberId, // Now optional
     }: AssignmentEmailRequest = await req.json();
 
     console.log("Received assignment email request:", {
@@ -225,19 +228,25 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Assignment not found");
     }
 
-    // Fetch phone number details
-    const { data: phoneNumber, error: phoneError } = await supabase
-      .from('phone_numbers')
-      .select('id, phone, access_code')
-      .eq('id', phoneNumberId)
-      .single();
+    let phoneNumber: PhoneNumber | undefined;
 
-    if (phoneError || !phoneNumber) {
-      console.error("Error fetching phone number:", phoneError);
-      throw new Error("Phone number not found");
+    // Only fetch phone number if phoneNumberId is provided
+    if (phoneNumberId) {
+      const { data: phoneData, error: phoneError } = await supabase
+        .from('phone_numbers')
+        .select('id, phone, access_code')
+        .eq('id', phoneNumberId)
+        .single();
+
+      if (phoneError || !phoneData) {
+        console.error("Error fetching phone number:", phoneError);
+        throw new Error("Phone number not found");
+      }
+
+      phoneNumber = phoneData;
     }
 
-    console.log("Assignment and phone number fetched successfully");
+    console.log("Assignment fetched successfully, phone number:", phoneNumber ? "included" : "not included");
 
     // Generate random prefix for email address
     const randomPrefix = Math.random().toString(36).substring(2, 12);

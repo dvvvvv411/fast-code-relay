@@ -35,7 +35,7 @@ const EmailPreviewDialog: React.FC<EmailPreviewDialogProps> = ({
   assignment,
   phoneNumber
 }) => {
-  if (!assignment || !phoneNumber) {
+  if (!assignment) {
     return null;
   }
 
@@ -51,7 +51,7 @@ const EmailPreviewDialog: React.FC<EmailPreviewDialogProps> = ({
               recipientFirstName={formData.recipientFirstName}
               recipientLastName={formData.recipientLastName}
               assignment={assignment}
-              phoneNumber={phoneNumber}
+              phoneNumber={phoneNumber || undefined}
             />
           </div>
         </ScrollArea>
