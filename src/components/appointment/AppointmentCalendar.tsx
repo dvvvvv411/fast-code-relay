@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
@@ -53,9 +52,6 @@ const AppointmentCalendar = ({ appointments, blockedTimes, onDateSelect }: Appoi
   const isDateDisabled = (date: Date) => {
     // Disable past dates
     if (date < startOfDay(new Date())) return true;
-    
-    // Disable weekends
-    if (isWeekend(date)) return true;
     
     // Disable fully booked dates
     if (isDateFullyBooked(date)) return true;
