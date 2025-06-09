@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -390,7 +391,7 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
                     <div
                       className={`max-w-[80%] rounded-lg p-3 ${
                         message.sender_type === 'user'
-                          ? `bg-orange-500 text-white ${message.isOptimistic ? 'opacity-70' : ''}`
+                          ? 'bg-orange-500 text-white'
                           : 'bg-gray-100 text-gray-900'
                       }`}
                     >
@@ -410,7 +411,6 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
                         }`}
                       >
                         {new Date(message.created_at).toLocaleTimeString()}
-                        {message.isOptimistic && ' (wird gesendet...)'}
                       </p>
                     </div>
                     {message.sender_type === 'user' && (

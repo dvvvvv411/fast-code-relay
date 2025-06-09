@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -403,7 +402,7 @@ const LiveChatAdmin = () => {
                       <div
                         className={`max-w-[80%] rounded-lg p-3 ${
                           message.sender_type === 'admin'
-                            ? `bg-blue-500 text-white ${message.isOptimistic ? 'opacity-70' : ''}`
+                            ? 'bg-blue-500 text-white'
                             : 'bg-gray-100 text-gray-900'
                         }`}
                       >
@@ -418,7 +417,6 @@ const LiveChatAdmin = () => {
                           }`}
                         >
                           {message.sender_name} • {new Date(message.created_at).toLocaleTimeString()}
-                          {message.isOptimistic && ' (wird gesendet...)'}
                         </p>
                       </div>
                       {message.sender_type === 'admin' && (
