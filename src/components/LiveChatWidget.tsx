@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,6 +15,7 @@ interface Message {
   sender_type: 'user' | 'admin';
   sender_name: string;
   created_at: string;
+  isOptimistic?: boolean;
 }
 
 interface LiveChatWidgetProps {
@@ -45,11 +45,22 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
   // Handle new messages from realtime
   const handleNewMessage = (newMessage: Message) => {
     setMessages(prev => {
-      // Check if this message already exists to avoid duplicates
-      const messageExists = prev.some(msg => msg.id === newMessage.id);
+      // Remove any optimistic message that matches this real message
+      const filteredMessages = prev.filter(msg => {
+        if (msg.isOptimistic && 
+            msg.message.trim() === newMessage.message.trim() && 
+            msg.sender_type === newMessage.sender_type &&
+            msg.sender_name === newMessage.sender_name) {
+          return false; // Remove optimistic message
+        }
+        return true;
+      });
+      
+      // Check if this real message already exists to avoid duplicates
+      const messageExists = filteredMessages.some(msg => msg.id === newMessage.id);
       if (messageExists) return prev;
       
-      return [...prev, newMessage];
+      return [...filteredMessages, newMessage];
     });
   };
 
@@ -142,6 +153,19 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
     const messageText = newMessage.trim();
     setNewMessage('');
 
+    // Add optimistic message immediately with unique ID based on content and timestamp
+    const timestamp = Date.now();
+    const optimisticMessage: Message = {
+      id: `temp-${timestamp}`,
+      message: messageText,
+      sender_type: 'user',
+      sender_name: workerName,
+      created_at: new Date().toISOString(),
+      isOptimistic: true
+    };
+
+    setMessages(prev => [...prev, optimisticMessage]);
+
     try {
       const { error } = await supabase
         .from('live_chat_messages')
@@ -154,12 +178,16 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
 
       if (error) throw error;
 
-      // Message was sent successfully, it will appear via realtime
+      // Message was sent successfully, the real message will come via realtime
+      // and will automatically remove the optimistic message
 
     } catch (error) {
       console.error('Error sending message:', error);
       
-      // Restore message in input on error
+      // Remove optimistic message on error
+      setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
+      
+      // Restore message in input
       setNewMessage(messageText);
       
       toast({
@@ -265,7 +293,7 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
                     <div
                       className={`max-w-[80%] rounded-lg p-3 ${
                         message.sender_type === 'user'
-                          ? 'bg-orange-500 text-white'
+                          ? `bg-orange-500 text-white ${message.isOptimistic ? 'opacity-70' : ''}`
                           : 'bg-gray-100 text-gray-900'
                       }`}
                     >
@@ -280,6 +308,7 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
                         }`}
                       >
                         {new Date(message.created_at).toLocaleTimeString()}
+                        {message.isOptimistic && ' (wird gesendet...)'}
                       </p>
                     </div>
                     {message.sender_type === 'user' && (
