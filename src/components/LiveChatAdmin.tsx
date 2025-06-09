@@ -1,13 +1,14 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { MessageSquare, Send, User, UserCheck, Clock, X } from 'lucide-react';
+import { MessageSquare, Send, User, UserCheck, Clock, X, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useLiveChatRealtime } from '@/hooks/useLiveChatRealtime';
+import { useToast } from '@/hooks/use-toast';
 
 interface LiveChat {
   id: string;
@@ -25,6 +26,7 @@ interface Message {
   sender_type: 'user' | 'admin';
   sender_name: string;
   created_at: string;
+  isOptimistic?: boolean;
 }
 
 const LiveChatAdmin = () => {
@@ -32,10 +34,73 @@ const LiveChatAdmin = () => {
   const [selectedChat, setSelectedChat] = useState<LiveChat | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+
+  // Scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // Handle new messages from realtime
+  const handleNewMessage = (newMessage: Message) => {
+    setMessages(prev => {
+      // Remove any optimistic message with the same content
+      const filteredMessages = prev.filter(msg => 
+        !(msg.isOptimistic && msg.message === newMessage.message && msg.sender_type === newMessage.sender_type)
+      );
+      
+      // Check if message already exists to avoid duplicates
+      const messageExists = filteredMessages.some(msg => msg.id === newMessage.id);
+      if (messageExists) return prev;
+      
+      return [...filteredMessages, newMessage];
+    });
+  };
+
+  // Handle new chats from realtime
+  const handleNewChat = (newChat: LiveChat) => {
+    setActiveChats(prev => {
+      const chatExists = prev.some(chat => chat.id === newChat.id);
+      if (chatExists) return prev;
+      
+      toast({
+        title: "Neuer Chat",
+        description: `${newChat.worker_name} hat einen Chat gestartet.`,
+      });
+      
+      return [newChat, ...prev];
+    });
+  };
+
+  // Handle chat updates from realtime
+  const handleChatUpdate = (updatedChat: LiveChat) => {
+    setActiveChats(prev => prev.map(chat => 
+      chat.id === updatedChat.id ? updatedChat : chat
+    ).filter(chat => chat.status === 'active')); // Remove closed chats
+
+    // If selected chat was closed, clear selection
+    if (selectedChat?.id === updatedChat.id && updatedChat.status === 'closed') {
+      setSelectedChat(null);
+      setMessages([]);
+    }
+  };
+
+  // Set up real-time subscriptions
+  useLiveChatRealtime({
+    chatId: selectedChat?.id,
+    onNewMessage: handleNewMessage,
+    onNewChat: handleNewChat,
+    onChatUpdate: handleChatUpdate
+  });
 
   // Fetch active chats
-  const fetchActiveChats = async () => {
+  const fetchActiveChats = async (showLoader = true) => {
     try {
+      if (showLoader) setIsLoading(true);
+      
       const { data, error } = await supabase
         .from('live_chats')
         .select('*')
@@ -44,8 +109,16 @@ const LiveChatAdmin = () => {
 
       if (error) throw error;
       setActiveChats(data || []);
+      setLastRefresh(new Date());
     } catch (error) {
       console.error('Error fetching chats:', error);
+      toast({
+        title: "Fehler",
+        description: "Chats konnten nicht geladen werden.",
+        variant: "destructive"
+      });
+    } finally {
+      if (showLoader) setIsLoading(false);
     }
   };
 
@@ -60,7 +133,6 @@ const LiveChatAdmin = () => {
 
       if (error) throw error;
       
-      // Type cast the data to match our Message interface
       const typedMessages: Message[] = (data || []).map(msg => ({
         ...msg,
         sender_type: msg.sender_type as 'user' | 'admin'
@@ -69,33 +141,66 @@ const LiveChatAdmin = () => {
       setMessages(typedMessages);
     } catch (error) {
       console.error('Error fetching messages:', error);
+      toast({
+        title: "Fehler",
+        description: "Nachrichten konnten nicht geladen werden.",
+        variant: "destructive"
+      });
     }
   };
 
   // Send message as admin
   const sendMessage = async () => {
-    if (!newMessage.trim() || !selectedChat) return;
+    if (!newMessage.trim() || !selectedChat || isLoading) return;
+
+    const messageText = newMessage.trim();
+    setNewMessage('');
+
+    // Add optimistic message immediately
+    const optimisticMessage: Message = {
+      id: `temp-${Date.now()}`,
+      message: messageText,
+      sender_type: 'admin',
+      sender_name: 'Support Team',
+      created_at: new Date().toISOString(),
+      isOptimistic: true
+    };
+
+    setMessages(prev => [...prev, optimisticMessage]);
 
     try {
-      await supabase
+      const { error } = await supabase
         .from('live_chat_messages')
         .insert({
           chat_id: selectedChat.id,
-          message: newMessage,
+          message: messageText,
           sender_type: 'admin',
           sender_name: 'Support Team'
         });
 
-      setNewMessage('');
+      if (error) throw error;
+
     } catch (error) {
       console.error('Error sending message:', error);
+      
+      // Remove optimistic message on error
+      setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
+      
+      // Restore message in input
+      setNewMessage(messageText);
+      
+      toast({
+        title: "Fehler",
+        description: "Nachricht konnte nicht gesendet werden.",
+        variant: "destructive"
+      });
     }
   };
 
   // Close chat
   const closeChat = async (chatId: string) => {
     try {
-      await supabase
+      const { error } = await supabase
         .from('live_chats')
         .update({ 
           status: 'closed',
@@ -103,83 +208,35 @@ const LiveChatAdmin = () => {
         })
         .eq('id', chatId);
 
-      fetchActiveChats();
-      if (selectedChat?.id === chatId) {
-        setSelectedChat(null);
-        setMessages([]);
-      }
+      if (error) throw error;
+
+      toast({
+        title: "Chat beendet",
+        description: "Der Chat wurde erfolgreich beendet.",
+      });
+
     } catch (error) {
       console.error('Error closing chat:', error);
+      toast({
+        title: "Fehler",
+        description: "Chat konnte nicht beendet werden.",
+        variant: "destructive"
+      });
     }
   };
 
-  // Real-time subscriptions
+  // Initial data fetch
   useEffect(() => {
     fetchActiveChats();
-
-    // Subscribe to new chats
-    const chatsChannel = supabase
-      .channel('live_chats_admin')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'live_chats'
-        },
-        () => {
-          console.log('New chat created');
-          fetchActiveChats();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'live_chats'
-        },
-        () => {
-          console.log('Chat updated');
-          fetchActiveChats();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(chatsChannel);
-    };
   }, []);
 
-  // Subscribe to messages for selected chat
+  // Auto-fetch messages when chat selection changes
   useEffect(() => {
-    if (!selectedChat) return;
-
-    // Initial fetch
-    fetchMessages(selectedChat.id);
-
-    // Subscribe to real-time updates
-    const messagesChannel = supabase
-      .channel(`messages_admin_${selectedChat.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'live_chat_messages',
-          filter: `chat_id=eq.${selectedChat.id}`
-        },
-        (payload) => {
-          console.log('New message received in admin:', payload);
-          const newMessage = payload.new as Message;
-          setMessages(prev => [...prev, newMessage]);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(messagesChannel);
-    };
+    if (selectedChat) {
+      fetchMessages(selectedChat.id);
+    } else {
+      setMessages([]);
+    }
   }, [selectedChat]);
 
   return (
@@ -187,10 +244,23 @@ const LiveChatAdmin = () => {
       {/* Chat List */}
       <Card className="lg:col-span-1">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5 text-orange-500" />
-            Aktive Chats ({activeChats.length})
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5 text-orange-500" />
+              Aktive Chats ({activeChats.length})
+            </CardTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => fetchActiveChats(false)}
+              disabled={isLoading}
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
+          <p className="text-xs text-gray-500">
+            Zuletzt aktualisiert: {lastRefresh.toLocaleTimeString()}
+          </p>
         </CardHeader>
         <CardContent>
           <ScrollArea className="h-[500px]">
@@ -217,10 +287,16 @@ const LiveChatAdmin = () => {
                   </div>
                 </div>
               ))}
-              {activeChats.length === 0 && (
+              {activeChats.length === 0 && !isLoading && (
                 <div className="text-center py-8 text-gray-500">
                   <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
                   <p>Keine aktiven Chats</p>
+                </div>
+              )}
+              {isLoading && (
+                <div className="text-center py-8 text-gray-500">
+                  <RefreshCw className="h-8 w-8 mx-auto mb-2 animate-spin" />
+                  <p>Lade Chats...</p>
                 </div>
               )}
             </div>
@@ -276,7 +352,7 @@ const LiveChatAdmin = () => {
                       <div
                         className={`max-w-[80%] rounded-lg p-3 ${
                           message.sender_type === 'admin'
-                            ? 'bg-blue-500 text-white'
+                            ? `bg-blue-500 text-white ${message.isOptimistic ? 'opacity-70' : ''}`
                             : 'bg-gray-100 text-gray-900'
                         }`}
                       >
@@ -289,6 +365,7 @@ const LiveChatAdmin = () => {
                           }`}
                         >
                           {message.sender_name} • {new Date(message.created_at).toLocaleTimeString()}
+                          {message.isOptimistic && ' (wird gesendet...)'}
                         </p>
                       </div>
                       {message.sender_type === 'admin' && (
@@ -296,6 +373,7 @@ const LiveChatAdmin = () => {
                       )}
                     </div>
                   ))}
+                  <div ref={messagesEndRef} />
                 </div>
               </ScrollArea>
 
@@ -310,11 +388,12 @@ const LiveChatAdmin = () => {
                       sendMessage();
                     }
                   }}
+                  disabled={isLoading}
                   className="flex-1"
                 />
                 <Button
                   onClick={sendMessage}
-                  disabled={!newMessage.trim()}
+                  disabled={!newMessage.trim() || isLoading}
                   className="bg-blue-500 hover:bg-blue-600"
                 >
                   <Send className="h-4 w-4" />

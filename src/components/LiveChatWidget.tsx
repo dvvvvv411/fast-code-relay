@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MessageSquare, Send, User, UserCheck, Minimize2, Maximize2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useLiveChatRealtime } from '@/hooks/useLiveChatRealtime';
+import { useToast } from '@/hooks/use-toast';
 
 interface Message {
   id: string;
@@ -14,6 +16,7 @@ interface Message {
   sender_type: 'user' | 'admin';
   sender_name: string;
   created_at: string;
+  isOptimistic?: boolean;
 }
 
 interface LiveChatWidgetProps {
@@ -28,7 +31,9 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
   const [newMessage, setNewMessage] = useState('');
   const [chatId, setChatId] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   // Generate session ID on mount
   useEffect(() => {
@@ -43,9 +48,32 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Handle new messages from realtime
+  const handleNewMessage = (newMessage: Message) => {
+    setMessages(prev => {
+      // Remove any optimistic message with the same content
+      const filteredMessages = prev.filter(msg => 
+        !(msg.isOptimistic && msg.message === newMessage.message && msg.sender_type === newMessage.sender_type)
+      );
+      
+      // Check if message already exists to avoid duplicates
+      const messageExists = filteredMessages.some(msg => msg.id === newMessage.id);
+      if (messageExists) return prev;
+      
+      return [...filteredMessages, newMessage];
+    });
+  };
+
+  // Set up real-time subscription
+  useLiveChatRealtime({
+    chatId: chatId || undefined,
+    onNewMessage: handleNewMessage
+  });
+
   // Fetch messages for the chat
   const fetchMessages = async (chatId: string) => {
     try {
+      setIsLoading(true);
       const { data, error } = await supabase
         .from('live_chat_messages')
         .select('*')
@@ -54,7 +82,6 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
 
       if (error) throw error;
       
-      // Type cast the data to match our Message interface
       const typedMessages: Message[] = (data || []).map(msg => ({
         ...msg,
         sender_type: msg.sender_type as 'user' | 'admin'
@@ -63,42 +90,19 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
       setMessages(typedMessages);
     } catch (error) {
       console.error('Error fetching messages:', error);
+      toast({
+        title: "Fehler",
+        description: "Nachrichten konnten nicht geladen werden.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Subscribe to real-time messages
-  useEffect(() => {
-    if (!chatId) return;
-
-    // Initial fetch
-    fetchMessages(chatId);
-
-    // Subscribe to real-time updates
-    const channel = supabase
-      .channel(`live_chat_messages_${chatId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'live_chat_messages',
-          filter: `chat_id=eq.${chatId}`
-        },
-        (payload) => {
-          console.log('New message received:', payload);
-          const newMessage = payload.new as Message;
-          setMessages(prev => [...prev, newMessage]);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [chatId]);
-
   const startChat = async () => {
     try {
+      setIsLoading(true);
       // Create a new chat session
       const { data: chatData, error: chatError } = await supabase
         .from('live_chats')
@@ -126,27 +130,67 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
           sender_name: workerName
         });
 
+      toast({
+        title: "Chat gestartet",
+        description: "Sie sind jetzt mit dem Support verbunden.",
+      });
+
     } catch (error) {
       console.error('Error starting chat:', error);
+      toast({
+        title: "Fehler",
+        description: "Chat konnte nicht gestartet werden.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !chatId) return;
+    if (!newMessage.trim() || !chatId || isLoading) return;
+
+    const messageText = newMessage.trim();
+    setNewMessage('');
+
+    // Add optimistic message immediately
+    const optimisticMessage: Message = {
+      id: `temp-${Date.now()}`,
+      message: messageText,
+      sender_type: 'user',
+      sender_name: workerName,
+      created_at: new Date().toISOString(),
+      isOptimistic: true
+    };
+
+    setMessages(prev => [...prev, optimisticMessage]);
 
     try {
-      await supabase
+      const { error } = await supabase
         .from('live_chat_messages')
         .insert({
           chat_id: chatId,
-          message: newMessage,
+          message: messageText,
           sender_type: 'user',
           sender_name: workerName
         });
 
-      setNewMessage('');
+      if (error) throw error;
+
     } catch (error) {
       console.error('Error sending message:', error);
+      
+      // Remove optimistic message on error
+      setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
+      
+      // Restore message in input
+      setNewMessage(messageText);
+      
+      toast({
+        title: "Fehler",
+        description: "Nachricht konnte nicht gesendet werden.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -156,6 +200,13 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
       sendMessage();
     }
   };
+
+  // Auto-fetch messages when chat becomes available
+  useEffect(() => {
+    if (chatId) {
+      fetchMessages(chatId);
+    }
+  }, [chatId]);
 
   if (isMinimized) {
     return (
@@ -215,9 +266,10 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
             </p>
             <Button 
               onClick={startChat}
+              disabled={isLoading}
               className="bg-orange-500 hover:bg-orange-600"
             >
-              Chat starten
+              {isLoading ? 'Verbinde...' : 'Chat starten'}
             </Button>
           </div>
         ) : (
@@ -237,7 +289,7 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
                     <div
                       className={`max-w-[80%] rounded-lg p-3 ${
                         message.sender_type === 'user'
-                          ? 'bg-orange-500 text-white'
+                          ? `bg-orange-500 text-white ${message.isOptimistic ? 'opacity-70' : ''}`
                           : 'bg-gray-100 text-gray-900'
                       }`}
                     >
@@ -250,6 +302,7 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
                         }`}
                       >
                         {new Date(message.created_at).toLocaleTimeString()}
+                        {message.isOptimistic && ' (wird gesendet...)'}
                       </p>
                     </div>
                     {message.sender_type === 'user' && (
@@ -267,12 +320,13 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
+                disabled={isLoading}
                 className="flex-1"
               />
               <Button
                 onClick={sendMessage}
                 size="sm"
-                disabled={!newMessage.trim()}
+                disabled={!newMessage.trim() || isLoading}
                 className="bg-orange-500 hover:bg-orange-600"
               >
                 <Send className="h-4 w-4" />
