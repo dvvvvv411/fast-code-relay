@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -42,18 +41,6 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
     };
     setSessionId(generateSessionId());
   }, []);
-
-  // Scroll to bottom when new messages arrive, but avoid scrolling on optimistic updates
-  useEffect(() => {
-    // Only scroll if we have real messages and the last message is not optimistic
-    const realMessages = messages.filter(msg => !msg.isOptimistic);
-    if (realMessages.length > 0) {
-      // Use setTimeout to ensure DOM is updated before scrolling
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
-    }
-  }, [messages.filter(msg => !msg.isOptimistic).length]);
 
   // Handle new messages from realtime
   const handleNewMessage = (newMessage: Message) => {
