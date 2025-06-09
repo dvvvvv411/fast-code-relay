@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -42,10 +43,17 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
     setSessionId(generateSessionId());
   }, []);
 
-  // Scroll to bottom when new messages arrive, but only for incoming messages
+  // Scroll to bottom when new messages arrive, but avoid scrolling on optimistic updates
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages.filter(msg => !msg.isOptimistic).length]); // Only scroll for real messages, not optimistic ones
+    // Only scroll if we have real messages and the last message is not optimistic
+    const realMessages = messages.filter(msg => !msg.isOptimistic);
+    if (realMessages.length > 0) {
+      // Use setTimeout to ensure DOM is updated before scrolling
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }, [messages.filter(msg => !msg.isOptimistic).length]);
 
   // Handle new messages from realtime
   const handleNewMessage = (newMessage: Message) => {
@@ -125,14 +133,14 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
       setChatId(chatData.id);
       setIsConnected(true);
 
-      // Send initial message with new text
+      // Send initial welcome message as admin/support
       await supabase
         .from('live_chat_messages')
         .insert({
           chat_id: chatData.id,
           message: 'Willkommen im Live Chat, wenn Sie Probleme bei der Aufgabe haben können Sie hier während den Geschäftszeiten nach Hilfe fragen.',
-          sender_type: 'user',
-          sender_name: workerName
+          sender_type: 'admin',
+          sender_name: 'Support Team'
         });
 
       toast({
