@@ -1,10 +1,11 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
-import { MessageSquare, Send, User, UserCheck, Clock, X, RefreshCw } from 'lucide-react';
+import { MessageSquare, Send, User, UserCheck, Clock, X, RefreshCw, Filter } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useLiveChatRealtime } from '@/hooks/useLiveChatRealtime';
 import { useToast } from '@/hooks/use-toast';
@@ -31,11 +32,13 @@ interface Message {
 
 const LiveChatAdmin = () => {
   const [activeChats, setActiveChats] = useState<LiveChat[]>([]);
+  const [closedChats, setClosedChats] = useState<LiveChat[]>([]);
   const [selectedChat, setSelectedChat] = useState<LiveChat | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [showClosedChats, setShowClosedChats] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -83,9 +86,21 @@ const LiveChatAdmin = () => {
 
   // Handle chat updates from realtime
   const handleChatUpdate = (updatedChat: LiveChat) => {
+    // Update active chats - remove if closed
     setActiveChats(prev => prev.map(chat => 
       chat.id === updatedChat.id ? updatedChat : chat
-    ).filter(chat => chat.status === 'active')); // Remove closed chats
+    ).filter(chat => chat.status === 'active'));
+
+    // Update closed chats - add if newly closed
+    if (updatedChat.status === 'closed') {
+      setClosedChats(prev => {
+        const chatExists = prev.some(chat => chat.id === updatedChat.id);
+        if (chatExists) {
+          return prev.map(chat => chat.id === updatedChat.id ? updatedChat : chat);
+        }
+        return [updatedChat, ...prev];
+      });
+    }
 
     // If selected chat was closed, clear selection
     if (selectedChat?.id === updatedChat.id && updatedChat.status === 'closed') {
@@ -122,10 +137,36 @@ const LiveChatAdmin = () => {
       setActiveChats(data || []);
       setLastRefresh(new Date());
     } catch (error) {
-      console.error('Error fetching chats:', error);
+      console.error('Error fetching active chats:', error);
       toast({
         title: "Fehler",
-        description: "Chats konnten nicht geladen werden.",
+        description: "Aktive Chats konnten nicht geladen werden.",
+        variant: "destructive"
+      });
+    } finally {
+      if (showLoader) setIsLoading(false);
+    }
+  };
+
+  // Fetch closed chats
+  const fetchClosedChats = async (showLoader = true) => {
+    try {
+      if (showLoader) setIsLoading(true);
+      
+      const { data, error } = await supabase
+        .from('live_chats')
+        .select('*')
+        .eq('status', 'closed')
+        .order('closed_at', { ascending: false });
+
+      if (error) throw error;
+      setClosedChats(data || []);
+      setLastRefresh(new Date());
+    } catch (error) {
+      console.error('Error fetching closed chats:', error);
+      toast({
+        title: "Fehler",
+        description: "Abgeschlossene Chats konnten nicht geladen werden.",
         variant: "destructive"
       });
     } finally {
@@ -178,8 +219,8 @@ const LiveChatAdmin = () => {
   const handleChatSelection = (chat: LiveChat) => {
     setSelectedChat(chat);
     
-    // Reset unread count when admin views the chat
-    if (chat.unread_count > 0) {
+    // Reset unread count when admin views the chat (only for active chats)
+    if (chat.status === 'active' && chat.unread_count > 0) {
       resetUnreadCount(chat.id);
       // Update local state immediately for better UX
       setActiveChats(prev => prev.map(c => 
@@ -190,7 +231,7 @@ const LiveChatAdmin = () => {
 
   // Send message as admin
   const sendMessage = async () => {
-    if (!newMessage.trim() || !selectedChat || isLoading) return;
+    if (!newMessage.trim() || !selectedChat || isLoading || selectedChat.status === 'closed') return;
 
     const messageText = newMessage.trim();
     setNewMessage('');
@@ -268,10 +309,27 @@ const LiveChatAdmin = () => {
     }
   };
 
+  // Toggle between active and closed chats
+  const toggleChatView = () => {
+    setShowClosedChats(!showClosedChats);
+    setSelectedChat(null);
+    setMessages([]);
+  };
+
   // Initial data fetch
   useEffect(() => {
     fetchActiveChats();
+    fetchClosedChats();
   }, []);
+
+  // Refresh data when view toggles
+  useEffect(() => {
+    if (showClosedChats) {
+      fetchClosedChats(false);
+    } else {
+      fetchActiveChats(false);
+    }
+  }, [showClosedChats]);
 
   // Auto-fetch messages when chat selection changes
   useEffect(() => {
@@ -282,6 +340,8 @@ const LiveChatAdmin = () => {
     }
   }, [selectedChat]);
 
+  const currentChats = showClosedChats ? closedChats : activeChats;
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[600px]">
       {/* Chat List */}
@@ -290,16 +350,27 @@ const LiveChatAdmin = () => {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <MessageSquare className="h-5 w-5 text-orange-500" />
-              Aktive Chats ({activeChats.length})
+              {showClosedChats ? 'Abgeschlossene Chats' : 'Aktive Chats'} ({currentChats.length})
             </CardTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => fetchActiveChats(false)}
-              disabled={isLoading}
-            >
-              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant={showClosedChats ? "outline" : "default"}
+                size="sm"
+                onClick={toggleChatView}
+                className="flex items-center gap-1"
+              >
+                <Filter className="h-3 w-3" />
+                {showClosedChats ? 'Aktive' : 'Beendet'}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => showClosedChats ? fetchClosedChats(false) : fetchActiveChats(false)}
+                disabled={isLoading}
+              >
+                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
           </div>
           <p className="text-xs text-gray-500">
             Zuletzt aktualisiert: {lastRefresh.toLocaleTimeString()}
@@ -308,7 +379,7 @@ const LiveChatAdmin = () => {
         <CardContent>
           <ScrollArea className="h-[500px]">
             <div className="space-y-2">
-              {activeChats.map((chat) => (
+              {currentChats.map((chat) => (
                 <div
                   key={chat.id}
                   className={`p-3 rounded-lg border cursor-pointer transition-colors ${
@@ -321,26 +392,32 @@ const LiveChatAdmin = () => {
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <p className="font-medium text-sm">{chat.worker_name}</p>
-                      {chat.unread_count > 0 && (
+                      {!showClosedChats && chat.unread_count > 0 && (
                         <Badge variant="destructive" className="text-xs">
                           {chat.unread_count} neue
                         </Badge>
                       )}
                     </div>
-                    <Badge variant="secondary" className="bg-green-100 text-green-700">
-                      Aktiv
+                    <Badge 
+                      variant="secondary" 
+                      className={showClosedChats ? "bg-gray-100 text-gray-700" : "bg-green-100 text-green-700"}
+                    >
+                      {showClosedChats ? 'Beendet' : 'Aktiv'}
                     </Badge>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-gray-500">
                     <Clock className="h-3 w-3" />
-                    {new Date(chat.created_at).toLocaleString()}
+                    {showClosedChats && chat.closed_at
+                      ? `Beendet: ${new Date(chat.closed_at).toLocaleString()}`
+                      : `Gestartet: ${new Date(chat.created_at).toLocaleString()}`
+                    }
                   </div>
                 </div>
               ))}
-              {activeChats.length === 0 && !isLoading && (
+              {currentChats.length === 0 && !isLoading && (
                 <div className="text-center py-8 text-gray-500">
                   <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>Keine aktiven Chats</p>
+                  <p>{showClosedChats ? 'Keine abgeschlossenen Chats' : 'Keine aktiven Chats'}</p>
                 </div>
               )}
               {isLoading && (
@@ -363,6 +440,11 @@ const LiveChatAdmin = () => {
                 <>
                   <User className="h-5 w-5 text-orange-500" />
                   Chat mit {selectedChat.worker_name}
+                  {selectedChat.status === 'closed' && (
+                    <Badge variant="secondary" className="bg-gray-100 text-gray-700 ml-2">
+                      Beendet
+                    </Badge>
+                  )}
                 </>
               ) : (
                 <>
@@ -371,7 +453,7 @@ const LiveChatAdmin = () => {
                 </>
               )}
             </CardTitle>
-            {selectedChat && (
+            {selectedChat && selectedChat.status === 'active' && (
               <Button
                 variant="outline"
                 size="sm"
@@ -428,29 +510,42 @@ const LiveChatAdmin = () => {
                 </div>
               </ScrollArea>
 
-              <div className="flex gap-2">
-                <Textarea
-                  placeholder="Nachricht als Support-Team senden... (Shift+Enter für neue Zeile)"
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      sendMessage();
-                    }
-                  }}
-                  disabled={isLoading}
-                  className="flex-1 min-h-[40px] max-h-[120px] resize-none"
-                  rows={2}
-                />
-                <Button
-                  onClick={sendMessage}
-                  disabled={!newMessage.trim() || isLoading}
-                  className="bg-blue-500 hover:bg-blue-600 self-end"
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
-              </div>
+              {selectedChat.status === 'active' ? (
+                <div className="flex gap-2">
+                  <Textarea
+                    placeholder="Nachricht als Support-Team senden... (Shift+Enter für neue Zeile)"
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        sendMessage();
+                      }
+                    }}
+                    disabled={isLoading}
+                    className="flex-1 min-h-[40px] max-h-[120px] resize-none"
+                    rows={2}
+                  />
+                  <Button
+                    onClick={sendMessage}
+                    disabled={!newMessage.trim() || isLoading}
+                    className="bg-blue-500 hover:bg-blue-600 self-end"
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="bg-gray-50 p-4 rounded-lg text-center">
+                  <p className="text-gray-600">
+                    Dieser Chat wurde beendet. Es können keine neuen Nachrichten gesendet werden.
+                  </p>
+                  {selectedChat.closed_at && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Beendet am: {new Date(selectedChat.closed_at).toLocaleString()}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           ) : (
             <div className="h-[400px] flex items-center justify-center text-gray-500">
