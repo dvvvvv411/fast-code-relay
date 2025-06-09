@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,7 +32,23 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
   const [sessionId, setSessionId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  // Auto-scroll to bottom when new messages arrive
+  const scrollToBottom = () => {
+    if (scrollAreaRef.current) {
+      const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (viewport) {
+        viewport.scrollTop = viewport.scrollHeight;
+      }
+    }
+  };
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   // Generate session ID on mount
   useEffect(() => {
@@ -326,7 +341,7 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
           </div>
         ) : (
           <>
-            <ScrollArea className="h-80 w-full border rounded-lg p-3">
+            <ScrollArea ref={scrollAreaRef} className="h-80 w-full border rounded-lg p-3">
               <div className="space-y-3">
                 {messages.map((message) => (
                   <div
