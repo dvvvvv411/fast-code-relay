@@ -9,6 +9,7 @@ import SupportTickets from './SupportTickets';
 import EmailManager from './EmailManager';
 import AppointmentManager from './AppointmentManager';
 import FeedbackManager from './FeedbackManager';
+import LiveChatAdmin from './LiveChatAdmin';
 import AdminNavbar from './AdminNavbar';
 import { useSMS } from '@/context/SMSContext';
 import { MessageSquare } from 'lucide-react';
@@ -31,6 +32,8 @@ const AdminPanel = () => {
         return <AuftraegeManager />;
       case 'support':
         return <SupportTickets />;
+      case 'livechat':
+        return <LiveChatAdmin />;
       case 'mails':
         return <EmailManager />;
       case 'appointments':

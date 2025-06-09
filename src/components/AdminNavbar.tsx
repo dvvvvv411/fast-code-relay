@@ -31,6 +31,7 @@ const AdminNavbar = ({ activeTab, onTabChange }: AdminNavbarProps) => {
     { id: 'requests', label: 'SMS', icon: MessageSquare },
     { id: 'phones', label: 'Nummern', icon: Phone },
     { id: 'support', label: 'Support', icon: Headphones },
+    { id: 'livechat', label: 'Live Chat', icon: MessageSquare },
   ];
 
   const auftraegeMenuItems = [

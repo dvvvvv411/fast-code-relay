@@ -349,6 +349,79 @@ export type Database = {
           },
         ]
       }
+      live_chat_messages: {
+        Row: {
+          chat_id: string
+          created_at: string
+          id: string
+          message: string
+          sender_name: string
+          sender_type: string
+        }
+        Insert: {
+          chat_id: string
+          created_at?: string
+          id?: string
+          message: string
+          sender_name: string
+          sender_type: string
+        }
+        Update: {
+          chat_id?: string
+          created_at?: string
+          id?: string
+          message?: string
+          sender_name?: string
+          sender_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_chat_messages_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "live_chats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_chats: {
+        Row: {
+          assignment_id: string | null
+          closed_at: string | null
+          created_at: string
+          id: string
+          session_id: string
+          status: string
+          worker_name: string
+        }
+        Insert: {
+          assignment_id?: string | null
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          session_id: string
+          status?: string
+          worker_name: string
+        }
+        Update: {
+          assignment_id?: string | null
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          session_id?: string
+          status?: string
+          worker_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_chats_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "auftrag_assignments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       phone_numbers: {
         Row: {
           access_code: string
