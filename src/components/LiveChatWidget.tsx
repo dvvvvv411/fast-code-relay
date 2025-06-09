@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -78,7 +77,6 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
         .from('live_chats')
         .select('*')
         .eq('assignment_id', assignmentId)
-        .eq('status', 'active')
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -91,7 +89,15 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
       if (existingChat) {
         console.log('Found existing chat:', existingChat);
         setChatId(existingChat.id);
-        setIsConnected(true);
+        
+        // Check if the chat is closed
+        if (existingChat.status === 'closed') {
+          setIsChatClosed(true);
+          setIsConnected(false);
+        } else {
+          setIsConnected(true);
+          setIsChatClosed(false);
+        }
         // Messages will be fetched when chatId is set
       } else {
         console.log('No existing chat found for assignment:', assignmentId);
@@ -197,6 +203,10 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
       console.log('Created new chat:', chatData);
       setChatId(chatData.id);
       setIsConnected(true);
+      setIsChatClosed(false);
+
+      // Clear previous messages
+      setMessages([]);
 
       // Send initial welcome message as admin/support
       await supabase
@@ -356,9 +366,16 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
             <p className="text-gray-600 mb-4">
               Der Chat wurde erfolgreich beendet. Vielen Dank für Ihre Nachricht!
             </p>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 mb-6">
               Bei weiteren Fragen können Sie einen neuen Chat starten.
             </p>
+            <Button 
+              onClick={startChat}
+              disabled={isLoading}
+              className="bg-orange-500 hover:bg-orange-600"
+            >
+              {isLoading ? 'Starte neuen Chat...' : 'Neuen Chat starten'}
+            </Button>
           </div>
         ) : !isConnected ? (
           <div className="text-center py-6">
