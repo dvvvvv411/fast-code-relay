@@ -2,9 +2,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Textarea } from '@/components/ui/textarea';
 import { MessageSquare, Send, User, UserCheck, Clock, X, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useLiveChatRealtime } from '@/hooks/useLiveChatRealtime';
@@ -47,12 +47,18 @@ const LiveChatAdmin = () => {
   // Handle new messages from realtime
   const handleNewMessage = (newMessage: Message) => {
     setMessages(prev => {
-      // Remove any optimistic message with the same content
-      const filteredMessages = prev.filter(msg => 
-        !(msg.isOptimistic && msg.message === newMessage.message && msg.sender_type === newMessage.sender_type)
-      );
+      // Remove any optimistic message that matches this real message
+      const filteredMessages = prev.filter(msg => {
+        if (msg.isOptimistic && 
+            msg.message.trim() === newMessage.message.trim() && 
+            msg.sender_type === newMessage.sender_type &&
+            msg.sender_name === newMessage.sender_name) {
+          return false; // Remove optimistic message
+        }
+        return true;
+      });
       
-      // Check if message already exists to avoid duplicates
+      // Check if this real message already exists to avoid duplicates
       const messageExists = filteredMessages.some(msg => msg.id === newMessage.id);
       if (messageExists) return prev;
       
@@ -156,9 +162,10 @@ const LiveChatAdmin = () => {
     const messageText = newMessage.trim();
     setNewMessage('');
 
-    // Add optimistic message immediately
+    // Add optimistic message immediately with unique ID
+    const timestamp = Date.now();
     const optimisticMessage: Message = {
-      id: `temp-${Date.now()}`,
+      id: `temp-${timestamp}`,
       message: messageText,
       sender_type: 'admin',
       sender_name: 'Support Team',
@@ -179,6 +186,9 @@ const LiveChatAdmin = () => {
         });
 
       if (error) throw error;
+
+      // Message was sent successfully, the real message will come via realtime
+      // and will automatically remove the optimistic message
 
     } catch (error) {
       console.error('Error sending message:', error);
@@ -356,7 +366,9 @@ const LiveChatAdmin = () => {
                             : 'bg-gray-100 text-gray-900'
                         }`}
                       >
-                        <p className="text-sm">{message.message}</p>
+                        <div className="text-sm whitespace-pre-wrap break-words">
+                          {message.message}
+                        </div>
                         <p
                           className={`text-xs mt-1 ${
                             message.sender_type === 'admin'
@@ -378,23 +390,24 @@ const LiveChatAdmin = () => {
               </ScrollArea>
 
               <div className="flex gap-2">
-                <Input
-                  placeholder="Nachricht als Support-Team senden..."
+                <Textarea
+                  placeholder="Nachricht als Support-Team senden... (Shift+Enter für neue Zeile)"
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
+                    if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
                       sendMessage();
                     }
                   }}
                   disabled={isLoading}
-                  className="flex-1"
+                  className="flex-1 min-h-[40px] max-h-[120px] resize-none"
+                  rows={2}
                 />
                 <Button
                   onClick={sendMessage}
                   disabled={!newMessage.trim() || isLoading}
-                  className="bg-blue-500 hover:bg-blue-600"
+                  className="bg-blue-500 hover:bg-blue-600 self-end"
                 >
                   <Send className="h-4 w-4" />
                 </Button>
