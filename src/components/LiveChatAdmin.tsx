@@ -18,6 +18,7 @@ interface LiveChat {
   status: string;
   created_at: string;
   closed_at: string | null;
+  unread_count: number;
 }
 
 interface Message {
@@ -92,6 +93,11 @@ const LiveChatAdmin = () => {
       setSelectedChat(null);
       setMessages([]);
     }
+
+    // Update selected chat if it matches
+    if (selectedChat?.id === updatedChat.id) {
+      setSelectedChat(updatedChat);
+    }
   };
 
   // Set up real-time subscriptions
@@ -152,6 +158,34 @@ const LiveChatAdmin = () => {
         description: "Nachrichten konnten nicht geladen werden.",
         variant: "destructive"
       });
+    }
+  };
+
+  // Reset unread count when admin selects a chat
+  const resetUnreadCount = async (chatId: string) => {
+    try {
+      const { error } = await supabase
+        .from('live_chats')
+        .update({ unread_count: 0 })
+        .eq('id', chatId);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error resetting unread count:', error);
+    }
+  };
+
+  // Handle chat selection
+  const handleChatSelection = (chat: LiveChat) => {
+    setSelectedChat(chat);
+    
+    // Reset unread count when admin views the chat
+    if (chat.unread_count > 0) {
+      resetUnreadCount(chat.id);
+      // Update local state immediately for better UX
+      setActiveChats(prev => prev.map(c => 
+        c.id === chat.id ? { ...c, unread_count: 0 } : c
+      ));
     }
   };
 
@@ -283,10 +317,17 @@ const LiveChatAdmin = () => {
                       ? 'bg-orange-50 border-orange-200'
                       : 'hover:bg-gray-50'
                   }`}
-                  onClick={() => setSelectedChat(chat)}
+                  onClick={() => handleChatSelection(chat)}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <p className="font-medium text-sm">{chat.worker_name}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-sm">{chat.worker_name}</p>
+                      {chat.unread_count > 0 && (
+                        <Badge variant="destructive" className="text-xs">
+                          {chat.unread_count} neue
+                        </Badge>
+                      )}
+                    </div>
                     <Badge variant="secondary" className="bg-green-100 text-green-700">
                       Aktiv
                     </Badge>

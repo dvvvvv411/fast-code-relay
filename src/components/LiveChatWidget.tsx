@@ -26,6 +26,7 @@ interface LiveChatWidgetProps {
 const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
   const [isMinimized, setIsMinimized] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [isChatClosed, setIsChatClosed] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [chatId, setChatId] = useState<string | null>(null);
@@ -123,10 +124,23 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
     });
   };
 
+  // Handle chat updates from realtime
+  const handleChatUpdate = (updatedChat: any) => {
+    if (chatId === updatedChat.id && updatedChat.status === 'closed') {
+      setIsChatClosed(true);
+      setIsConnected(false);
+      toast({
+        title: "Chat beendet",
+        description: "Der Chat wurde vom Support-Team beendet.",
+      });
+    }
+  };
+
   // Set up real-time subscription
   useLiveChatRealtime({
     chatId: chatId || undefined,
-    onNewMessage: handleNewMessage
+    onNewMessage: handleNewMessage,
+    onChatUpdate: handleChatUpdate
   });
 
   // Fetch messages for the chat
@@ -288,6 +302,11 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
                   Verbunden
                 </Badge>
               )}
+              {isChatClosed && (
+                <Badge variant="secondary" className="bg-gray-100 text-gray-700">
+                  Beendet
+                </Badge>
+              )}
             </CardTitle>
             <Button
               variant="ghost"
@@ -314,6 +333,11 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
                 Verbunden
               </Badge>
             )}
+            {isChatClosed && (
+              <Badge variant="secondary" className="bg-gray-100 text-gray-700">
+                Beendet
+              </Badge>
+            )}
           </CardTitle>
           <Button
             variant="ghost"
@@ -325,7 +349,17 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {!isConnected ? (
+        {isChatClosed ? (
+          <div className="text-center py-6">
+            <MessageSquare className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-600 mb-4">
+              Der Chat wurde erfolgreich beendet. Vielen Dank für Ihre Nachricht!
+            </p>
+            <p className="text-sm text-gray-500">
+              Bei weiteren Fragen können Sie einen neuen Chat starten.
+            </p>
+          </div>
+        ) : !isConnected ? (
           <div className="text-center py-6">
             <MessageSquare className="h-12 w-12 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-600 mb-4">

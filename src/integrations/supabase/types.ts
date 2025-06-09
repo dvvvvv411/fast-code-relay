@@ -392,6 +392,7 @@ export type Database = {
           id: string
           session_id: string
           status: string
+          unread_count: number
           worker_name: string
         }
         Insert: {
@@ -401,6 +402,7 @@ export type Database = {
           id?: string
           session_id: string
           status?: string
+          unread_count?: number
           worker_name: string
         }
         Update: {
@@ -410,6 +412,7 @@ export type Database = {
           id?: string
           session_id?: string
           status?: string
+          unread_count?: number
           worker_name?: string
         }
         Relationships: [
