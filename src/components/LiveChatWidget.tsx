@@ -205,18 +205,29 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
       setIsConnected(true);
       setIsChatClosed(false);
 
-      // Clear previous messages
-      setMessages([]);
-
       // Send initial welcome message as admin/support
-      await supabase
+      const { data: welcomeMessage, error: messageError } = await supabase
         .from('live_chat_messages')
         .insert({
           chat_id: chatData.id,
           message: 'Willkommen im Live Chat, wenn Sie Probleme bei der Aufgabe haben können Sie hier während den Geschäftszeiten nach Hilfe fragen.',
           sender_type: 'admin',
           sender_name: 'Support-Chat'
-        });
+        })
+        .select()
+        .single();
+
+      if (messageError) {
+        console.error('Error creating welcome message:', messageError);
+      } else {
+        console.log('Welcome message created:', welcomeMessage);
+        // Add the welcome message directly to the messages state to ensure it shows immediately
+        const welcomeMsg: Message = {
+          ...welcomeMessage,
+          sender_type: welcomeMessage.sender_type as 'user' | 'admin'
+        };
+        setMessages([welcomeMsg]);
+      }
 
       toast({
         title: "Chat gestartet",
