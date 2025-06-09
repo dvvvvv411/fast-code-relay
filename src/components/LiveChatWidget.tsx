@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -41,6 +42,49 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
     };
     setSessionId(generateSessionId());
   }, []);
+
+  // Check for existing chat when component mounts
+  useEffect(() => {
+    if (assignmentId) {
+      checkForExistingChat();
+    }
+  }, [assignmentId]);
+
+  const checkForExistingChat = async () => {
+    if (!assignmentId) return;
+
+    try {
+      setIsLoading(true);
+      console.log('Checking for existing chat for assignment:', assignmentId);
+
+      const { data: existingChat, error } = await supabase
+        .from('live_chats')
+        .select('*')
+        .eq('assignment_id', assignmentId)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error checking for existing chat:', error);
+        return;
+      }
+
+      if (existingChat) {
+        console.log('Found existing chat:', existingChat);
+        setChatId(existingChat.id);
+        setIsConnected(true);
+        // Messages will be fetched when chatId is set
+      } else {
+        console.log('No existing chat found for assignment:', assignmentId);
+      }
+    } catch (error) {
+      console.error('Error in checkForExistingChat:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Handle new messages from realtime
   const handleNewMessage = (newMessage: Message) => {
@@ -88,6 +132,7 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
       }));
       
       setMessages(typedMessages);
+      console.log('Loaded messages:', typedMessages);
     } catch (error) {
       console.error('Error fetching messages:', error);
       toast({
@@ -103,6 +148,8 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
   const startChat = async () => {
     try {
       setIsLoading(true);
+      console.log('Starting new chat for assignment:', assignmentId);
+      
       // Create a new chat session
       const { data: chatData, error: chatError } = await supabase
         .from('live_chats')
@@ -117,6 +164,7 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
 
       if (chatError) throw chatError;
 
+      console.log('Created new chat:', chatData);
       setChatId(chatData.id);
       setIsConnected(true);
 
@@ -127,7 +175,7 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
           chat_id: chatData.id,
           message: 'Willkommen im Live Chat, wenn Sie Probleme bei der Aufgabe haben können Sie hier während den Geschäftszeiten nach Hilfe fragen.',
           sender_type: 'admin',
-          sender_name: 'Support Team'
+          sender_name: 'Support-Chat'
         });
 
       toast({
@@ -211,6 +259,11 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
       fetchMessages(chatId);
     }
   }, [chatId]);
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   if (isMinimized) {
     return (
@@ -297,6 +350,11 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
                           : 'bg-gray-100 text-gray-900'
                       }`}
                     >
+                      <p className={`text-xs mb-1 font-medium ${
+                        message.sender_type === 'user' ? 'text-orange-100' : 'text-blue-600'
+                      }`}>
+                        {message.sender_name}
+                      </p>
                       <div className="text-sm whitespace-pre-wrap break-words">
                         {message.message}
                       </div>
