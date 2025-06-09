@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,10 +42,10 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
     setSessionId(generateSessionId());
   }, []);
 
-  // Scroll to bottom when new messages arrive
+  // Scroll to bottom when new messages arrive, but only for incoming messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages.filter(msg => !msg.isOptimistic).length]); // Only scroll for real messages, not optimistic ones
 
   // Handle new messages from realtime
   const handleNewMessage = (newMessage: Message) => {
@@ -126,12 +125,12 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
       setChatId(chatData.id);
       setIsConnected(true);
 
-      // Send initial message
+      // Send initial message with new text
       await supabase
         .from('live_chat_messages')
         .insert({
           chat_id: chatData.id,
-          message: `${workerName} hat den Chat gestartet`,
+          message: 'Willkommen im Live Chat, wenn Sie Probleme bei der Aufgabe haben können Sie hier während den Geschäftszeiten nach Hilfe fragen.',
           sender_type: 'user',
           sender_name: workerName
         });
@@ -328,7 +327,7 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
 
             <div className="flex gap-2">
               <Textarea
-                placeholder="Nachricht eingeben... (Shift+Enter für neue Zeile)"
+                placeholder="Nachricht eingeben..."
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
@@ -350,8 +349,6 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
               <p className="text-xs text-gray-600">
                 💡 <strong>Tipp:</strong> Unser Support-Team antwortet normalerweise 
                 innerhalb weniger Minuten während der Geschäftszeiten.
-                <br />
-                Verwenden Sie Shift+Enter für Zeilenumbrüche.
               </p>
             </div>
           </>
