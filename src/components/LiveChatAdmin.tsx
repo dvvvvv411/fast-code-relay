@@ -59,7 +59,14 @@ const LiveChatAdmin = () => {
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      setMessages(data || []);
+      
+      // Type cast the data to match our Message interface
+      const typedMessages: Message[] = (data || []).map(msg => ({
+        ...msg,
+        sender_type: msg.sender_type as 'user' | 'admin'
+      }));
+      
+      setMessages(typedMessages);
     } catch (error) {
       console.error('Error fetching messages:', error);
     }
