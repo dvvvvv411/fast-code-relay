@@ -8,7 +8,7 @@ import PhoneActivationBox from '@/components/PhoneActivationBox';
 import LiveChatWidget from '@/components/LiveChatWidget';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { FileText, Smartphone, Download, User, Mail, Target, Search, RefreshCw, ArrowDown, ArrowUp, Key, Phone, Eye, MousePointerClick, FileDown, Trash2, ExternalLink } from 'lucide-react';
+import { FileText, Smartphone, Download, Target, Search, RefreshCw, ArrowDown, ArrowUp, Key, Phone, Eye, MousePointerClick, FileDown, Trash2, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface AssignmentData {
@@ -384,35 +384,6 @@ const AssignmentTemplate = ({ assignmentUrl }: AssignmentTemplateProps) => {
                   </CardContent>
                 </Card>
               )}
-
-              {/* Kontakt */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <User className="h-5 w-5 text-orange-500" />
-                    Kontakt bei Fragen
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-700 mb-4">
-                    Bei Fragen oder Unklarheiten wenden Sie sich bitte an:
-                  </p>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <h3 className="font-semibold mb-3">{data.kontakt_name}</h3>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Mail className="h-4 w-4 text-orange-500" />
-                        <a 
-                          href={`mailto:${data.kontakt_email}`} 
-                          className="text-blue-600 hover:text-blue-800 underline"
-                        >
-                          {data.kontakt_email}
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
 
             {/* Right Column - Tools and Support */}

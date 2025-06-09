@@ -43,12 +43,39 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Fetch messages for the chat
+  const fetchMessages = async (chatId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('live_chat_messages')
+        .select('*')
+        .eq('chat_id', chatId)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      
+      // Type cast the data to match our Message interface
+      const typedMessages: Message[] = (data || []).map(msg => ({
+        ...msg,
+        sender_type: msg.sender_type as 'user' | 'admin'
+      }));
+      
+      setMessages(typedMessages);
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+    }
+  };
+
   // Subscribe to real-time messages
   useEffect(() => {
     if (!chatId) return;
 
+    // Initial fetch
+    fetchMessages(chatId);
+
+    // Subscribe to real-time updates
     const channel = supabase
-      .channel('live_chat_messages')
+      .channel(`live_chat_messages_${chatId}`)
       .on(
         'postgres_changes',
         {
@@ -58,6 +85,7 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
           filter: `chat_id=eq.${chatId}`
         },
         (payload) => {
+          console.log('New message received:', payload);
           const newMessage = payload.new as Message;
           setMessages(prev => [...prev, newMessage]);
         }

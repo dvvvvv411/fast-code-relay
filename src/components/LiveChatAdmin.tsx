@@ -87,7 +87,6 @@ const LiveChatAdmin = () => {
         });
 
       setNewMessage('');
-      fetchMessages(selectedChat.id);
     } catch (error) {
       console.error('Error sending message:', error);
     }
@@ -129,6 +128,19 @@ const LiveChatAdmin = () => {
           table: 'live_chats'
         },
         () => {
+          console.log('New chat created');
+          fetchActiveChats();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'live_chats'
+        },
+        () => {
+          console.log('Chat updated');
           fetchActiveChats();
         }
       )
@@ -143,10 +155,12 @@ const LiveChatAdmin = () => {
   useEffect(() => {
     if (!selectedChat) return;
 
+    // Initial fetch
     fetchMessages(selectedChat.id);
 
+    // Subscribe to real-time updates
     const messagesChannel = supabase
-      .channel(`messages_${selectedChat.id}`)
+      .channel(`messages_admin_${selectedChat.id}`)
       .on(
         'postgres_changes',
         {
@@ -155,8 +169,10 @@ const LiveChatAdmin = () => {
           table: 'live_chat_messages',
           filter: `chat_id=eq.${selectedChat.id}`
         },
-        () => {
-          fetchMessages(selectedChat.id);
+        (payload) => {
+          console.log('New message received in admin:', payload);
+          const newMessage = payload.new as Message;
+          setMessages(prev => [...prev, newMessage]);
         }
       )
       .subscribe();
