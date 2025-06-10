@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -246,6 +247,26 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
     }
   };
 
+  const sendTelegramNotification = async (message: string, senderName: string) => {
+    try {
+      const { error } = await supabase.functions.invoke('send-telegram-notification', {
+        body: {
+          type: 'live_chat_message',
+          message: message,
+          senderName: senderName
+        }
+      });
+
+      if (error) {
+        console.error('Error sending Telegram notification:', error);
+      } else {
+        console.log('Telegram notification sent successfully');
+      }
+    } catch (error) {
+      console.error('Error invoking Telegram notification function:', error);
+    }
+  };
+
   const sendMessage = async () => {
     if (!newMessage.trim() || !chatId || isLoading) return;
 
@@ -276,6 +297,9 @@ const LiveChatWidget = ({ assignmentId, workerName }: LiveChatWidgetProps) => {
         });
 
       if (error) throw error;
+
+      // Send Telegram notification for user messages
+      await sendTelegramNotification(messageText, workerName);
 
       // Message was sent successfully, the real message will come via realtime
       // and will automatically remove the optimistic message

