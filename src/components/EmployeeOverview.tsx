@@ -4,7 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Users, Star, FileText, Eye, Calendar, User } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Users, Star, FileText, Eye, Calendar, User, UserMinus, Filter } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -18,6 +19,7 @@ interface EmployeeData {
   average_rating: number;
   latest_assignment_date: string;
   assignments: Assignment[];
+  is_departed: boolean;
 }
 
 interface Assignment {
@@ -30,7 +32,8 @@ interface Assignment {
   updated_at: string;
   average_rating?: number;
   evaluation_count?: number;
-  is_actually_completed?: boolean; // New field to track if assignment is truly completed (evaluated)
+  is_actually_completed?: boolean;
+  is_departed?: boolean;
 }
 
 const EmployeeOverview = () => {
@@ -39,6 +42,7 @@ const EmployeeOverview = () => {
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeData | null>(null);
   const [sortBy, setSortBy] = useState<'name' | 'assignments' | 'rating' | 'completion'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'departed'>('active');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -56,6 +60,7 @@ const EmployeeOverview = () => {
           worker_last_name,
           is_completed,
           is_evaluated,
+          is_departed,
           created_at,
           updated_at,
           auftraege!inner(title, auftragsnummer)
@@ -99,7 +104,8 @@ const EmployeeOverview = () => {
           updated_at: assignment.updated_at,
           average_rating: averageRating,
           evaluation_count: assignmentEvaluations.length,
-          is_actually_completed: isActuallyCompleted
+          is_actually_completed: isActuallyCompleted,
+          is_departed: assignment.is_departed
         };
 
         if (employeeMap.has(employeeKey)) {
@@ -108,6 +114,11 @@ const EmployeeOverview = () => {
           employee.total_assignments++;
           if (isActuallyCompleted) employee.completed_assignments++;
           if (assignment.is_evaluated) employee.evaluated_assignments++;
+          
+          // Update employee departed status if any assignment is departed
+          if (assignment.is_departed) {
+            employee.is_departed = true;
+          }
           
           // Update latest assignment date
           if (new Date(assignment.created_at) > new Date(employee.latest_assignment_date)) {
@@ -122,7 +133,8 @@ const EmployeeOverview = () => {
             evaluated_assignments: assignment.is_evaluated ? 1 : 0,
             average_rating: 0,
             latest_assignment_date: assignment.created_at,
-            assignments: [assignmentData]
+            assignments: [assignmentData],
+            is_departed: assignment.is_departed || false
           });
         }
       });
@@ -151,8 +163,53 @@ const EmployeeOverview = () => {
     }
   };
 
+  const handleMarkAsDeparted = async (employee: EmployeeData) => {
+    if (!confirm(`Sind Sie sicher, dass Sie ${employee.worker_first_name} ${employee.worker_last_name} als ausgeschieden markieren möchten?`)) {
+      return;
+    }
+
+    try {
+      // Update all assignments for this employee to mark them as departed
+      const { error } = await supabase
+        .from('auftrag_assignments')
+        .update({ is_departed: true })
+        .eq('worker_first_name', employee.worker_first_name)
+        .eq('worker_last_name', employee.worker_last_name);
+
+      if (error) throw error;
+
+      toast({
+        title: "Erfolg",
+        description: `${employee.worker_first_name} ${employee.worker_last_name} wurde als ausgeschieden markiert.`
+      });
+
+      // Refresh the data
+      fetchEmployeeData();
+    } catch (error) {
+      console.error('Error marking employee as departed:', error);
+      toast({
+        title: "Fehler",
+        description: "Mitarbeiter konnte nicht als ausgeschieden markiert werden.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const getFilteredEmployees = () => {
+    return employees.filter(employee => {
+      switch (statusFilter) {
+        case 'active':
+          return !employee.is_departed;
+        case 'departed':
+          return employee.is_departed;
+        default:
+          return true;
+      }
+    });
+  };
+
   const getSortedEmployees = () => {
-    return [...employees].sort((a, b) => {
+    return [...getFilteredEmployees()].sort((a, b) => {
       let valueA: any, valueB: any;
 
       switch (sortBy) {
@@ -233,10 +290,27 @@ const EmployeeOverview = () => {
     );
   }
 
+  const filteredEmployees = getFilteredEmployees();
+  const activeEmployees = employees.filter(emp => !emp.is_departed);
+  const departedEmployees = employees.filter(emp => emp.is_departed);
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Mitarbeiter Übersicht</h2>
+        <div className="flex items-center gap-3">
+          <Filter className="h-4 w-4 text-gray-500" />
+          <Select value={statusFilter} onValueChange={(value: 'all' | 'active' | 'departed') => setStatusFilter(value)}>
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Aktive ({activeEmployees.length})</SelectItem>
+              <SelectItem value="departed">Ausgeschieden ({departedEmployees.length})</SelectItem>
+              <SelectItem value="all">Alle ({employees.length})</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Statistics Cards */}
@@ -246,7 +320,7 @@ const EmployeeOverview = () => {
             <div className="flex items-center gap-3">
               <Users className="h-8 w-8 text-blue-500" />
               <div>
-                <p className="text-2xl font-bold">{employees.length}</p>
+                <p className="text-2xl font-bold">{activeEmployees.length}</p>
                 <p className="text-sm text-gray-600">Aktive Mitarbeiter</p>
               </div>
             </div>
@@ -259,7 +333,7 @@ const EmployeeOverview = () => {
               <FileText className="h-8 w-8 text-green-500" />
               <div>
                 <p className="text-2xl font-bold">
-                  {employees.reduce((sum, emp) => sum + emp.total_assignments, 0)}
+                  {filteredEmployees.reduce((sum, emp) => sum + emp.total_assignments, 0)}
                 </p>
                 <p className="text-sm text-gray-600">Gesamt Zuweisungen</p>
               </div>
@@ -273,8 +347,8 @@ const EmployeeOverview = () => {
               <Star className="h-8 w-8 text-yellow-500" />
               <div>
                 <p className="text-2xl font-bold">
-                  {employees.length > 0 
-                    ? (employees.reduce((sum, emp) => sum + emp.average_rating, 0) / employees.length).toFixed(1)
+                  {filteredEmployees.length > 0 
+                    ? (filteredEmployees.reduce((sum, emp) => sum + emp.average_rating, 0) / filteredEmployees.length).toFixed(1)
                     : '0.0'
                   }
                 </p>
@@ -290,7 +364,7 @@ const EmployeeOverview = () => {
               <Calendar className="h-8 w-8 text-purple-500" />
               <div>
                 <p className="text-2xl font-bold">
-                  {employees.reduce((sum, emp) => sum + emp.completed_assignments, 0)}
+                  {filteredEmployees.reduce((sum, emp) => sum + emp.completed_assignments, 0)}
                 </p>
                 <p className="text-sm text-gray-600">Abgeschlossen</p>
               </div>
@@ -305,10 +379,17 @@ const EmployeeOverview = () => {
           <CardTitle>Mitarbeiterliste</CardTitle>
         </CardHeader>
         <CardContent>
-          {employees.length === 0 ? (
+          {filteredEmployees.length === 0 ? (
             <div className="text-center py-8">
               <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500">Keine Mitarbeiter gefunden.</p>
+              <p className="text-gray-500">
+                {statusFilter === 'departed' 
+                  ? 'Keine ausgeschiedenen Mitarbeiter gefunden.'
+                  : statusFilter === 'active'
+                  ? 'Keine aktiven Mitarbeiter gefunden.'
+                  : 'Keine Mitarbeiter gefunden.'
+                }
+              </p>
             </div>
           ) : (
             <Table>
@@ -338,6 +419,7 @@ const EmployeeOverview = () => {
                   >
                     Bewertung {sortBy === 'rating' && (sortOrder === 'asc' ? '↑' : '↓')}
                   </TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Letzte Zuweisung</TableHead>
                   <TableHead>Aktionen</TableHead>
                 </TableRow>
@@ -376,128 +458,147 @@ const EmployeeOverview = () => {
                       </div>
                     </TableCell>
                     <TableCell>
+                      <Badge variant={employee.is_departed ? "destructive" : "default"}>
+                        {employee.is_departed ? "Ausgeschieden" : "Aktiv"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
                       <span className="text-sm text-gray-600">
                         {new Date(employee.latest_assignment_date).toLocaleDateString('de-DE')}
                       </span>
                     </TableCell>
                     <TableCell>
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => setSelectedEmployee(employee)}
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            Details
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                          <DialogHeader>
-                            <DialogTitle>
-                              {employee.worker_first_name} {employee.worker_last_name} - Auftragsdetails
-                            </DialogTitle>
-                          </DialogHeader>
-                          
-                          <div className="space-y-4 mt-6">
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="flex gap-2">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => setSelectedEmployee(employee)}
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              Details
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                            <DialogHeader>
+                              <DialogTitle>
+                                {employee.worker_first_name} {employee.worker_last_name} - Auftragsdetails
+                              </DialogTitle>
+                            </DialogHeader>
+                            
+                            <div className="space-y-4 mt-6">
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <Card>
+                                  <CardContent className="p-4">
+                                    <div className="text-center">
+                                      <p className="text-2xl font-bold">{employee.total_assignments}</p>
+                                      <p className="text-sm text-gray-600">Gesamt</p>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                                <Card>
+                                  <CardContent className="p-4">
+                                    <div className="text-center">
+                                      <p className="text-2xl font-bold">{employee.completed_assignments}</p>
+                                      <p className="text-sm text-gray-600">Abgeschlossen</p>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                                <Card>
+                                  <CardContent className="p-4">
+                                    <div className="text-center">
+                                      <p className="text-2xl font-bold">{employee.evaluated_assignments}</p>
+                                      <p className="text-sm text-gray-600">Bewertet</p>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                                <Card>
+                                  <CardContent className="p-4">
+                                    <div className="text-center">
+                                      <p className="text-2xl font-bold">{employee.average_rating.toFixed(1)}</p>
+                                      <p className="text-sm text-gray-600">Ø Bewertung</p>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              </div>
+
                               <Card>
-                                <CardContent className="p-4">
-                                  <div className="text-center">
-                                    <p className="text-2xl font-bold">{employee.total_assignments}</p>
-                                    <p className="text-sm text-gray-600">Gesamt</p>
-                                  </div>
-                                </CardContent>
-                              </Card>
-                              <Card>
-                                <CardContent className="p-4">
-                                  <div className="text-center">
-                                    <p className="text-2xl font-bold">{employee.completed_assignments}</p>
-                                    <p className="text-sm text-gray-600">Abgeschlossen</p>
-                                  </div>
-                                </CardContent>
-                              </Card>
-                              <Card>
-                                <CardContent className="p-4">
-                                  <div className="text-center">
-                                    <p className="text-2xl font-bold">{employee.evaluated_assignments}</p>
-                                    <p className="text-sm text-gray-600">Bewertet</p>
-                                  </div>
-                                </CardContent>
-                              </Card>
-                              <Card>
-                                <CardContent className="p-4">
-                                  <div className="text-center">
-                                    <p className="text-2xl font-bold">{employee.average_rating.toFixed(1)}</p>
-                                    <p className="text-sm text-gray-600">Ø Bewertung</p>
-                                  </div>
+                                <CardHeader>
+                                  <CardTitle>Aufträge</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                  <Table>
+                                    <TableHeader>
+                                      <TableRow>
+                                        <TableHead>Auftrag</TableHead>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead>Bewertung</TableHead>
+                                        <TableHead>Erstellt</TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {employee.assignments.map((assignment) => (
+                                        <TableRow key={assignment.id}>
+                                          <TableCell>
+                                            <div>
+                                              <p className="font-medium">{assignment.auftrag_title}</p>
+                                              <p className="text-sm text-gray-600">
+                                                {assignment.auftrag_auftragsnummer}
+                                              </p>
+                                            </div>
+                                          </TableCell>
+                                          <TableCell>
+                                            <div className="flex gap-2">
+                                              <Badge 
+                                                variant={assignment.is_actually_completed ? "default" : "outline"}
+                                              >
+                                                {assignment.is_actually_completed ? "Abgeschlossen" : "Offen"}
+                                              </Badge>
+                                              {assignment.is_evaluated && (
+                                                <Badge variant="secondary">Bewertet</Badge>
+                                              )}
+                                            </div>
+                                          </TableCell>
+                                          <TableCell>
+                                            {assignment.average_rating ? (
+                                              <div className="flex items-center gap-2">
+                                                {renderStars(Math.round(assignment.average_rating))}
+                                                <span className="text-sm">
+                                                  ({assignment.average_rating.toFixed(1)})
+                                                </span>
+                                              </div>
+                                            ) : (
+                                              <span className="text-gray-400">Nicht bewertet</span>
+                                            )}
+                                          </TableCell>
+                                          <TableCell>
+                                            <span className="text-sm text-gray-600">
+                                              {new Date(assignment.created_at).toLocaleDateString('de-DE')}
+                                            </span>
+                                          </TableCell>
+                                        </TableRow>
+                                      ))}
+                                    </TableBody>
+                                  </Table>
                                 </CardContent>
                               </Card>
                             </div>
+                          </DialogContent>
+                        </Dialog>
 
-                            <Card>
-                              <CardHeader>
-                                <CardTitle>Aufträge</CardTitle>
-                              </CardHeader>
-                              <CardContent>
-                                <Table>
-                                  <TableHeader>
-                                    <TableRow>
-                                      <TableHead>Auftrag</TableHead>
-                                      <TableHead>Status</TableHead>
-                                      <TableHead>Bewertung</TableHead>
-                                      <TableHead>Erstellt</TableHead>
-                                    </TableRow>
-                                  </TableHeader>
-                                  <TableBody>
-                                    {employee.assignments.map((assignment) => (
-                                      <TableRow key={assignment.id}>
-                                        <TableCell>
-                                          <div>
-                                            <p className="font-medium">{assignment.auftrag_title}</p>
-                                            <p className="text-sm text-gray-600">
-                                              {assignment.auftrag_auftragsnummer}
-                                            </p>
-                                          </div>
-                                        </TableCell>
-                                        <TableCell>
-                                          <div className="flex gap-2">
-                                            <Badge 
-                                              variant={assignment.is_actually_completed ? "default" : "outline"}
-                                            >
-                                              {assignment.is_actually_completed ? "Abgeschlossen" : "Offen"}
-                                            </Badge>
-                                            {assignment.is_evaluated && (
-                                              <Badge variant="secondary">Bewertet</Badge>
-                                            )}
-                                          </div>
-                                        </TableCell>
-                                        <TableCell>
-                                          {assignment.average_rating ? (
-                                            <div className="flex items-center gap-2">
-                                              {renderStars(Math.round(assignment.average_rating))}
-                                              <span className="text-sm">
-                                                ({assignment.average_rating.toFixed(1)})
-                                              </span>
-                                            </div>
-                                          ) : (
-                                            <span className="text-gray-400">Nicht bewertet</span>
-                                          )}
-                                        </TableCell>
-                                        <TableCell>
-                                          <span className="text-sm text-gray-600">
-                                            {new Date(assignment.created_at).toLocaleDateString('de-DE')}
-                                          </span>
-                                        </TableCell>
-                                      </TableRow>
-                                    ))}
-                                  </TableBody>
-                                </Table>
-                              </CardContent>
-                            </Card>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
+                        {!employee.is_departed && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleMarkAsDeparted(employee)}
+                            className="text-red-600 border-red-200 hover:bg-red-50"
+                          >
+                            <UserMinus className="h-4 w-4 mr-1" />
+                            Ausgeschieden
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
