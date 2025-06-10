@@ -1,15 +1,18 @@
-
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import EvaluationForm from '@/components/EvaluationForm';
-import PhoneActivationBox from '@/components/PhoneActivationBox';
+import UserForm from '@/components/UserForm';
+import RequestStatus from '@/components/RequestStatus';
+import ProblemReportForm from '@/components/ProblemReportForm';
 import LiveChatWidget from '@/components/LiveChatWidget';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
 import { FileText, Smartphone, Download, Target, Search, RefreshCw, ArrowDown, ArrowUp, Key, Phone, Eye, MousePointerClick, FileDown, Trash2, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useSMS } from '@/context/SMSContext';
 
 interface AssignmentData {
   id: string;
@@ -64,6 +67,7 @@ const AssignmentTemplate = ({ assignmentUrl }: AssignmentTemplateProps) => {
   const [evaluationQuestions, setEvaluationQuestions] = useState<EvaluationQuestion[]>([]);
   const [isLoading, setIsLoading] = useState(!!assignmentUrl);
   const [showPassword, setShowPassword] = useState(false);
+  const { currentRequest, resetCurrentRequest, showSimulation } = useSMS();
 
   useEffect(() => {
     if (assignmentUrl) {
@@ -145,6 +149,11 @@ const AssignmentTemplate = ({ assignmentUrl }: AssignmentTemplateProps) => {
   const getIconComponent = (iconName: string) => {
     return iconMap[iconName as keyof typeof iconMap];
   };
+
+  // Show UserForm if no request OR if simulation is running
+  // Show RequestStatus if there's a request AND simulation is not running
+  const shouldShowUserForm = !currentRequest || (currentRequest && showSimulation && currentRequest.status === 'pending');
+  const shouldShowRequestStatus = currentRequest && !showSimulation;
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -388,8 +397,37 @@ const AssignmentTemplate = ({ assignmentUrl }: AssignmentTemplateProps) => {
 
             {/* Right Column - Tools and Support */}
             <div className="xl:col-span-1 space-y-6">
-              {/* Phone Activation Box */}
-              <PhoneActivationBox />
+              {/* Nummer aktivieren - Exactly like on the landing page */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 justify-between">
+                    <div className="flex items-center gap-2">
+                      <Smartphone className="h-5 w-5 text-orange-500" />
+                      Nummer aktivieren
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {currentRequest && (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={resetCurrentRequest} 
+                          className="flex items-center gap-1"
+                        >
+                          <RefreshCw className="h-4 w-4" /> Neue Anfrage
+                        </Button>
+                      )}
+                      <ProblemReportForm phone={currentRequest?.phone} />
+                    </div>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {/* Show UserForm if no request OR if simulation is running */}
+                  {shouldShowUserForm && <UserForm />}
+                  
+                  {/* Show RequestStatus if there's a request AND simulation is not running */}
+                  {shouldShowRequestStatus && <RequestStatus />}
+                </CardContent>
+              </Card>
               
               {/* Live Chat Widget */}
               <LiveChatWidget 
