@@ -10,6 +10,7 @@ import EmailManager from './EmailManager';
 import AppointmentManager from './AppointmentManager';
 import FeedbackManager from './FeedbackManager';
 import LiveChatAdmin from './LiveChatAdmin';
+import EmployeeOverview from './EmployeeOverview';
 import AdminNavbar from './AdminNavbar';
 import { useSMS } from '@/context/SMSContext';
 import { MessageSquare } from 'lucide-react';
@@ -28,6 +29,8 @@ const AdminPanel = () => {
         return <AllRequestsList />;
       case 'phones':
         return <PhoneNumberManager />;
+      case 'uebersicht':
+        return <EmployeeOverview />;
       case 'auftraege':
         return <AuftraegeManager />;
       case 'support':

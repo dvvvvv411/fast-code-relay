@@ -15,7 +15,8 @@ import {
   Mail, 
   Calendar, 
   Star,
-  ChevronDown 
+  ChevronDown,
+  Users
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -35,6 +36,7 @@ const AdminNavbar = ({ activeTab, onTabChange }: AdminNavbarProps) => {
   ];
 
   const auftraegeMenuItems = [
+    { id: 'uebersicht', label: 'Übersicht', icon: Users },
     { id: 'auftraege', label: 'Aufträge', icon: Briefcase },
     { id: 'mails', label: 'Mails', icon: Mail },
     { id: 'feedback', label: 'Bewertungen', icon: Star },
