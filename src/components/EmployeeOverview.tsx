@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Users, Star, FileText, Eye, Calendar, User, UserMinus, Filter } from 'lucide-react';
+import { Users, Star, FileText, Eye, Calendar, User, UserMinus, Filter, Activity, Send, CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -36,17 +36,32 @@ interface Assignment {
   is_departed?: boolean;
 }
 
+interface ActivityLog {
+  id: string;
+  activity_type: string;
+  employee_first_name: string;
+  employee_last_name: string;
+  assignment_id: string | null;
+  evaluation_id: string | null;
+  details: any;
+  created_at: string;
+}
+
 const EmployeeOverview = () => {
   const [employees, setEmployees] = useState<EmployeeData[]>([]);
+  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isActivityLoading, setIsActivityLoading] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeData | null>(null);
   const [sortBy, setSortBy] = useState<'name' | 'assignments' | 'rating' | 'completion'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'departed'>('active');
+  const [activityFilter, setActivityFilter] = useState<'all' | 'assignment_sent' | 'evaluation_submitted'>('all');
   const { toast } = useToast();
 
   useEffect(() => {
     fetchEmployeeData();
+    fetchActivityLogs();
   }, []);
 
   const fetchEmployeeData = async () => {
@@ -163,6 +178,30 @@ const EmployeeOverview = () => {
     }
   };
 
+  const fetchActivityLogs = async () => {
+    setIsActivityLoading(true);
+    try {
+      const { data: activityData, error: activityError } = await supabase
+        .from('employee_activity_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (activityError) throw activityError;
+
+      setActivityLogs(activityData || []);
+    } catch (error) {
+      console.error('Error fetching activity logs:', error);
+      toast({
+        title: "Fehler",
+        description: "Aktivitätsprotokolle konnten nicht geladen werden.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsActivityLoading(false);
+    }
+  };
+
   const handleMarkAsDeparted = async (employee: EmployeeData) => {
     if (!confirm(`Sind Sie sicher, dass Sie ${employee.worker_first_name} ${employee.worker_last_name} als ausgeschieden markieren möchten?`)) {
       return;
@@ -274,6 +313,35 @@ const EmployeeOverview = () => {
       : 0;
   };
 
+  const getFilteredActivityLogs = () => {
+    return activityLogs.filter(log => {
+      if (activityFilter === 'all') return true;
+      return log.activity_type === activityFilter;
+    });
+  };
+
+  const getActivityIcon = (activityType: string) => {
+    switch (activityType) {
+      case 'assignment_sent':
+        return <Send className="h-4 w-4 text-blue-500" />;
+      case 'evaluation_submitted':
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      default:
+        return <Activity className="h-4 w-4 text-gray-500" />;
+    }
+  };
+
+  const getActivityText = (log: ActivityLog) => {
+    switch (log.activity_type) {
+      case 'assignment_sent':
+        return `Auftrag "${log.details?.auftrag_title}" (${log.details?.auftragsnummer}) zugewiesen`;
+      case 'evaluation_submitted':
+        return `Bewertung abgegeben: ${log.details?.star_rating} Sterne für "${log.details?.auftrag_title}"`;
+      default:
+        return log.activity_type;
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -293,6 +361,7 @@ const EmployeeOverview = () => {
   const filteredEmployees = getFilteredEmployees();
   const activeEmployees = employees.filter(emp => !emp.is_departed);
   const departedEmployees = employees.filter(emp => emp.is_departed);
+  const filteredActivityLogs = getFilteredActivityLogs();
 
   return (
     <div className="space-y-6">
@@ -372,6 +441,77 @@ const EmployeeOverview = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Activity Log Section */}
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5 text-orange-500" />
+              Aktivitätsprotokoll
+            </CardTitle>
+            <div className="flex items-center gap-3">
+              <Filter className="h-4 w-4 text-gray-500" />
+              <Select value={activityFilter} onValueChange={(value: typeof activityFilter) => setActivityFilter(value)}>
+                <SelectTrigger className="w-48">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Alle Aktivitäten</SelectItem>
+                  <SelectItem value="assignment_sent">Aufträge zugewiesen</SelectItem>
+                  <SelectItem value="evaluation_submitted">Bewertungen abgegeben</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={fetchActivityLogs}
+                disabled={isActivityLoading}
+              >
+                Aktualisieren
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isActivityLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
+          ) : filteredActivityLogs.length === 0 ? (
+            <div className="text-center py-8">
+              <Activity className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">Keine Aktivitäten gefunden.</p>
+            </div>
+          ) : (
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {filteredActivityLogs.map((log) => (
+                <div key={log.id} className="flex items-start gap-3 p-3 border rounded-lg hover:bg-gray-50">
+                  {getActivityIcon(log.activity_type)}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-medium text-sm">
+                        {log.employee_first_name} {log.employee_last_name}
+                      </span>
+                      <Badge variant="outline" className="text-xs">
+                        {log.activity_type === 'assignment_sent' ? 'Zuweisung' : 'Bewertung'}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-gray-700 mb-1">
+                      {getActivityText(log)}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {new Date(log.created_at).toLocaleString('de-DE')}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Employee Table */}
       <Card>

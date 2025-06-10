@@ -278,6 +278,54 @@ export type Database = {
         }
         Relationships: []
       }
+      employee_activity_logs: {
+        Row: {
+          activity_type: string
+          assignment_id: string | null
+          created_at: string
+          details: Json | null
+          employee_first_name: string
+          employee_last_name: string
+          evaluation_id: string | null
+          id: string
+        }
+        Insert: {
+          activity_type: string
+          assignment_id?: string | null
+          created_at?: string
+          details?: Json | null
+          employee_first_name: string
+          employee_last_name: string
+          evaluation_id?: string | null
+          id?: string
+        }
+        Update: {
+          activity_type?: string
+          assignment_id?: string | null
+          created_at?: string
+          details?: Json | null
+          employee_first_name?: string
+          employee_last_name?: string
+          evaluation_id?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_activity_logs_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "auftrag_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_activity_logs_evaluation_id_fkey"
+            columns: ["evaluation_id"]
+            isOneToOne: false
+            referencedRelation: "evaluations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       evaluation_questions: {
         Row: {
           auftrag_id: string
