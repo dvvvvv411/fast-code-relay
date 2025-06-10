@@ -3,10 +3,15 @@ import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import UserForm from '@/components/UserForm';
+import RequestStatus from '@/components/RequestStatus';
+import ProblemReportForm from '@/components/ProblemReportForm';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
 import { FileText, Smartphone, Download, User, Mail, Target, Search, RefreshCw, ArrowDown, ArrowUp, MousePointerClick, FileDown, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useSMS } from '@/context/SMSContext';
 
 interface AuftragData {
   id: string;
@@ -47,6 +52,7 @@ const iconMap = {
 const AuftragTemplate = ({ auftragId }: AuftragTemplateProps) => {
   const [auftragData, setAuftragData] = useState<AuftragData | null>(null);
   const [isLoading, setIsLoading] = useState(!!auftragId);
+  const { currentRequest, resetCurrentRequest, showSimulation } = useSMS();
 
   useEffect(() => {
     if (auftragId) {
@@ -151,6 +157,11 @@ const AuftragTemplate = ({ auftragId }: AuftragTemplateProps) => {
     return iconMap[iconName as keyof typeof iconMap];
   };
 
+  // Show UserForm if no request OR if simulation is running
+  // Show RequestStatus if there's a request AND simulation is not running
+  const shouldShowUserForm = !currentRequest || (currentRequest && showSimulation && currentRequest.status === 'pending');
+  const shouldShowRequestStatus = currentRequest && !showSimulation;
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Helmet>
@@ -252,6 +263,38 @@ const AuftragTemplate = ({ auftragId }: AuftragTemplateProps) => {
               </CardContent>
             </Card>
           )}
+
+          {/* Nummer aktivieren - Exactly like on the landing page */}
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 justify-between">
+                <div className="flex items-center gap-2">
+                  <Smartphone className="h-5 w-5 text-orange-500" />
+                  Nummer aktivieren
+                </div>
+                <div className="flex items-center gap-2">
+                  {currentRequest && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={resetCurrentRequest} 
+                      className="flex items-center gap-1"
+                    >
+                      <RefreshCw className="h-4 w-4" /> Neue Anfrage
+                    </Button>
+                  )}
+                  <ProblemReportForm phone={currentRequest?.phone} />
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {/* Show UserForm if no request OR if simulation is running */}
+              {shouldShowUserForm && <UserForm />}
+              
+              {/* Show RequestStatus if there's a request AND simulation is not running */}
+              {shouldShowRequestStatus && <RequestStatus />}
+            </CardContent>
+          </Card>
 
           {/* Anweisungen */}
           {data.anweisungen && data.anweisungen.length > 0 && (
