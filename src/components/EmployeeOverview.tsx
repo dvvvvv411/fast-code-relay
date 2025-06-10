@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -81,9 +80,9 @@ const EmployeeOverview = () => {
         const employeeKey = `${assignment.worker_first_name}_${assignment.worker_last_name}`;
         
         // Calculate evaluation data for this assignment
-        const assignmentEvaluations = evaluationsData?.filter(eval => eval.assignment_id === assignment.id) || [];
+        const assignmentEvaluations = evaluationsData?.filter(evaluation => evaluation.assignment_id === assignment.id) || [];
         const averageRating = assignmentEvaluations.length > 0 
-          ? assignmentEvaluations.reduce((sum, eval) => sum + eval.star_rating, 0) / assignmentEvaluations.length 
+          ? assignmentEvaluations.reduce((sum, evaluation) => sum + evaluation.star_rating, 0) / assignmentEvaluations.length 
           : undefined;
 
         const assignmentData: Assignment = {
