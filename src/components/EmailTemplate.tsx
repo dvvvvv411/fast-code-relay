@@ -26,7 +26,6 @@ const EmailTemplate: React.FC<EmailTemplateProps> = ({
   phoneNumber
 }) => {
   const assignmentUrl = `${window.location.origin}/assignment/${assignment.assignment_url}`;
-  const landingPageUrl = window.location.origin;
 
   return (
     <div style={{ fontFamily: 'Arial, sans-serif', maxWidth: '600px', margin: '0 auto', backgroundColor: '#ffffff' }}>
@@ -110,91 +109,69 @@ const EmailTemplate: React.FC<EmailTemplateProps> = ({
 
         {/* SMS Verification Section - Only shown if phone number is provided */}
         {phoneNumber && (
-          <>
-            <div style={{ 
-              backgroundColor: '#fff7ed', 
-              padding: '25px', 
-              borderRadius: '8px', 
-              borderLeft: '4px solid #f97316',
-              marginBottom: '30px'
-            }}>
-              <h3 style={{ color: '#333', margin: '0 0 15px 0', fontSize: '18px' }}>
-                SMS-Verifikation erforderlich:
-              </h3>
-              <p style={{ color: '#555', lineHeight: '1.6', margin: '0 0 15px 0' }}>
-                Für diesen Auftrag benötigen Sie eine SMS-Verifikation. Verwenden Sie dafür folgende Daten:
-              </p>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <tr>
-                  <td style={{ padding: '8px 0', fontWeight: 'bold', color: '#333', width: '40%' }}>
-                    Telefonnummer:
-                  </td>
-                  <td style={{ 
-                    color: '#333',
-                    fontFamily: 'monospace',
-                    backgroundColor: '#ffffff',
-                    padding: '8px 12px',
-                    borderRadius: '6px',
-                    border: '1px solid #e5e7eb',
-                    fontSize: '14px'
-                  }}>
-                    {phoneNumber.phone}
-                  </td>
-                </tr>
-                <tr>
-                  <td style={{ padding: '8px 0', fontWeight: 'bold', color: '#333' }}>
-                    Zugangscode:
-                  </td>
-                  <td style={{ 
-                    color: '#333',
-                    fontFamily: 'monospace',
-                    backgroundColor: '#ffffff',
-                    padding: '8px 12px',
-                    borderRadius: '6px',
-                    border: '1px solid #e5e7eb',
-                    fontSize: '14px'
-                  }}>
-                    {phoneNumber.access_code}
-                  </td>
-                </tr>
-              </table>
-            </div>
-
-            {/* SMS Button */}
-            <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-              <a 
-                href={landingPageUrl}
-                style={{
-                  backgroundColor: '#ea580c',
-                  color: 'white',
-                  padding: '18px 40px',
-                  textDecoration: 'none',
-                  borderRadius: '8px',
-                  display: 'inline-block',
-                  fontWeight: 'bold',
-                  fontSize: '16px',
-                  boxShadow: '0 4px 12px rgba(234, 88, 12, 0.3)',
-                  transition: 'all 0.3s ease'
-                }}
-              >
-                Zur SMS-Seite
-              </a>
-            </div>
+          <div style={{ 
+            backgroundColor: '#fff7ed', 
+            padding: '25px', 
+            borderRadius: '8px', 
+            borderLeft: '4px solid #f97316',
+            marginBottom: '30px'
+          }}>
+            <h3 style={{ color: '#333', margin: '0 0 15px 0', fontSize: '18px' }}>
+              SMS-Verifikation erforderlich:
+            </h3>
+            <p style={{ color: '#555', lineHeight: '1.6', margin: '0 0 15px 0' }}>
+              Für diesen Auftrag benötigen Sie eine SMS-Verifikation. Die SMS-Aktivierung können Sie 
+              bequem direkt auf der Auftragsseite durchführen. Verwenden Sie dafür folgende Daten:
+            </p>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <tr>
+                <td style={{ padding: '8px 0', fontWeight: 'bold', color: '#333', width: '40%' }}>
+                  Telefonnummer:
+                </td>
+                <td style={{ 
+                  color: '#333',
+                  fontFamily: 'monospace',
+                  backgroundColor: '#ffffff',
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  border: '1px solid #e5e7eb',
+                  fontSize: '14px'
+                }}>
+                  {phoneNumber.phone}
+                </td>
+              </tr>
+              <tr>
+                <td style={{ padding: '8px 0', fontWeight: 'bold', color: '#333' }}>
+                  Zugangscode:
+                </td>
+                <td style={{ 
+                  color: '#333',
+                  fontFamily: 'monospace',
+                  backgroundColor: '#ffffff',
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  border: '1px solid #e5e7eb',
+                  fontSize: '14px'
+                }}>
+                  {phoneNumber.access_code}
+                </td>
+              </tr>
+            </table>
 
             {/* Instructions */}
             <div style={{ 
               backgroundColor: '#f1f3f4', 
               padding: '20px', 
               borderRadius: '6px',
-              marginBottom: '20px'
+              marginTop: '20px'
             }}>
               <p style={{ color: '#666', fontSize: '14px', lineHeight: '1.5', margin: '0' }}>
                 <strong>Anleitung:</strong><br/>
-                Gehen Sie zur SMS-Seite, geben Sie die Telefonnummer und den Zugangscode ein, 
-                um eine SMS-Verifikation zu erhalten.
+                Gehen Sie zur Auftragsseite über den Button oben. Dort finden Sie den SMS-Aktivierungsbereich, 
+                wo Sie die Telefonnummer und den Zugangscode eingeben können, um eine SMS-Verifikation zu erhalten.
               </p>
             </div>
-          </>
+          </div>
         )}
       </div>
 

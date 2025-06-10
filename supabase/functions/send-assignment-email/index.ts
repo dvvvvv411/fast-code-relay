@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.8';
@@ -43,7 +42,6 @@ const generateEmailTemplate = (
   phoneNumber?: PhoneNumber
 ) => {
   const assignmentUrl = `https://auftrag.expandere-agentur.net/assignment/${assignment.assignment_url}`;
-  const smsPageUrl = "https://sms.expandere-agentur.net";
 
   return `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
@@ -107,7 +105,8 @@ const generateEmailTemplate = (
             SMS-Verifikation erforderlich:
           </h3>
           <p style="color: #555; line-height: 1.6; margin: 0 0 15px 0;">
-            Für diesen Auftrag benötigen Sie eine SMS-Verifikation. Verwenden Sie dafür folgende Daten:
+            Für diesen Auftrag benötigen Sie eine SMS-Verifikation. Die SMS-Aktivierung können Sie 
+            bequem direkt auf der Auftragsseite durchführen. Verwenden Sie dafür folgende Daten:
           </p>
           <table style="width: 100%; border-collapse: collapse;">
             <tr>
@@ -127,22 +126,15 @@ const generateEmailTemplate = (
               </td>
             </tr>
           </table>
-        </div>
 
-        <!-- SMS Button -->
-        <div style="text-align: center; margin-bottom: 30px;">
-          <a href="${smsPageUrl}" style="background-color: #ea580c; color: white; padding: 18px 40px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 16px; box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3); transition: all 0.3s ease;">
-            Zur SMS-Seite
-          </a>
-        </div>
-
-        <!-- Instructions -->
-        <div style="background-color: #f1f3f4; padding: 20px; border-radius: 6px; margin-bottom: 20px;">
-          <p style="color: #666; font-size: 14px; line-height: 1.5; margin: 0;">
-            <strong>Anleitung:</strong><br/>
-            Gehen Sie zur SMS-Seite, geben Sie die Telefonnummer und den Zugangscode ein, 
-            um eine SMS-Verifikation zu erhalten.
-          </p>
+          <!-- Instructions -->
+          <div style="background-color: #f1f3f4; padding: 20px; border-radius: 6px; margin-top: 20px;">
+            <p style="color: #666; font-size: 14px; line-height: 1.5; margin: 0;">
+              <strong>Anleitung:</strong><br/>
+              Gehen Sie zur Auftragsseite über den Button oben. Dort finden Sie den SMS-Aktivierungsbereich, 
+              wo Sie die Telefonnummer und den Zugangscode eingeben können, um eine SMS-Verifikation zu erhalten.
+            </p>
+          </div>
         </div>
         ` : ''}
       </div>
