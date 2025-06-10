@@ -30,6 +30,7 @@ interface Assignment {
   updated_at: string;
   average_rating?: number;
   evaluation_count?: number;
+  is_actually_completed?: boolean; // New field to track if assignment is truly completed (evaluated)
 }
 
 const EmployeeOverview = () => {
@@ -85,6 +86,9 @@ const EmployeeOverview = () => {
           ? assignmentEvaluations.reduce((sum, evaluation) => sum + evaluation.star_rating, 0) / assignmentEvaluations.length 
           : undefined;
 
+        // An assignment is considered completed if it has been evaluated (has evaluations or is_evaluated is true)
+        const isActuallyCompleted = assignment.is_evaluated || assignmentEvaluations.length > 0;
+
         const assignmentData: Assignment = {
           id: assignment.id,
           auftrag_title: assignment.auftraege.title,
@@ -94,14 +98,15 @@ const EmployeeOverview = () => {
           created_at: assignment.created_at,
           updated_at: assignment.updated_at,
           average_rating: averageRating,
-          evaluation_count: assignmentEvaluations.length
+          evaluation_count: assignmentEvaluations.length,
+          is_actually_completed: isActuallyCompleted
         };
 
         if (employeeMap.has(employeeKey)) {
           const employee = employeeMap.get(employeeKey)!;
           employee.assignments.push(assignmentData);
           employee.total_assignments++;
-          if (assignment.is_completed) employee.completed_assignments++;
+          if (isActuallyCompleted) employee.completed_assignments++;
           if (assignment.is_evaluated) employee.evaluated_assignments++;
           
           // Update latest assignment date
@@ -113,7 +118,7 @@ const EmployeeOverview = () => {
             worker_first_name: assignment.worker_first_name,
             worker_last_name: assignment.worker_last_name,
             total_assignments: 1,
-            completed_assignments: assignment.is_completed ? 1 : 0,
+            completed_assignments: isActuallyCompleted ? 1 : 0,
             evaluated_assignments: assignment.is_evaluated ? 1 : 0,
             average_rating: 0,
             latest_assignment_date: assignment.created_at,
@@ -458,9 +463,9 @@ const EmployeeOverview = () => {
                                         <TableCell>
                                           <div className="flex gap-2">
                                             <Badge 
-                                              variant={assignment.is_completed ? "default" : "outline"}
+                                              variant={assignment.is_actually_completed ? "default" : "outline"}
                                             >
-                                              {assignment.is_completed ? "Abgeschlossen" : "Offen"}
+                                              {assignment.is_actually_completed ? "Abgeschlossen" : "Offen"}
                                             </Badge>
                                             {assignment.is_evaluated && (
                                               <Badge variant="secondary">Bewertet</Badge>
