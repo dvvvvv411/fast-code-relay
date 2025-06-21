@@ -8,6 +8,7 @@ import AllRequestsList from './AllRequestsList';
 import SupportTickets from './SupportTickets';
 import EmailManager from './EmailManager';
 import AppointmentManager from './AppointmentManager';
+import EmploymentContractManager from './EmploymentContractManager';
 import FeedbackManager from './FeedbackManager';
 import LiveChatAdmin from './LiveChatAdmin';
 import EmployeeOverview from './EmployeeOverview';
@@ -41,6 +42,8 @@ const AdminPanel = () => {
         return <EmailManager />;
       case 'appointments':
         return <AppointmentManager />;
+      case 'contracts':
+        return <EmploymentContractManager />;
       case 'feedback':
         return <FeedbackManager />;
       default:
