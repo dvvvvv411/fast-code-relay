@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { CalendarIcon, Plus, Trash2, Clock, Users, Ban, Upload, List, Grid3X3, Send, RefreshCw, Phone, Eye, EyeOff } from 'lucide-react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -60,6 +61,12 @@ const AppointmentManager = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [sendingEmails, setSendingEmails] = useState<Set<string>>(new Set());
   const [showSentEmails, setShowSentEmails] = useState(false);
+  
+  // Multi-select states
+  const [selectedRecipients, setSelectedRecipients] = useState<Set<string>>(new Set());
+  const [isBulkSending, setIsBulkSending] = useState(false);
+  const [currentlySendingEmail, setCurrentlySendingEmail] = useState<string | null>(null);
+  
   const { toast } = useToast();
 
   // New recipient form - updated to include phone number
@@ -137,7 +144,7 @@ const AppointmentManager = () => {
           console.log('✏️ Appointment updated:', newRecord);
           if (oldRecord.status !== newRecord.status) {
             toast({
-              title: "Termin aktualisiert",
+              title: "Termin aktualisiert",  
               description: `Terminstatus wurde auf "${newRecord.status}" geändert.`,
             });
           }
@@ -470,6 +477,74 @@ const AppointmentManager = () => {
     }
   };
 
+  // Multi-select functions
+  const handleRecipientSelect = (recipientId: string, checked: boolean) => {
+    setSelectedRecipients(prev => {
+      const newSet = new Set(prev);
+      if (checked) {
+        newSet.add(recipientId);
+      } else {
+        newSet.delete(recipientId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const pendingRecipientIds = filteredRecipients
+        .filter(recipient => !recipient.email_sent)
+        .map(recipient => recipient.id);
+      setSelectedRecipients(new Set(pendingRecipientIds));
+    } else {
+      setSelectedRecipients(new Set());
+    }
+  };
+
+  const handleBulkSendEmails = async () => {
+    if (selectedRecipients.size === 0) return;
+
+    setIsBulkSending(true);
+    const selectedRecipientsList = Array.from(selectedRecipients);
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const recipientId of selectedRecipientsList) {
+      const recipient = recipients.find(r => r.id === recipientId);
+      if (!recipient) continue;
+
+      setCurrentlySendingEmail(recipientId);
+
+      try {
+        const { error } = await supabase.functions.invoke('send-appointment-email', {
+          body: { recipientId }
+        });
+
+        if (error) throw error;
+        successCount++;
+      } catch (error) {
+        console.error(`Error sending email to ${recipient.email}:`, error);
+        errorCount++;
+      }
+
+      // Wait 1 second between emails to show progress
+      if (recipientId !== selectedRecipientsList[selectedRecipientsList.length - 1]) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+
+    setCurrentlySendingEmail(null);
+    setIsBulkSending(false);
+    setSelectedRecipients(new Set());
+
+    toast({
+      title: "Bulk-Versand abgeschlossen",
+      description: `${successCount} E-Mails erfolgreich gesendet${errorCount > 0 ? `, ${errorCount} fehlgeschlagen` : ''}.`,
+    });
+
+    loadRecipients();
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -496,6 +571,11 @@ const AppointmentManager = () => {
   const filteredRecipients = showSentEmails 
     ? recipients 
     : recipients.filter(recipient => !recipient.email_sent);
+
+  // Get recipients that can be selected (only those with pending emails)
+  const selectableRecipients = filteredRecipients.filter(recipient => !recipient.email_sent);
+  const isAllSelected = selectableRecipients.length > 0 && selectableRecipients.every(recipient => selectedRecipients.has(recipient.id));
+  const isSomeSelected = selectableRecipients.some(recipient => selectedRecipients.has(recipient.id));
 
   return (
     <div className="space-y-6">
@@ -670,23 +750,25 @@ const AppointmentManager = () => {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Empfänger verwalten</CardTitle>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowSentEmails(!showSentEmails)}
-                  className="flex items-center gap-2"
-                >
-                  {showSentEmails ? (
-                    <>
-                      <EyeOff className="h-4 w-4" />
-                      Versendete E-Mails ausblenden
-                    </>
-                  ) : (
-                    <>
-                      <Eye className="h-4 w-4" />
-                      Versendete E-Mails anzeigen
-                    </>
-                  )}
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowSentEmails(!showSentEmails)}
+                    className="flex items-center gap-2"
+                  >
+                    {showSentEmails ? (
+                      <>
+                        <EyeOff className="h-4 w-4" />
+                        Versendete E-Mails ausblenden
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="h-4 w-4" />
+                        Versendete E-Mails anzeigen
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -698,44 +780,103 @@ const AppointmentManager = () => {
                   }
                 </p>
               ) : (
-                <div className="space-y-3">
-                  {filteredRecipients.map((recipient) => (
-                    <div key={recipient.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div>
-                        <p className="font-medium">{recipient.first_name} {recipient.last_name}</p>
-                        <p className="text-sm text-gray-500">{recipient.email}</p>
-                        {recipient.phone_note && (
-                          <div className="flex items-center gap-1 text-sm text-gray-500 mt-1">
-                            <Phone className="h-3 w-3" />
-                            <span>{recipient.phone_note}</span>
-                          </div>
-                        )}
-                        <p className="text-xs text-gray-400">Token: {recipient.unique_token}</p>
+                <div className="space-y-4">
+                  {/* Bulk Actions */}
+                  {selectableRecipients.length > 0 && (
+                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
+                      <div className="flex items-center space-x-3">
+                        <Checkbox
+                          checked={isAllSelected}
+                          onCheckedChange={handleSelectAll}
+                          disabled={isBulkSending}
+                        />
+                        <span className="text-sm font-medium">
+                          {selectedRecipients.size > 0 
+                            ? `${selectedRecipients.size} von ${selectableRecipients.length} Empfängern ausgewählt`
+                            : 'Alle auswählen'
+                          }
+                        </span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={recipient.email_sent ? "default" : "secondary"}>
-                          {recipient.email_sent ? "E-Mail gesendet" : "E-Mail ausstehend"}
-                        </Badge>
+                      {selectedRecipients.size > 0 && (
                         <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleSendEmail(recipient)}
-                          disabled={sendingEmails.has(recipient.id)}
-                          className="flex items-center gap-2"
+                          onClick={handleBulkSendEmails}
+                          disabled={isBulkSending}
+                          className="bg-orange hover:bg-orange/90 flex items-center gap-2"
                         >
                           <Send className="h-4 w-4" />
-                          {sendingEmails.has(recipient.id) ? "Wird gesendet..." : "E-Mail versenden"}
+                          {isBulkSending 
+                            ? `E-Mails versenden... (${Array.from(selectedRecipients).indexOf(currentlySendingEmail || '') + 1}/${selectedRecipients.size})`
+                            : `E-Mails an ${selectedRecipients.size} Empfänger versenden`
+                          }
                         </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => deleteRecipient(recipient.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      )}
                     </div>
-                  ))}
+                  )}
+
+                  {/* Recipients List */}
+                  <div className="space-y-3">
+                    {filteredRecipients.map((recipient) => {
+                      const isSelectable = !recipient.email_sent;
+                      const isSelected = selectedRecipients.has(recipient.id);
+                      const isSending = sendingEmails.has(recipient.id) || currentlySendingEmail === recipient.id;
+                      
+                      return (
+                        <div 
+                          key={recipient.id} 
+                          className={cn(
+                            "flex items-center justify-between p-3 border rounded-lg transition-all",
+                            isSelected && "bg-orange/5 border-orange/20",
+                            isSending && "animate-pulse",
+                            "hover:shadow-sm"
+                          )}
+                        >
+                          <div className="flex items-center space-x-3">
+                            {isSelectable && (
+                              <Checkbox
+                                checked={isSelected}
+                                onCheckedChange={(checked) => handleRecipientSelect(recipient.id, checked as boolean)}
+                                disabled={isBulkSending}
+                              />
+                            )}
+                            <div>
+                              <p className="font-medium">{recipient.first_name} {recipient.last_name}</p>
+                              <p className="text-sm text-gray-500">{recipient.email}</p>
+                              {recipient.phone_note && (
+                                <div className="flex items-center gap-1 text-sm text-gray-500 mt-1">
+                                  <Phone className="h-3 w-3" />
+                                  <span>{recipient.phone_note}</span>
+                                </div>
+                              )}
+                              <p className="text-xs text-gray-400">Token: {recipient.unique_token}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant={recipient.email_sent ? "default" : "secondary"}>
+                              {recipient.email_sent ? "E-Mail gesendet" : "E-Mail ausstehend"}
+                            </Badge>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleSendEmail(recipient)}
+                              disabled={isSending || isBulkSending}
+                              className="flex items-center gap-2"
+                            >
+                              <Send className="h-4 w-4" />
+                              {isSending ? "Wird gesendet..." : "E-Mail versenden"}
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => deleteRecipient(recipient.id)}
+                              disabled={isBulkSending}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </CardContent>
