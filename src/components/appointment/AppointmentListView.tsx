@@ -1,10 +1,11 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Clock, User, Mail, Calendar, Eye, Star, Heart, X, Voicemail, Filter, RefreshCw, Phone, Check, Loader2 } from 'lucide-react';
+import { Clock, User, Mail, Calendar, Eye, Star, Heart, X, Voicemail, Filter, RefreshCw, Phone, Check, Loader2, CalendarDays } from 'lucide-react';
 import { format, isAfter, isBefore, startOfDay, addDays, isWithinInterval } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -49,18 +50,22 @@ const AppointmentListView = ({
   const [editingPhoneNote, setEditingPhoneNote] = useState<string | null>(null);
   const [phoneNoteValue, setPhoneNoteValue] = useState<string>('');
   const [updatingPhoneNote, setUpdatingPhoneNote] = useState<string | null>(null);
+  const [showAllAppointments, setShowAllAppointments] = useState<boolean>(false);
   const now = new Date();
   const today = startOfDay(now);
   const tomorrow = addDays(today, 1);
 
   // Filter appointments by date (today and tomorrow only) and status
   const filteredAppointments = appointments.filter(appointment => {
-    const appointmentDate = new Date(appointment.appointment_date);
-    const isToday = startOfDay(appointmentDate).getTime() === today.getTime();
-    const isTomorrow = startOfDay(appointmentDate).getTime() === tomorrow.getTime();
-    
-    // Only show appointments from today and tomorrow
-    if (!isToday && !isTomorrow) return false;
+    // If showing all appointments, skip date filtering
+    if (!showAllAppointments) {
+      const appointmentDate = new Date(appointment.appointment_date);
+      const isToday = startOfDay(appointmentDate).getTime() === today.getTime();
+      const isTomorrow = startOfDay(appointmentDate).getTime() === tomorrow.getTime();
+      
+      // Only show appointments from today and tomorrow
+      if (!isToday && !isTomorrow) return false;
+    }
     
     // Apply status filter
     if (statusFilter === 'all') return true;
@@ -249,10 +254,24 @@ const AppointmentListView = ({
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />
-              Termine heute & morgen ({filteredAppointments.length})
+              {showAllAppointments ? `Alle Termine (${filteredAppointments.length})` : `Termine heute & morgen (${filteredAppointments.length})`}
             </CardTitle>
             
             <div className="flex items-center gap-3">
+              {/* Show All Appointments Toggle */}
+              <Button
+                variant={showAllAppointments ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowAllAppointments(!showAllAppointments)}
+                className={cn(
+                  "flex items-center gap-2",
+                  showAllAppointments && "bg-orange hover:bg-orange/90"
+                )}
+              >
+                <CalendarDays className="h-4 w-4" />
+                {showAllAppointments ? "Nur heute & morgen" : "Alle anzeigen"}
+              </Button>
+              
               {/* Refresh Button */}
               {onRefresh && (
                 <Button
@@ -447,8 +466,11 @@ const AppointmentListView = ({
               <Calendar className="h-12 w-12 mx-auto mb-2 opacity-50" />
               <p>
                 {statusFilter === 'all' 
-                  ? 'Keine Termine für heute oder morgen vorhanden' 
-                  : `Keine Termine mit Status "${getStatusText(statusFilter)}" für heute oder morgen vorhanden`
+                  ? (showAllAppointments ? 'Keine Termine vorhanden' : 'Keine Termine für heute oder morgen vorhanden')
+                  : (showAllAppointments 
+                      ? `Keine Termine mit Status "${getStatusText(statusFilter)}" vorhanden`
+                      : `Keine Termine mit Status "${getStatusText(statusFilter)}" für heute oder morgen vorhanden`
+                    )
                 }
               </p>
             </div>
