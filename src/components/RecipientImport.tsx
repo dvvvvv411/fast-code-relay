@@ -41,6 +41,12 @@ const RecipientImport = ({ onImportComplete }: RecipientImportProps) => {
     return emailRegex.test(email);
   };
 
+  const validatePhoneNumber = (phone: string): boolean => {
+    // Basic phone number validation - allows various formats
+    const phoneRegex = /^[\+]?[\d\s\-\(\)]{7,}$/;
+    return phoneRegex.test(phone.trim());
+  };
+
   const parseFile = async (file: File): Promise<string[]> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -86,26 +92,29 @@ const RecipientImport = ({ onImportComplete }: RecipientImportProps) => {
         const lineNumber = i + 1;
         const line = lines[i];
         
-        // Parse line format: Vorname:Nachname:Email
+        // Parse line format: Vorname:Nachname:Email:Telefonnummer (phone number is optional)
         const parts = line.split(':');
         
-        if (parts.length !== 3) {
+        if (parts.length < 3 || parts.length > 4) {
           result.errors.push({
             line: lineNumber,
             content: line,
-            error: 'Ungültiges Format. Erwartet: Vorname:Nachname:Email'
+            error: 'Ungültiges Format. Erwartet: Vorname:Nachname:Email oder Vorname:Nachname:Email:Telefonnummer'
           });
           continue;
         }
 
-        const [firstName, lastName, email] = parts.map(part => part.trim());
+        const firstName = parts[0]?.trim();
+        const lastName = parts[1]?.trim();
+        const email = parts[2]?.trim();
+        const phoneNumber = parts[3]?.trim() || '';
 
         // Validate required fields
         if (!firstName || !lastName || !email) {
           result.errors.push({
             line: lineNumber,
             content: line,
-            error: 'Alle Felder sind erforderlich (Vorname, Nachname, Email)'
+            error: 'Vorname, Nachname und E-Mail sind erforderlich'
           });
           continue;
         }
@@ -116,6 +125,16 @@ const RecipientImport = ({ onImportComplete }: RecipientImportProps) => {
             line: lineNumber,
             content: line,
             error: 'Ungültige E-Mail-Adresse'
+          });
+          continue;
+        }
+
+        // Validate phone number if provided
+        if (phoneNumber && !validatePhoneNumber(phoneNumber)) {
+          result.errors.push({
+            line: lineNumber,
+            content: line,
+            error: 'Ungültige Telefonnummer'
           });
           continue;
         }
@@ -139,6 +158,7 @@ const RecipientImport = ({ onImportComplete }: RecipientImportProps) => {
               first_name: firstName,
               last_name: lastName,
               email: email,
+              phone_note: phoneNumber || null,
               unique_token: generateUniqueToken()
             });
 
@@ -213,13 +233,15 @@ const RecipientImport = ({ onImportComplete }: RecipientImportProps) => {
           <Alert>
             <FileText className="h-4 w-4" />
             <AlertDescription>
-              <strong>Dateiformat:</strong> Jede Zeile sollte das Format "Vorname:Nachname:Email" haben.
+              <strong>Dateiformat:</strong> Jede Zeile sollte das Format "Vorname:Nachname:Email" oder "Vorname:Nachname:Email:Telefonnummer" haben.
               <br />
               <strong>Beispiel:</strong>
               <br />
-              Max:Mustermann:max@example.com
+              Max:Mustermann:max@example.com:+49 123 456789
               <br />
               Anna:Schmidt:anna@example.com
+              <br />
+              <em>Hinweis: Die Telefonnummer ist optional.</em>
             </AlertDescription>
           </Alert>
 

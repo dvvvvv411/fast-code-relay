@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
-import { CalendarIcon, Plus, Trash2, Clock, Users, Ban, Upload, List, Grid3X3, Send, RefreshCw } from 'lucide-react';
+import { CalendarIcon, Plus, Trash2, Clock, Users, Ban, Upload, List, Grid3X3, Send, RefreshCw, Phone } from 'lucide-react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
@@ -61,11 +62,12 @@ const AppointmentManager = () => {
   const [sendingEmails, setSendingEmails] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
-  // New recipient form
+  // New recipient form - updated to include phone number
   const [newRecipient, setNewRecipient] = useState({
     firstName: '',
     lastName: '',
-    email: ''
+    email: '',
+    phoneNumber: ''
   });
 
   // Add state for import panel visibility
@@ -263,7 +265,7 @@ const AppointmentManager = () => {
     if (!newRecipient.firstName || !newRecipient.lastName || !newRecipient.email) {
       toast({
         title: "Fehler",
-        description: "Bitte füllen Sie alle Felder aus.",
+        description: "Bitte füllen Sie alle Pflichtfelder aus.",
         variant: "destructive",
       });
       return;
@@ -276,6 +278,7 @@ const AppointmentManager = () => {
           first_name: newRecipient.firstName,
           last_name: newRecipient.lastName,
           email: newRecipient.email,
+          phone_note: newRecipient.phoneNumber || null,
           unique_token: generateUniqueToken()
         });
 
@@ -286,7 +289,7 @@ const AppointmentManager = () => {
         description: "Empfänger wurde erfolgreich erstellt.",
       });
 
-      setNewRecipient({ firstName: '', lastName: '', email: '' });
+      setNewRecipient({ firstName: '', lastName: '', email: '', phoneNumber: '' });
       loadRecipients();
     } catch (error: any) {
       toast({
@@ -601,7 +604,7 @@ const AppointmentManager = () => {
           {showImportPanel ? (
             <RecipientImport onImportComplete={loadRecipients} />
           ) : (
-            // Manual Entry Panel
+            // Manual Entry Panel - updated to include phone number field
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -610,9 +613,9 @@ const AppointmentManager = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div>
-                    <Label htmlFor="firstName">Vorname</Label>
+                    <Label htmlFor="firstName">Vorname *</Label>
                     <Input
                       id="firstName"
                       value={newRecipient.firstName}
@@ -621,7 +624,7 @@ const AppointmentManager = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="lastName">Nachname</Label>
+                    <Label htmlFor="lastName">Nachname *</Label>
                     <Input
                       id="lastName"
                       value={newRecipient.lastName}
@@ -630,13 +633,23 @@ const AppointmentManager = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="email">E-Mail</Label>
+                    <Label htmlFor="email">E-Mail *</Label>
                     <Input
                       id="email"
                       type="email"
                       value={newRecipient.email}
                       onChange={(e) => setNewRecipient(prev => ({ ...prev, email: e.target.value }))}
                       placeholder="E-Mail eingeben"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="phoneNumber">Telefonnummer</Label>
+                    <Input
+                      id="phoneNumber"
+                      type="tel"
+                      value={newRecipient.phoneNumber}
+                      onChange={(e) => setNewRecipient(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                      placeholder="Telefonnummer eingeben"
                     />
                   </div>
                 </div>
@@ -662,6 +675,12 @@ const AppointmentManager = () => {
                       <div>
                         <p className="font-medium">{recipient.first_name} {recipient.last_name}</p>
                         <p className="text-sm text-gray-500">{recipient.email}</p>
+                        {recipient.phone_note && (
+                          <div className="flex items-center gap-1 text-sm text-gray-500 mt-1">
+                            <Phone className="h-3 w-3" />
+                            <span>{recipient.phone_note}</span>
+                          </div>
+                        )}
                         <p className="text-xs text-gray-400">Token: {recipient.unique_token}</p>
                       </div>
                       <div className="flex items-center gap-2">
