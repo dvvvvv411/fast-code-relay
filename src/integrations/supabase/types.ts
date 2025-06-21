@@ -278,41 +278,6 @@ export type Database = {
         }
         Relationships: []
       }
-      contract_request_tokens: {
-        Row: {
-          appointment_id: string
-          created_at: string
-          email_sent: boolean
-          expires_at: string
-          id: string
-          token: string
-        }
-        Insert: {
-          appointment_id: string
-          created_at?: string
-          email_sent?: boolean
-          expires_at?: string
-          id?: string
-          token: string
-        }
-        Update: {
-          appointment_id?: string
-          created_at?: string
-          email_sent?: boolean
-          expires_at?: string
-          id?: string
-          token?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "contract_request_tokens_appointment_id_fkey"
-            columns: ["appointment_id"]
-            isOneToOne: false
-            referencedRelation: "appointments"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       employee_activity_logs: {
         Row: {
           activity_type: string
@@ -357,68 +322,6 @@ export type Database = {
             columns: ["evaluation_id"]
             isOneToOne: false
             referencedRelation: "evaluations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      employment_contracts: {
-        Row: {
-          appointment_id: string
-          created_at: string
-          email: string
-          first_name: string
-          health_insurance_name: string
-          health_insurance_number: string
-          iban: string
-          id: string
-          id_card_back_url: string | null
-          id_card_front_url: string | null
-          last_name: string
-          social_security_number: string
-          start_date: string
-          submitted_at: string
-          tax_number: string
-        }
-        Insert: {
-          appointment_id: string
-          created_at?: string
-          email: string
-          first_name: string
-          health_insurance_name: string
-          health_insurance_number: string
-          iban: string
-          id?: string
-          id_card_back_url?: string | null
-          id_card_front_url?: string | null
-          last_name: string
-          social_security_number: string
-          start_date: string
-          submitted_at?: string
-          tax_number: string
-        }
-        Update: {
-          appointment_id?: string
-          created_at?: string
-          email?: string
-          first_name?: string
-          health_insurance_name?: string
-          health_insurance_number?: string
-          iban?: string
-          id?: string
-          id_card_back_url?: string | null
-          id_card_front_url?: string | null
-          last_name?: string
-          social_security_number?: string
-          start_date?: string
-          submitted_at?: string
-          tax_number?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "employment_contracts_appointment_id_fkey"
-            columns: ["appointment_id"]
-            isOneToOne: false
-            referencedRelation: "appointments"
             referencedColumns: ["id"]
           },
         ]

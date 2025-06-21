@@ -477,39 +477,6 @@ const AppointmentManager = () => {
     }
   };
 
-  const handleSendEmploymentContractEmail = async (appointment: Appointment) => {
-    if (!appointment.recipient) {
-      toast({
-        title: "Fehler",
-        description: "Empfänger-Informationen nicht verfügbar.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase.functions.invoke('send-employment-contract-email', {
-        body: {
-          appointmentId: appointment.id
-        }
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Erfolg",
-        description: `Arbeitsvertrag E-Mail wurde erfolgreich an ${appointment.recipient.first_name} ${appointment.recipient.last_name} gesendet.`,
-      });
-    } catch (error: any) {
-      console.error('Error sending employment contract email:', error);
-      toast({
-        title: "Fehler",
-        description: error.message || "Arbeitsvertrag E-Mail konnte nicht gesendet werden.",
-        variant: "destructive",
-      });
-    }
-  };
-
   // Multi-select functions
   const handleRecipientSelect = (recipientId: string, checked: boolean) => {
     setSelectedRecipients(prev => {
@@ -690,7 +657,6 @@ const AppointmentManager = () => {
               onRefresh={handleRefresh}
               isRefreshing={isRefreshing}
               onMissedEmailSend={handleSendMissedAppointmentEmail}
-              onEmploymentContractEmailSend={handleSendEmploymentContractEmail}
             />
           )}
         </div>

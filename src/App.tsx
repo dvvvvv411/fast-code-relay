@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,7 +14,6 @@ import Auftrag from "./pages/Auftrag";
 import Assignment from "./pages/Assignment";
 import AppointmentBooking from "./pages/AppointmentBooking";
 import NotFound from "./pages/NotFound";
-import EmploymentContract from "./pages/EmploymentContract";
 
 const queryClient = new QueryClient();
 
@@ -34,7 +34,6 @@ const App = () => (
                 <Route path="/auftrag/:id" element={<Auftrag />} />
                 <Route path="/assignment/:assignmentUrl" element={<Assignment />} />
                 <Route path="/termin-buchen/:token" element={<AppointmentBooking />} />
-                <Route path="/arbeitsvertrag/:token" element={<EmploymentContract />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
