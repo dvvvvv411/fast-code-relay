@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Clock, User, Mail, Calendar, Eye, Star, Heart, X, Voicemail, Filter, RefreshCw, Phone, Check, Loader2 } from 'lucide-react';
-import { format, isAfter, isBefore, startOfDay } from 'date-fns';
+import { format, isAfter, isBefore, startOfDay, addDays, isWithinInterval } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -51,9 +51,18 @@ const AppointmentListView = ({
   const [updatingPhoneNote, setUpdatingPhoneNote] = useState<string | null>(null);
   const now = new Date();
   const today = startOfDay(now);
+  const tomorrow = addDays(today, 1);
 
-  // Filter appointments based on selected status
+  // Filter appointments by date (today and tomorrow only) and status
   const filteredAppointments = appointments.filter(appointment => {
+    const appointmentDate = new Date(appointment.appointment_date);
+    const isToday = startOfDay(appointmentDate).getTime() === today.getTime();
+    const isTomorrow = startOfDay(appointmentDate).getTime() === tomorrow.getTime();
+    
+    // Only show appointments from today and tomorrow
+    if (!isToday && !isTomorrow) return false;
+    
+    // Apply status filter
     if (statusFilter === 'all') return true;
     return appointment.status === statusFilter;
   });
@@ -240,7 +249,7 @@ const AppointmentListView = ({
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />
-              Alle Termine ({filteredAppointments.length})
+              Termine heute & morgen ({filteredAppointments.length})
             </CardTitle>
             
             <div className="flex items-center gap-3">
@@ -438,8 +447,8 @@ const AppointmentListView = ({
               <Calendar className="h-12 w-12 mx-auto mb-2 opacity-50" />
               <p>
                 {statusFilter === 'all' 
-                  ? 'Keine Termine vorhanden' 
-                  : `Keine Termine mit Status "${getStatusText(statusFilter)}" vorhanden`
+                  ? 'Keine Termine für heute oder morgen vorhanden' 
+                  : `Keine Termine mit Status "${getStatusText(statusFilter)}" für heute oder morgen vorhanden`
                 }
               </p>
             </div>
