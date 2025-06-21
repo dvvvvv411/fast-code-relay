@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
-import { CalendarIcon, Plus, Trash2, Clock, Users, Ban, Upload, List, Grid3X3, Send, RefreshCw, Phone } from 'lucide-react';
+import { CalendarIcon, Plus, Trash2, Clock, Users, Ban, Upload, List, Grid3X3, Send, RefreshCw, Phone, Eye, EyeOff } from 'lucide-react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
@@ -60,6 +59,7 @@ const AppointmentManager = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [sendingEmails, setSendingEmails] = useState<Set<string>>(new Set());
+  const [showSentEmails, setShowSentEmails] = useState(false);
   const { toast } = useToast();
 
   // New recipient form - updated to include phone number
@@ -492,6 +492,11 @@ const AppointmentManager = () => {
     );
   }
 
+  // Filter recipients based on showSentEmails toggle
+  const filteredRecipients = showSentEmails 
+    ? recipients 
+    : recipients.filter(recipient => !recipient.email_sent);
+
   return (
     <div className="space-y-6">
       {/* Tab Navigation */}
@@ -663,14 +668,38 @@ const AppointmentManager = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle>Empfänger verwalten</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>Empfänger verwalten</CardTitle>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowSentEmails(!showSentEmails)}
+                  className="flex items-center gap-2"
+                >
+                  {showSentEmails ? (
+                    <>
+                      <EyeOff className="h-4 w-4" />
+                      Versendete E-Mails ausblenden
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="h-4 w-4" />
+                      Versendete E-Mails anzeigen
+                    </>
+                  )}
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
-              {recipients.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">Keine Empfänger vorhanden.</p>
+              {filteredRecipients.length === 0 ? (
+                <p className="text-gray-500 text-center py-4">
+                  {showSentEmails 
+                    ? "Keine Empfänger vorhanden." 
+                    : "Keine Empfänger mit ausstehenden E-Mails vorhanden."
+                  }
+                </p>
               ) : (
                 <div className="space-y-3">
-                  {recipients.map((recipient) => (
+                  {filteredRecipients.map((recipient) => (
                     <div key={recipient.id} className="flex items-center justify-between p-3 border rounded-lg">
                       <div>
                         <p className="font-medium">{recipient.first_name} {recipient.last_name}</p>
