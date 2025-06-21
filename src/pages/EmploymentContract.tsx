@@ -29,7 +29,7 @@ const EmploymentContract = () => {
   const { toast } = useToast();
   const token = searchParams.get('token');
 
-  const [isValidToken, setIs ValidToken] = useState(false);
+  const [isValidToken, setIsValidToken] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [appointmentId, setAppointmentId] = useState<string>('');
