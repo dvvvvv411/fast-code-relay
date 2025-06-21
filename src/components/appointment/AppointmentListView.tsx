@@ -1,15 +1,15 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Clock, User, Mail, Calendar, Eye, Star, Heart, X, Voicemail, Filter, RefreshCw, Phone, Check, Loader2, CalendarDays } from 'lucide-react';
+import { Clock, User, Mail, Calendar, Eye, Star, Heart, X, Voicemail, Filter, RefreshCw, Phone, Check, Loader2, CalendarDays, FileText } from 'lucide-react';
 import { format, isAfter, isBefore, startOfDay, addDays, isWithinInterval } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
+import EmploymentContractEmailPreviewDialog from './EmploymentContractEmailPreviewDialog';
 
 interface Appointment {
   id: string;
@@ -35,6 +35,7 @@ interface AppointmentListViewProps {
   onRefresh?: () => void;
   isRefreshing?: boolean;
   onMissedEmailSend?: (appointment: Appointment) => void;
+  onEmploymentContractEmailSend?: (appointment: Appointment) => void;
 }
 
 const AppointmentListView = ({ 
@@ -44,7 +45,8 @@ const AppointmentListView = ({
   onPhoneNoteUpdate, 
   onRefresh,
   isRefreshing = false,
-  onMissedEmailSend
+  onMissedEmailSend,
+  onEmploymentContractEmailSend
 }: AppointmentListViewProps) => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [editingPhoneNote, setEditingPhoneNote] = useState<string | null>(null);
@@ -54,6 +56,9 @@ const AppointmentListView = ({
   const now = new Date();
   const today = startOfDay(now);
   const tomorrow = addDays(today, 1);
+  
+  const [showContractEmailPreview, setShowContractEmailPreview] = useState(false);
+  const [contractEmailAppointment, setContractEmailAppointment] = useState<Appointment | null>(null);
 
   // Filter appointments by date (today and tomorrow only) and status
   const filteredAppointments = appointments.filter(appointment => {
@@ -186,6 +191,20 @@ const AppointmentListView = ({
     event.stopPropagation();
     if (onMissedEmailSend) {
       onMissedEmailSend(appointment);
+    }
+  };
+
+  const handleContractEmailClick = (appointment: Appointment, event: React.MouseEvent) => {
+    event.stopPropagation();
+    setContractEmailAppointment(appointment);
+    setShowContractEmailPreview(true);
+  };
+
+  const handleSendContractEmail = () => {
+    if (contractEmailAppointment && onEmploymentContractEmailSend) {
+      onEmploymentContractEmailSend(contractEmailAppointment);
+      setShowContractEmailPreview(false);
+      setContractEmailAppointment(null);
     }
   };
 
@@ -454,6 +473,17 @@ const AppointmentListView = ({
                           <Mail className="h-4 w-4" />
                         </Button>
                       )}
+                      {(appointment.status === 'confirmed' || appointment.status === 'interessiert') && onEmploymentContractEmailSend && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => handleContractEmailClick(appointment, e)}
+                          className="hover:bg-blue-100 hover:text-blue-600"
+                          title="Arbeitsvertrag E-Mail senden"
+                        >
+                          <FileText className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -477,6 +507,14 @@ const AppointmentListView = ({
           )}
         </CardContent>
       </Card>
+
+      {/* Employment Contract Email Preview Dialog */}
+      <EmploymentContractEmailPreviewDialog
+        isOpen={showContractEmailPreview}
+        onClose={() => setShowContractEmailPreview(false)}
+        appointment={contractEmailAppointment}
+        onSend={handleSendContractEmail}
+      />
     </div>
   );
 };
