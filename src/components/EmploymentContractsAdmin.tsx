@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -53,7 +52,7 @@ const EmploymentContractsAdmin = () => {
 
   const loadContracts = async () => {
     try {
-      const { data, error } = await supa
+      const { data, error } = await supabase
         .from('employment_contracts')
         .select(`
           *,
