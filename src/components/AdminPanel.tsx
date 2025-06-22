@@ -11,7 +11,6 @@ import AppointmentManager from './AppointmentManager';
 import FeedbackManager from './FeedbackManager';
 import LiveChatAdmin from './LiveChatAdmin';
 import EmployeeOverview from './EmployeeOverview';
-import ContractsManager from './ContractsManager';
 import AdminNavbar from './AdminNavbar';
 import { useSMS } from '@/context/SMSContext';
 import { MessageSquare } from 'lucide-react';
@@ -44,8 +43,6 @@ const AdminPanel = () => {
         return <AppointmentManager />;
       case 'feedback':
         return <FeedbackManager />;
-      case 'contracts':
-        return <ContractsManager />;
       default:
         return <AllRequestsList />;
     }

@@ -16,8 +16,7 @@ import {
   Calendar, 
   Star,
   ChevronDown,
-  Users,
-  FileText
+  Users
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -154,21 +153,6 @@ const AdminNavbar = ({ activeTab, onTabChange }: AdminNavbarProps) => {
           >
             <Calendar className="h-4 w-4" />
             Termine
-          </Button>
-
-          {/* Arbeitsvertrag - Single Item */}
-          <Button
-            variant="ghost"
-            className={cn(
-              "flex items-center gap-2 px-4 py-2 rounded-md transition-colors",
-              activeTab === 'contracts'
-                ? "bg-orange/10 text-orange hover:bg-orange/20"
-                : "text-gray-700 hover:bg-gray-100"
-            )}
-            onClick={() => onTabChange('contracts')}
-          >
-            <FileText className="h-4 w-4" />
-            Arbeitsvertrag
           </Button>
         </div>
       </div>
