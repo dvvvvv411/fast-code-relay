@@ -1,9 +1,11 @@
+
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { FileText, Upload, Calendar, User, Mail, Building, CreditCard, Shield } from 'lucide-react';
@@ -17,7 +19,7 @@ interface ContractData {
   social_security_number: string;
   tax_number: string;
   health_insurance_name: string;
-  health_insurance_number: string;
+  marital_status: string;
   iban: string;
 }
 
@@ -40,7 +42,7 @@ const EmploymentContract = () => {
     social_security_number: '',
     tax_number: '',
     health_insurance_name: '',
-    health_insurance_number: '',
+    marital_status: '',
     iban: '',
   });
 
@@ -363,54 +365,56 @@ const EmploymentContract = () => {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="social_security_number">Sozialversicherungsnummer *</Label>
+                    <Label htmlFor="social_security_number">Sozialversicherungsnummer</Label>
                     <Input
                       id="social_security_number"
                       value={contractData.social_security_number}
                       onChange={(e) => handleInputChange('social_security_number', e.target.value)}
-                      required
                       placeholder="12 123456 A 123"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="tax_number">Steuerliche Identifikationsnummer *</Label>
+                    <Label htmlFor="tax_number">Steuerliche Identifikationsnummer</Label>
                     <Input
                       id="tax_number"
                       value={contractData.tax_number}
                       onChange={(e) => handleInputChange('tax_number', e.target.value)}
-                      required
                       placeholder="12345678901"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Health Insurance */}
+              {/* Health Insurance and Personal Status */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2 mb-4">
                   <Building className="h-5 w-5 text-orange" />
-                  <h3 className="text-lg font-semibold">Krankenversicherung</h3>
+                  <h3 className="text-lg font-semibold">Krankenversicherung & Familienstand</h3>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="health_insurance_name">Name der Krankenkasse *</Label>
+                    <Label htmlFor="health_insurance_name">Name der Krankenkasse</Label>
                     <Input
                       id="health_insurance_name"
                       value={contractData.health_insurance_name}
                       onChange={(e) => handleInputChange('health_insurance_name', e.target.value)}
-                      required
                       placeholder="z.B. AOK, Barmer, TK"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="health_insurance_number">Versichertennummer *</Label>
-                    <Input
-                      id="health_insurance_number"
-                      value={contractData.health_insurance_number}
-                      onChange={(e) => handleInputChange('health_insurance_number', e.target.value)}
-                      required
-                      placeholder="Ihre Versichertennummer"
-                    />
+                    <Label htmlFor="marital_status">Familienstand</Label>
+                    <Select value={contractData.marital_status} onValueChange={(value) => handleInputChange('marital_status', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Bitte wählen" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ledig">Ledig</SelectItem>
+                        <SelectItem value="verheiratet">Verheiratet</SelectItem>
+                        <SelectItem value="geschieden">Geschieden</SelectItem>
+                        <SelectItem value="verwitwet">Verwitwet</SelectItem>
+                        <SelectItem value="lebenspartnerschaft">Lebenspartnerschaft</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </div>
@@ -422,12 +426,11 @@ const EmploymentContract = () => {
                   <h3 className="text-lg font-semibold">Bankverbindung</h3>
                 </div>
                 <div>
-                  <Label htmlFor="iban">IBAN *</Label>
+                  <Label htmlFor="iban">IBAN</Label>
                   <Input
                     id="iban"
                     value={contractData.iban}
                     onChange={(e) => handleInputChange('iban', e.target.value)}
-                    required
                     placeholder="DE12345678901234567890"
                   />
                 </div>
