@@ -39,7 +39,7 @@ export const useUserAssignments = (userId?: string) => {
           is_completed,
           is_evaluated,
           created_at,
-          auftraege:auftrag_id (
+          auftraege!inner (
             id,
             title,
             auftragsnummer,
@@ -67,12 +67,12 @@ export const useUserAssignments = (userId?: string) => {
         is_completed: item.is_completed,
         is_evaluated: item.is_evaluated,
         created_at: item.created_at,
-        auftrag: item.auftraege as {
-          id: string;
-          title: string;
-          auftragsnummer: string;
-          anbieter: string;
-          projektziel: string;
+        auftrag: {
+          id: item.auftraege.id,
+          title: item.auftraege.title,
+          auftragsnummer: item.auftraege.auftragsnummer,
+          anbieter: item.auftraege.anbieter,
+          projektziel: item.auftraege.projektziel
         }
       }));
 
