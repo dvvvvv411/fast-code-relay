@@ -1,5 +1,5 @@
-
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,20 +13,29 @@ const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { signInAndRedirect } = useAuth();
+  const { signIn, isAdmin } = useAuth();
+  const navigate = useNavigate();
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     
-    const result = await signInAndRedirect(email, password);
+    const result = await signIn(email, password);
     
     if (result.success) {
       toast({
         title: "Erfolgreich angemeldet",
         description: "Sie wurden erfolgreich angemeldet.",
       });
-      // Navigation is now handled by signInAndRedirect
+      
+      // Wait a moment for the auth state to update and isAdmin to be determined
+      setTimeout(() => {
+        if (isAdmin) {
+          navigate('/admin');
+        } else {
+          navigate('/dashboard');
+        }
+      }, 100);
     } else {
       toast({
         title: "Anmeldung fehlgeschlagen",
