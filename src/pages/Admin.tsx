@@ -6,20 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Loader, LogOut, Shield } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 import { Toaster } from "@/components/ui/toaster";
-import { useEffect } from 'react';
-import { useSMS } from '@/context/SMSContext';
 
 const Admin = () => {
   const { user, isLoading, isAdmin, signOut } = useAuth();
-  const { requests } = useSMS();
-  
-  // Log requests data whenever it changes to debug the status updates
-  useEffect(() => {
-    console.log('🔄 Admin page - Requests updated:', Object.values(requests).length, 'total requests');
-    Object.values(requests).forEach(request => {
-      console.log(`📊 Admin view - Request ${request.id}: ${request.status} - Phone: ${request.phone}`);
-    });
-  }, [requests]);
   
   const handleSignOut = async () => {
     await signOut();
