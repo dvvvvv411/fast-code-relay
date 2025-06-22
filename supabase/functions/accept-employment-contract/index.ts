@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { Resend } from "npm:resend@2.0.0";
@@ -51,15 +50,22 @@ serve(async (req: Request) => {
 
     console.log('✅ Contract found:', contract.email);
 
-    // Check if user already exists
-    const { data: existingUser, error: userCheckError } = await supabaseAdmin.auth.admin.getUserByEmail(contract.email);
+    // Check if user already exists by listing users and filtering by email
+    const { data: { users }, error: userListError } = await supabaseAdmin.auth.admin.listUsers();
+    
+    if (userListError) {
+      console.error('❌ Error listing users:', userListError);
+      throw new Error(`Failed to check existing users: ${userListError.message}`);
+    }
+
+    const existingUser = users.find(user => user.email === contract.email);
     
     let userId: string;
     let temporaryPassword: string | null = null;
 
-    if (existingUser.user) {
+    if (existingUser) {
       console.log('👤 User already exists, using existing account');
-      userId = existingUser.user.id;
+      userId = existingUser.id;
     } else {
       console.log('🆕 Creating new user account');
       
