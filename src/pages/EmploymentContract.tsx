@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -93,6 +92,10 @@ const EmploymentContract = () => {
 
         console.log('✅ Token is valid');
         setAppointmentId(data.appointment_id);
+        
+        // Load appointment and recipient data to prefill form
+        await loadAppointmentData(data.appointment_id);
+        
         setIsValidToken(true);
         
       } catch (error: any) {
@@ -107,6 +110,47 @@ const EmploymentContract = () => {
         setTimeout(() => navigate('/'), 3000);
       } finally {
         setIsLoading(false);
+      }
+    };
+
+    const loadAppointmentData = async (appointmentId: string) => {
+      try {
+        console.log('🔍 Loading appointment data for ID:', appointmentId);
+        
+        // Get appointment data with recipient information
+        const { data: appointmentData, error: appointmentError } = await supabase
+          .from('appointments')
+          .select(`
+            *,
+            appointment_recipients (
+              first_name,
+              last_name,
+              email
+            )
+          `)
+          .eq('id', appointmentId)
+          .single();
+
+        if (appointmentError) {
+          console.error('❌ Error loading appointment data:', appointmentError);
+          return;
+        }
+
+        if (appointmentData && appointmentData.appointment_recipients) {
+          const recipient = appointmentData.appointment_recipients;
+          console.log('📋 Prefilling form with recipient data:', recipient);
+          
+          // Prefill the form with available data
+          setContractData(prev => ({
+            ...prev,
+            first_name: recipient.first_name || '',
+            last_name: recipient.last_name || '',
+            email: recipient.email || '',
+          }));
+        }
+        
+      } catch (error: any) {
+        console.error('❌ Error loading appointment data:', error);
       }
     };
 
