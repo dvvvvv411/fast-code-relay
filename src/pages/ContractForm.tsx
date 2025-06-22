@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -118,6 +117,32 @@ const ContractForm = () => {
     }));
   };
 
+  const uploadFile = async (file: File, fileName: string): Promise<string | null> => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('id-cards')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) {
+        console.error('Upload error:', error);
+        return null;
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('id-cards')
+        .getPublicUrl(data.path);
+
+      return urlData.publicUrl;
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      return null;
+    }
+  };
+
   const validateCurrentStep = () => {
     switch (currentStep) {
       case 1:
@@ -170,6 +195,30 @@ const ContractForm = () => {
         }
       }
 
+      // Upload ID card images if provided
+      let idCardFrontUrl = null;
+      let idCardBackUrl = null;
+
+      if (formData.idCardFront) {
+        const frontFileName = `${appointmentData.appointment_id}_front_${Date.now()}.${formData.idCardFront.name.split('.').pop()}`;
+        idCardFrontUrl = await uploadFile(formData.idCardFront, frontFileName);
+        if (!idCardFrontUrl) {
+          toast.error('Fehler beim Hochladen der Personalausweis-Vorderseite.');
+          setSubmitting(false);
+          return;
+        }
+      }
+
+      if (formData.idCardBack) {
+        const backFileName = `${appointmentData.appointment_id}_back_${Date.now()}.${formData.idCardBack.name.split('.').pop()}`;
+        idCardBackUrl = await uploadFile(formData.idCardBack, backFileName);
+        if (!idCardBackUrl) {
+          toast.error('Fehler beim Hochladen der Personalausweis-Rückseite.');
+          setSubmitting(false);
+          return;
+        }
+      }
+
       // Submit contract data
       const { error: contractError } = await supabase
         .from('employment_contracts')
@@ -185,6 +234,8 @@ const ContractForm = () => {
           iban: formData.iban,
           bic: formData.bic || null,
           marital_status: formData.maritalStatus || null,
+          id_card_front_url: idCardFrontUrl,
+          id_card_back_url: idCardBackUrl,
           status: 'pending'
         });
 
