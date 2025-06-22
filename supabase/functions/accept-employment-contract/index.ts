@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.8";
 import { Resend } from "npm:resend@2.0.0";
@@ -256,6 +257,23 @@ const handler = async (req: Request): Promise<Response> => {
       authUser = newUser;
       isNewAccount = true;
       console.log("✅ New user account created:", authUser.user?.id);
+
+      // Assign 'user' role to the new user (not admin)
+      console.log("👤 Assigning 'user' role to new employee...");
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: authUser.user?.id,
+          role: 'user'
+        });
+
+      if (roleError) {
+        console.error("❌ Error assigning user role:", roleError);
+        // Don't fail the entire operation, just log the error
+        console.log("⚠️ User account created but role assignment failed");
+      } else {
+        console.log("✅ User role assigned successfully");
+      }
     }
 
     // Update contract status and account information

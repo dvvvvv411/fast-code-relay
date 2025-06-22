@@ -60,9 +60,16 @@ export const useSupabaseAuth = () => {
 
   const checkIfAdmin = async (userId: string) => {
     try {
+      console.log('🔍 Checking admin status for user:', userId);
       const { data, error } = await supabase.rpc('is_admin', { user_id: userId });
       
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error checking admin status:', error);
+        setIsAdmin(false);
+        return;
+      }
+      
+      console.log('✅ Admin check result:', data);
       setIsAdmin(Boolean(data));
     } catch (error) {
       console.error('Error checking admin status:', error);
