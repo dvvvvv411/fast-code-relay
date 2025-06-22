@@ -1,8 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { CheckCircle, Shield, Lock, Mail, Clock } from 'lucide-react';
+import { CheckCircle, Shield, Lock, Clock } from 'lucide-react';
 
 interface EmploymentContractSuccessProps {
   onBackToForm: () => void;
@@ -61,15 +60,6 @@ const EmploymentContractSuccess = ({ onBackToForm }: EmploymentContractSuccessPr
               Wie geht es weiter?
             </h3>
             <div className="grid gap-3">
-              <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
-                <Mail className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="font-medium text-blue-800">E-Mail-Bestätigung</p>
-                  <p className="text-sm text-blue-600">
-                    Sie erhalten innerhalb der nächsten 15 Minuten eine Bestätigungs-E-Mail
-                  </p>
-                </div>
-              </div>
               <div className="flex items-start gap-3 p-3 bg-orange-50 rounded-lg">
                 <Clock className="h-5 w-5 text-orange mt-0.5 flex-shrink-0" />
                 <div>
@@ -90,17 +80,6 @@ const EmploymentContractSuccess = ({ onBackToForm }: EmploymentContractSuccessPr
             <p className="text-xs text-gray-500 text-center mt-1">
               Bewahren Sie diese Nummer für Ihre Unterlagen auf
             </p>
-          </div>
-
-          {/* Action Button */}
-          <div className="pt-4 border-t">
-            <Button
-              onClick={onBackToForm}
-              variant="outline"
-              className="w-full"
-            >
-              Neuen Vertrag einreichen
-            </Button>
           </div>
         </CardContent>
       </Card>
