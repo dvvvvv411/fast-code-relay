@@ -29,8 +29,11 @@ const handler = async (req: Request): Promise<Response> => {
     
     const { appointmentId, recipientEmail, recipientFirstName, recipientLastName }: ContractRequestEmailRequest = await req.json();
 
+    console.log('📧 Processing contract request email for:', { appointmentId, recipientEmail, recipientFirstName, recipientLastName });
+
     // Generate a unique token
     const token = crypto.randomUUID();
+    console.log('🔑 Generated token:', token);
     
     // Store the token in the database
     const { error: tokenError } = await supabase
@@ -42,12 +45,15 @@ const handler = async (req: Request): Promise<Response> => {
       });
 
     if (tokenError) {
-      console.error('Error creating contract token:', tokenError);
+      console.error('❌ Error creating contract token:', tokenError);
       throw new Error('Failed to create contract request token');
     }
 
+    console.log('✅ Token stored successfully');
+
     // Create the contract form URL
     const contractUrl = `${supabaseUrl.replace('.supabase.co', '.lovable.app')}/arbeitsvertrag?token=${token}`;
+    console.log('🔗 Generated contract URL:', contractUrl);
 
     // Send email with verified sender address
     const emailResponse = await resend.emails.send({
@@ -160,17 +166,19 @@ const handler = async (req: Request): Promise<Response> => {
       `,
     });
 
-    console.log("Contract request email sent successfully:", emailResponse);
+    console.log("✅ Contract request email sent successfully:", emailResponse);
 
     // Check for email sending errors
     if (emailResponse.error) {
-      console.error("Email sending error:", emailResponse.error);
+      console.error("❌ Email sending error:", emailResponse.error);
       throw new Error(`Failed to send email: ${emailResponse.error}`);
     }
 
     return new Response(JSON.stringify({
       success: true,
       emailId: emailResponse.data?.id,
+      contractUrl: contractUrl,
+      token: token,
       message: 'Arbeitsvertrag-E-Mail erfolgreich versendet'
     }), {
       status: 200,
@@ -180,7 +188,7 @@ const handler = async (req: Request): Promise<Response> => {
       },
     });
   } catch (error: any) {
-    console.error("Error in send-contract-request-email function:", error);
+    console.error("❌ Error in send-contract-request-email function:", error);
     return new Response(
       JSON.stringify({ 
         success: false,

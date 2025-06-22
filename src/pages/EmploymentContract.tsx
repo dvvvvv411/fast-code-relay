@@ -33,6 +33,7 @@ const EmploymentContract = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [appointmentId, setAppointmentId] = useState<string>('');
+  const [debugInfo, setDebugInfo] = useState<any>({});
   
   const [contractData, setContractData] = useState<ContractData>({
     first_name: '',
@@ -51,7 +52,13 @@ const EmploymentContract = () => {
 
   useEffect(() => {
     const validateToken = async () => {
+      console.log('🔍 Starting token validation');
+      console.log('Token from URL:', token);
+      console.log('Current URL:', window.location.href);
+      
       if (!token) {
+        console.error('❌ No token provided in URL');
+        setDebugInfo({ error: 'No token in URL', url: window.location.href });
         toast({
           title: "Ungültiger Link",
           description: "Der Link ist ungültig oder abgelaufen.",
@@ -62,30 +69,69 @@ const EmploymentContract = () => {
       }
 
       try {
+        console.log('🔄 Checking token in database...');
+        
+        // First, let's check if we can access the table at all
+        const { data: testData, error: testError } = await supabase
+          .from('contract_request_tokens')
+          .select('count')
+          .limit(1);
+        
+        console.log('Database test result:', { testData, testError });
+
+        // Now check for the specific token
         const { data, error } = await supabase
           .from('contract_request_tokens')
-          .select('appointment_id, expires_at')
+          .select('appointment_id, expires_at, created_at, email_sent')
           .eq('token', token)
           .single();
 
-        if (error || !data) {
+        console.log('Token query result:', { data, error });
+        
+        setDebugInfo({
+          token,
+          queryResult: { data, error },
+          testQuery: { testData, testError }
+        });
+
+        if (error) {
+          console.error('❌ Database error:', error);
+          if (error.code === 'PGRST116') {
+            console.error('Token not found in database');
+          }
+          throw new Error(`Database error: ${error.message}`);
+        }
+
+        if (!data) {
+          console.error('❌ No data returned for token');
           throw new Error('Token not found');
         }
 
+        console.log('✅ Token found:', data);
+        console.log('Expires at:', data.expires_at);
+        console.log('Current time:', new Date().toISOString());
+
         if (new Date(data.expires_at) < new Date()) {
+          console.error('❌ Token expired');
           throw new Error('Token expired');
         }
 
+        console.log('✅ Token is valid');
         setAppointmentId(data.appointment_id);
         setIsValidToken(true);
+        
       } catch (error) {
-        console.error('Error validating token:', error);
+        console.error('❌ Token validation failed:', error);
+        setDebugInfo(prev => ({ ...prev, validationError: error }));
+        
         toast({
           title: "Ungültiger Link",
-          description: "Der Link ist ungültig oder abgelaufen.",
+          description: `Der Link ist ungültig oder abgelaufen. Fehler: ${error.message}`,
           variant: "destructive",
         });
-        navigate('/');
+        
+        // Don't redirect immediately in case we want to debug
+        setTimeout(() => navigate('/'), 3000);
       } finally {
         setIsLoading(false);
       }
@@ -110,17 +156,24 @@ const EmploymentContract = () => {
   };
 
   const uploadFile = async (file: File, path: string) => {
+    console.log('📁 Uploading file:', path);
     const { data, error } = await supabase.storage
       .from('employment-documents')
       .upload(path, file);
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ File upload error:', error);
+      throw error;
+    }
+    
+    console.log('✅ File uploaded successfully:', data.path);
     return data.path;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    console.log('📝 Starting form submission');
 
     try {
       let idCardFrontUrl = null;
@@ -137,18 +190,32 @@ const EmploymentContract = () => {
         idCardBackUrl = await uploadFile(idCardBack, backPath);
       }
 
+      console.log('💾 Inserting employment contract data...');
+      
       // Insert employment contract data
-      const { error } = await supabase
+      const insertData = {
+        appointment_id: appointmentId,
+        ...contractData,
+        id_card_front_url: idCardFrontUrl,
+        id_card_back_url: idCardBackUrl,
+      };
+      
+      console.log('Data to insert:', insertData);
+
+      const { data: insertResult, error } = await supabase
         .from('employment_contracts')
-        .insert({
-          appointment_id: appointmentId,
-          ...contractData,
-          id_card_front_url: idCardFrontUrl,
-          id_card_back_url: idCardBackUrl,
-        });
+        .insert(insertData)
+        .select();
 
-      if (error) throw error;
+      console.log('Insert result:', { insertResult, error });
 
+      if (error) {
+        console.error('❌ Insert error:', error);
+        throw error;
+      }
+
+      console.log('✅ Contract submitted successfully');
+      
       toast({
         title: "Erfolg!",
         description: "Ihre Vertragsdaten wurden erfolgreich übermittelt.",
@@ -161,11 +228,11 @@ const EmploymentContract = () => {
         } 
       });
 
-    } catch (error) {
-      console.error('Error submitting contract:', error);
+    } catch (error: any) {
+      console.error('❌ Error submitting contract:', error);
       toast({
         title: "Fehler",
-        description: "Beim Übermitteln der Daten ist ein Fehler aufgetreten.",
+        description: `Beim Übermitteln der Daten ist ein Fehler aufgetreten: ${error.message}`,
         variant: "destructive",
       });
     } finally {
@@ -179,7 +246,15 @@ const EmploymentContract = () => {
         <Header />
         <div className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center py-12">
-            <div className="text-gray-500">Lade...</div>
+            <div className="text-gray-500">
+              <div>Lade...</div>
+              {token && (
+                <div className="mt-4 text-xs">
+                  <div>Token: {token.slice(0, 20)}...</div>
+                  <div>Debug: {JSON.stringify(debugInfo, null, 2)}</div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -187,7 +262,21 @@ const EmploymentContract = () => {
   }
 
   if (!isValidToken) {
-    return null; // Will redirect in useEffect
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="text-red-500 mb-4">Token-Validierung fehlgeschlagen</div>
+              <pre className="text-xs bg-gray-100 p-4 rounded text-left max-w-2xl overflow-auto">
+                {JSON.stringify(debugInfo, null, 2)}
+              </pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -203,6 +292,13 @@ const EmploymentContract = () => {
             <p className="text-gray-600">
               Bitte füllen Sie alle Felder aus, um Ihren Arbeitsvertrag abzuschließen.
             </p>
+            {/* Debug info for admin */}
+            {process.env.NODE_ENV === 'development' && (
+              <details className="text-xs bg-gray-100 p-2 rounded">
+                <summary>Debug Info</summary>
+                <pre>{JSON.stringify({ appointmentId, token, debugInfo }, null, 2)}</pre>
+              </details>
+            )}
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-8">
