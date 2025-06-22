@@ -368,12 +368,12 @@ export type Database = {
           email: string
           first_name: string
           health_insurance_name: string
-          health_insurance_number: string
           iban: string
           id: string
           id_card_back_url: string | null
           id_card_front_url: string | null
           last_name: string
+          marital_status: string | null
           social_security_number: string
           start_date: string
           submitted_at: string
@@ -385,12 +385,12 @@ export type Database = {
           email: string
           first_name: string
           health_insurance_name: string
-          health_insurance_number: string
           iban: string
           id?: string
           id_card_back_url?: string | null
           id_card_front_url?: string | null
           last_name: string
+          marital_status?: string | null
           social_security_number: string
           start_date: string
           submitted_at?: string
@@ -402,12 +402,12 @@ export type Database = {
           email?: string
           first_name?: string
           health_insurance_name?: string
-          health_insurance_number?: string
           iban?: string
           id?: string
           id_card_back_url?: string | null
           id_card_front_url?: string | null
           last_name?: string
+          marital_status?: string | null
           social_security_number?: string
           start_date?: string
           submitted_at?: string

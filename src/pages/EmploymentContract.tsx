@@ -211,10 +211,18 @@ const EmploymentContract = () => {
 
       console.log('💾 Inserting employment contract data...');
       
-      // Insert employment contract data
+      // Insert employment contract data with the correct structure
       const insertData = {
         appointment_id: appointmentId,
-        ...contractData,
+        first_name: contractData.first_name,
+        last_name: contractData.last_name,
+        email: contractData.email,
+        start_date: contractData.start_date,
+        social_security_number: contractData.social_security_number,
+        tax_number: contractData.tax_number,
+        health_insurance_name: contractData.health_insurance_name,
+        marital_status: contractData.marital_status,
+        iban: contractData.iban,
         id_card_front_url: idCardFrontUrl,
         id_card_back_url: idCardBackUrl,
       };
