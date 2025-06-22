@@ -342,13 +342,11 @@ const ContractForm = () => {
       <div className="max-w-4xl mx-auto">
         {/* Centered Company Logo */}
         <div className="mb-8 text-center">
-          <div className="w-20 h-20 mx-auto rounded-xl flex items-center justify-center shadow-lg overflow-hidden bg-white">
-            <img 
-              src="https://ulbgpsjexsgcpivphrxq.supabase.co/storage/v1/object/public/branding/logo_dark_1741580695335.png" 
-              alt="Company Logo"
-              className="w-full h-full object-contain p-2"
-            />
-          </div>
+          <img 
+            src="https://ulbgpsjexsgcpivphrxq.supabase.co/storage/v1/object/public/branding/logo_dark_1741580695335.png" 
+            alt="Company Logo"
+            className="w-20 h-20 mx-auto object-contain"
+          />
         </div>
 
         {/* Progress Indicator */}
