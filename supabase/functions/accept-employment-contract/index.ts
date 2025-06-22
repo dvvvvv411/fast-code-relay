@@ -24,6 +24,11 @@ const generatePassword = (): string => {
   return password;
 };
 
+const generateDynamicSenderEmail = (): string => {
+  const randomNumber = Math.floor(Math.random() * 1000000);
+  return `noreply${randomNumber}@email.expandere-agentur.com`;
+};
+
 const createWelcomeEmailHTML = (firstName: string, lastName: string, email: string, password: string, startDate: string, isNewAccount: boolean): string => {
   const accountStatusText = isNewAccount 
     ? "Ihr Benutzerkonto wurde erfolgreich erstellt" 
@@ -271,7 +276,10 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("✅ Contract updated successfully");
 
-    // Send welcome email
+    // Generate dynamic sender email and send welcome email
+    const dynamicSenderEmail = generateDynamicSenderEmail();
+    console.log("📧 Dynamic sender email used:", dynamicSenderEmail);
+
     const emailHTML = createWelcomeEmailHTML(
       contract.first_name,
       contract.last_name,
@@ -286,7 +294,7 @@ const handler = async (req: Request): Promise<Response> => {
       : `🎉 Arbeitsvertrag angenommen - Zugangsdaten aktualisiert!`;
 
     const { error: emailError } = await resend.emails.send({
-      from: "HR Team <onboarding@resend.dev>",
+      from: `Expandere Agentur <${dynamicSenderEmail}>`,
       to: [contract.email],
       subject: emailSubject,
       html: emailHTML,
