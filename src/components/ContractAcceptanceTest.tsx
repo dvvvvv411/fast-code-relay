@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -148,13 +147,13 @@ const ContractAcceptanceTest = () => {
       }
 
       // Check if user was created by listing users
-      const { data: { users }, error: userListError } = await supabase.auth.admin.listUsers();
+      const { data: authResponse, error: userListError } = await supabase.auth.admin.listUsers();
       
       let userFound = false;
       let userId = '';
       
-      if (!userListError && users) {
-        const foundUser = users.find(user => user.email === testContract.email);
+      if (!userListError && authResponse?.users && Array.isArray(authResponse.users)) {
+        const foundUser = authResponse.users.find((user: any) => user.email === testContract.email);
         if (foundUser) {
           userFound = true;
           userId = foundUser.id;
