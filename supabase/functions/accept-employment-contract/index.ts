@@ -286,7 +286,7 @@ const handler = async (req: Request): Promise<Response> => {
       : `🎉 Arbeitsvertrag angenommen - Zugangsdaten aktualisiert!`;
 
     const { error: emailError } = await resend.emails.send({
-      from: "HR Team <onboarding@resend.dev>",
+      from: "HR Team <karriere@email.expandere-agentur.com>",
       to: [contract.email],
       subject: emailSubject,
       html: emailHTML,
