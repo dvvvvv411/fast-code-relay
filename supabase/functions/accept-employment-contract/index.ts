@@ -24,7 +24,15 @@ const generatePassword = (): string => {
   return password;
 };
 
-const createWelcomeEmailHTML = (firstName: string, lastName: string, email: string, password: string, startDate: string): string => {
+const createWelcomeEmailHTML = (firstName: string, lastName: string, email: string, password: string, startDate: string, isNewAccount: boolean): string => {
+  const accountStatusText = isNewAccount 
+    ? "Ihr Benutzerkonto wurde erfolgreich erstellt" 
+    : "Ihre Zugangsdaten wurden aktualisiert";
+    
+  const welcomeText = isNewAccount 
+    ? "Herzlichen Glückwunsch! Ihr Arbeitsvertrag wurde offiziell angenommen und Ihr Benutzerkonto wurde erfolgreich erstellt."
+    : "Herzlichen Glückwunsch! Ihr Arbeitsvertrag wurde offiziell angenommen und Ihre Zugangsdaten wurden aktualisiert.";
+
   return `
     <!DOCTYPE html>
     <html>
@@ -53,13 +61,13 @@ const createWelcomeEmailHTML = (firstName: string, lastName: string, email: stri
       <div class="container">
         <div class="header">
           <h1>🎉 Willkommen im Team!</h1>
-          <p style="margin: 10px 0 0 0; opacity: 0.9;">Ihr Arbeitsvertrag wurde angenommen</p>
+          <p style="margin: 10px 0 0 0; opacity: 0.9;">${accountStatusText}</p>
         </div>
         
         <div class="content">
           <div class="welcome-box">
             <h2 style="margin-top: 0; color: #ff6b35;">Hallo ${firstName} ${lastName}!</h2>
-            <p>Herzlichen Glückwunsch! Ihr Arbeitsvertrag wurde offiziell angenommen und Ihr Benutzerkonto wurde erfolgreich erstellt.</p>
+            <p>${welcomeText}</p>
             <p><strong>Ihr Startdatum:</strong> ${new Date(startDate).toLocaleDateString('de-DE', { 
               year: 'numeric', 
               month: 'long', 
@@ -167,27 +175,77 @@ const handler = async (req: Request): Promise<Response> => {
     const password = generatePassword();
     console.log("🔐 Password generated");
 
-    // Create user account in Supabase Auth
-    const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
-      email: contract.email,
-      password: password,
-      email_confirm: true,
-      user_metadata: {
-        first_name: contract.first_name,
-        last_name: contract.last_name,
-        role: 'employee'
-      }
-    });
+    let authUser;
+    let isNewAccount = false;
 
-    if (authError) {
-      console.error("❌ Error creating auth user:", authError);
+    // Check if user already exists
+    console.log("🔍 Checking if user already exists...");
+    const { data: existingUsers, error: listError } = await supabase.auth.admin.listUsers();
+    
+    if (listError) {
+      console.error("❌ Error checking existing users:", listError);
       return new Response(
-        JSON.stringify({ error: "Failed to create user account: " + authError.message }),
+        JSON.stringify({ error: "Failed to check existing users: " + listError.message }),
         { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    console.log("✅ User account created:", authUser.user?.id);
+    const existingUser = existingUsers.users.find(user => user.email === contract.email);
+
+    if (existingUser) {
+      console.log("👤 User already exists, updating password...");
+      
+      // Update existing user's password
+      const { data: updatedUser, error: updateError } = await supabase.auth.admin.updateUserById(
+        existingUser.id,
+        {
+          password: password,
+          user_metadata: {
+            first_name: contract.first_name,
+            last_name: contract.last_name,
+            role: 'employee'
+          }
+        }
+      );
+
+      if (updateError) {
+        console.error("❌ Error updating existing user:", updateError);
+        return new Response(
+          JSON.stringify({ error: "Failed to update existing user: " + updateError.message }),
+          { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      authUser = { user: updatedUser.user };
+      isNewAccount = false;
+      console.log("✅ Existing user updated:", authUser.user?.id);
+    } else {
+      console.log("👤 Creating new user account...");
+      
+      // Create new user account
+      const { data: newUser, error: authError } = await supabase.auth.admin.createUser({
+        email: contract.email,
+        password: password,
+        email_confirm: true,
+        user_metadata: {
+          first_name: contract.first_name,
+          last_name: contract.last_name,
+          role: 'employee'
+        }
+      });
+
+      if (authError) {
+        console.error("❌ Error creating new user:", authError);
+        return new Response(
+          JSON.stringify({ error: "Failed to create user account: " + authError.message }),
+          { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      authUser = newUser;
+      isNewAccount = true;
+      console.log("✅ New user account created:", authUser.user?.id);
+    }
 
     // Update contract status and account information
     const { error: updateError } = await supabase
@@ -219,13 +277,18 @@ const handler = async (req: Request): Promise<Response> => {
       contract.last_name,
       contract.email,
       password,
-      startDate
+      startDate,
+      isNewAccount
     );
+
+    const emailSubject = isNewAccount 
+      ? `🎉 Willkommen im Team - Ihr Arbeitsvertrag wurde angenommen!`
+      : `🎉 Arbeitsvertrag angenommen - Zugangsdaten aktualisiert!`;
 
     const { error: emailError } = await resend.emails.send({
       from: "HR Team <onboarding@resend.dev>",
       to: [contract.email],
-      subject: `🎉 Willkommen im Team - Ihr Arbeitsvertrag wurde angenommen!`,
+      subject: emailSubject,
       html: emailHTML,
     });
 
@@ -240,8 +303,9 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(
       JSON.stringify({ 
         success: true,
-        message: "Contract accepted and account created successfully",
-        user_id: authUser.user?.id
+        message: `Contract accepted and ${isNewAccount ? 'account created' : 'account updated'} successfully`,
+        user_id: authUser.user?.id,
+        is_new_account: isNewAccount
       }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
