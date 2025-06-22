@@ -32,6 +32,7 @@ const ContractForm = () => {
     firstName: '',
     lastName: '',
     email: '',
+    phone: '',
     startDate: '',
     socialSecurityNumber: '',
     taxNumber: '',
@@ -66,7 +67,8 @@ const ContractForm = () => {
             appointment_recipients (
               first_name,
               last_name,
-              email
+              email,
+              phone_note
             )
           )
         `)
@@ -88,7 +90,8 @@ const ContractForm = () => {
             ...prev,
             firstName: recipient.first_name || '',
             lastName: recipient.last_name || '',
-            email: recipient.email || ''
+            email: recipient.email || '',
+            phone: recipient.phone_note || ''
           }));
         }
       }
@@ -215,6 +218,7 @@ const ContractForm = () => {
               firstName: formData.firstName,
               lastName: formData.lastName,
               email: formData.email,
+              phone: formData.phone,
               startDate: formData.startDate,
               maritalStatus: formData.maritalStatus
             }}

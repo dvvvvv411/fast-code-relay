@@ -9,6 +9,7 @@ interface PersonalDataStepProps {
     firstName: string;
     lastName: string;
     email: string;
+    phone: string;
     startDate: string;
     maritalStatus: string;
   };
@@ -54,6 +55,18 @@ const PersonalDataStep = ({ formData, onInputChange }: PersonalDataStepProps) =>
             value={formData.email}
             onChange={(e) => onInputChange('email', e.target.value)}
             required
+            className="mt-1"
+          />
+        </div>
+        
+        <div className="md:col-span-2">
+          <Label htmlFor="phone">Telefonnummer</Label>
+          <Input
+            id="phone"
+            type="tel"
+            value={formData.phone}
+            onChange={(e) => onInputChange('phone', e.target.value)}
+            placeholder="z.B. +49 123 456789"
             className="mt-1"
           />
         </div>
