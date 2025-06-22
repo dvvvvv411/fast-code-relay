@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +12,7 @@ import EmployeeOverview from './EmployeeOverview';
 import AdminNavbar from './AdminNavbar';
 import AppointmentOverview from './AppointmentOverview';
 import AppointmentRecipients from './AppointmentRecipients';
+import EmploymentContractsManager from './EmploymentContractsManager';
 import { useSMS } from '@/context/SMSContext';
 import { MessageSquare } from 'lucide-react';
 
@@ -44,6 +44,8 @@ const AdminPanel = () => {
         return <AppointmentOverview />;
       case 'appointment-recipients':
         return <AppointmentRecipients />;
+      case 'employment-contracts':
+        return <EmploymentContractsManager />;
       case 'feedback':
         return <FeedbackManager />;
       default:

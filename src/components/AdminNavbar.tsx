@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,7 +17,8 @@ import {
   ChevronDown,
   Users,
   Grid3X3,
-  UserCheck
+  UserCheck,
+  FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -47,6 +47,7 @@ const AdminNavbar = ({ activeTab, onTabChange }: AdminNavbarProps) => {
   const termineMenuItems = [
     { id: 'appointment-overview', label: 'Übersicht', icon: Grid3X3 },
     { id: 'appointment-recipients', label: 'Empfänger', icon: UserCheck },
+    { id: 'employment-contracts', label: 'Arbeitsverträge', icon: FileText },
   ];
 
   const isActiveInGroup = (items: typeof smsMenuItems) => {
