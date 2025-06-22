@@ -768,6 +768,10 @@ export type Database = {
         Args: { user_id: string }
         Returns: boolean
       }
+      sync_profile_from_auth: {
+        Args: { user_uuid: string }
+        Returns: undefined
+      }
     }
     Enums: {
       user_role: "user" | "admin"
