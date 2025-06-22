@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -5,11 +6,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
-import { FileText, User, Mail, Calendar, Clock, Download, Eye, RefreshCw, X, Check, UserPlus, AlertTriangle } from 'lucide-react';
+import { FileText, User, Mail, Calendar, Clock, Download, Eye, RefreshCw, X, Check, UserPlus, AlertTriangle, TestTube } from 'lucide-react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
+import ContractAcceptanceTest from './ContractAcceptanceTest';
 
 interface EmploymentContract {
   id: string;
@@ -556,139 +559,158 @@ const EmploymentContractManager = () => {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Arbeitsverträge ({contracts.length})
-          </CardTitle>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            {isRefreshing ? "Lädt..." : "Aktualisieren"}
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {contracts.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
-            <p>Keine Arbeitsverträge vorhanden</p>
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>E-Mail</TableHead>
-                <TableHead>Startdatum</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Termin</TableHead>
-                <TableHead>Eingereicht</TableHead>
-                <TableHead>Dokumente</TableHead>
-                <TableHead>Aktionen</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {contracts.map((contract) => (
-                <TableRow key={contract.id}>
-                  <TableCell className="font-medium">
-                    {contract.first_name} {contract.last_name}
-                  </TableCell>
-                  <TableCell className="text-gray-600">
-                    {contract.email}
-                  </TableCell>
-                  <TableCell>
-                    {format(new Date(contract.start_date), 'dd.MM.yyyy', { locale: de })}
-                  </TableCell>
-                  <TableCell>
-                    {getStatusBadge(contract.status)}
-                  </TableCell>
-                  <TableCell>
-                    {contract.appointment ? (
-                      <div className="text-sm">
-                        <div>{format(new Date(contract.appointment.appointment_date), 'dd.MM.yyyy', { locale: de })}</div>
-                        <div className="text-gray-500">{contract.appointment.appointment_time}</div>
-                      </div>
-                    ) : (
-                      <span className="text-gray-400">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    {format(new Date(contract.submitted_at), 'dd.MM.yy HH:mm', { locale: de })}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      {contract.id_card_front_url && (
-                        <Badge variant="outline" className="text-xs">
-                          Vorderseite
-                        </Badge>
-                      )}
-                      {contract.id_card_back_url && (
-                        <Badge variant="outline" className="text-xs">
-                          Rückseite
-                        </Badge>
-                      )}
-                      {!contract.id_card_front_url && !contract.id_card_back_url && (
-                        <Badge variant="secondary" className="text-xs">
-                          Keine
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setSelectedContract(contract)}
-                        title="Details anzeigen"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      {contract.status === 'pending' && (
-                        <>
+    <Tabs defaultValue="contracts" className="w-full">
+      <TabsList className="grid w-full grid-cols-2">
+        <TabsTrigger value="contracts" className="flex items-center gap-2">
+          <FileText className="h-4 w-4" />
+          Arbeitsverträge
+        </TabsTrigger>
+        <TabsTrigger value="test" className="flex items-center gap-2">
+          <TestTube className="h-4 w-4" />
+          Test-Modus
+        </TabsTrigger>
+      </TabsList>
+      
+      <TabsContent value="contracts">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Arbeitsverträge ({contracts.length})
+              </CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                {isRefreshing ? "Lädt..." : "Aktualisieren"}
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {contracts.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                <p>Keine Arbeitsverträge vorhanden</p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>E-Mail</TableHead>
+                    <TableHead>Startdatum</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Termin</TableHead>
+                    <TableHead>Eingereicht</TableHead>
+                    <TableHead>Dokumente</TableHead>
+                    <TableHead>Aktionen</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {contracts.map((contract) => (
+                    <TableRow key={contract.id}>
+                      <TableCell className="font-medium">
+                        {contract.first_name} {contract.last_name}
+                      </TableCell>
+                      <TableCell className="text-gray-600">
+                        {contract.email}
+                      </TableCell>
+                      <TableCell>
+                        {format(new Date(contract.start_date), 'dd.MM.yyyy', { locale: de })}
+                      </TableCell>
+                      <TableCell>
+                        {getStatusBadge(contract.status)}
+                      </TableCell>
+                      <TableCell>
+                        {contract.appointment ? (
+                          <div className="text-sm">
+                            <div>{format(new Date(contract.appointment.appointment_date), 'dd.MM.yyyy', { locale: de })}</div>
+                            <div className="text-gray-500">{contract.appointment.appointment_time}</div>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {format(new Date(contract.submitted_at), 'dd.MM.yy HH:mm', { locale: de })}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          {contract.id_card_front_url && (
+                            <Badge variant="outline" className="text-xs">
+                              Vorderseite
+                            </Badge>
+                          )}
+                          {contract.id_card_back_url && (
+                            <Badge variant="outline" className="text-xs">
+                              Rückseite
+                            </Badge>
+                          )}
+                          {!contract.id_card_front_url && !contract.id_card_back_url && (
+                            <Badge variant="secondary" className="text-xs">
+                              Keine
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleAcceptContract(contract.id)}
-                            disabled={isProcessing === contract.id}
-                            title="Vertrag akzeptieren"
-                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                            onClick={() => setSelectedContract(contract)}
+                            title="Details anzeigen"
                           >
-                            {isProcessing === contract.id ? (
-                              <RefreshCw className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Check className="h-4 w-4" />
-                            )}
+                            <Eye className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRejectContract(contract.id)}
-                            disabled={isProcessing === contract.id}
-                            title="Vertrag ablehnen"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </CardContent>
-    </Card>
+                          {contract.status === 'pending' && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleAcceptContract(contract.id)}
+                                disabled={isProcessing === contract.id}
+                                title="Vertrag akzeptieren"
+                                className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                              >
+                                {isProcessing === contract.id ? (
+                                  <RefreshCw className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Check className="h-4 w-4" />
+                                )}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleRejectContract(contract.id)}
+                                disabled={isProcessing === contract.id}
+                                title="Vertrag ablehnen"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </TabsContent>
+      
+      <TabsContent value="test">
+        <ContractAcceptanceTest />
+      </TabsContent>
+    </Tabs>
   );
 };
 
