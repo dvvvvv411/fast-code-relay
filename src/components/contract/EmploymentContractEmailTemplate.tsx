@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 interface EmploymentContractEmailTemplateProps {
@@ -72,6 +71,27 @@ const EmploymentContractEmailTemplate: React.FC<EmploymentContractEmailTemplateP
               <strong>Passwort:</strong><br/>
               <span style={{ fontFamily: 'monospace', backgroundColor: '#f5f5f5', padding: '4px 8px', borderRadius: '3px', fontSize: '16px' }}>{password}</span>
             </p>
+          </div>
+          
+          {/* Login Button */}
+          <div style={{ textAlign: 'center', marginTop: '20px' }}>
+            <a 
+              href="https://expandere-agentur.net"
+              style={{
+                backgroundColor: '#ff6b35',
+                color: 'white',
+                padding: '12px 24px',
+                textDecoration: 'none',
+                borderRadius: '6px',
+                display: 'inline-block',
+                fontWeight: 'bold',
+                fontSize: '16px',
+                boxShadow: '0 2px 8px rgba(255, 107, 53, 0.3)',
+                transition: 'all 0.3s ease'
+              }}
+            >
+              Jetzt anmelden
+            </a>
           </div>
         </div>
         

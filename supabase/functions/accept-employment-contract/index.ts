@@ -80,6 +80,16 @@ const createWelcomeEmailHTML = (firstName: string, lastName: string, email: stri
               <span style="font-family: monospace; background-color: #f5f5f5; padding: 4px 8px; border-radius: 3px; font-size: 16px;">${password}</span>
             </p>
           </div>
+          
+          <!-- Login Button -->
+          <div style="text-align: center; margin-top: 20px;">
+            <a 
+              href="https://expandere-agentur.net"
+              style="background-color: #ff6b35; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold; font-size: 16px; box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3); transition: all 0.3s ease;"
+            >
+              Jetzt anmelden
+            </a>
+          </div>
         </div>
         
         <p style="color: #555; line-height: 1.6; font-size: 16px; margin: 30px 0 20px 0;">
