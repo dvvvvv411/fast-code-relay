@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.8";
 import { Resend } from "npm:resend@2.0.0";
@@ -34,93 +33,123 @@ const createWelcomeEmailHTML = (firstName: string, lastName: string, email: stri
     : "Herzlichen Glückwunsch! Ihr Arbeitsvertrag wurde offiziell angenommen und Ihre Zugangsdaten wurden aktualisiert.";
 
   return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4; }
-        .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
-        .header { background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%); color: white; padding: 30px 20px; text-align: center; }
-        .header h1 { margin: 0; font-size: 28px; font-weight: bold; }
-        .content { padding: 30px 20px; }
-        .welcome-box { background-color: #f8f9fa; border-left: 4px solid #ff6b35; padding: 20px; margin: 20px 0; }
-        .credentials-box { background-color: #e3f2fd; border: 1px solid #2196f3; border-radius: 8px; padding: 20px; margin: 20px 0; }
-        .credentials-title { color: #1976d2; font-weight: bold; margin-bottom: 15px; display: flex; align-items: center; }
-        .credential-item { background-color: white; padding: 10px; margin: 8px 0; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; }
-        .credential-label { font-weight: bold; color: #555; }
-        .credential-value { font-family: monospace; background-color: #f5f5f5; padding: 4px 8px; border-radius: 3px; }
-        .important-note { background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 15px; margin: 20px 0; }
-        .footer { background-color: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #e9ecef; }
-        .button { display: inline-block; background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%); color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 10px 0; font-weight: bold; }
-        .logo { max-width: 150px; height: auto; }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <div class="header">
-          <h1>🎉 Willkommen im Team!</h1>
-          <p style="margin: 10px 0 0 0; opacity: 0.9;">${accountStatusText}</p>
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+      <!-- Orange Header -->
+      <div style="background-color: #ff6b35; padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
+        <h1 style="color: white; margin: 0; font-size: 28px; font-weight: bold;">
+          🎉 Willkommen im Team!
+        </h1>
+        <p style="color: white; margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">
+          ${accountStatusText}
+        </p>
+      </div>
+
+      <!-- Main Content -->
+      <div style="padding: 40px 30px; background-color: #ffffff;">
+        <h2 style="color: #333; margin-top: 0; font-size: 24px; margin-bottom: 20px;">
+          Hallo ${firstName} ${lastName}!
+        </h2>
+        
+        <p style="color: #555; line-height: 1.6; font-size: 16px; margin-bottom: 20px;">
+          ${welcomeText}
+        </p>
+        
+        <p style="color: #555; line-height: 1.6; font-size: 16px; margin-bottom: 30px;">
+          <strong>Ihr Startdatum:</strong> ${new Date(startDate).toLocaleDateString('de-DE', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          })}
+        </p>
+        
+        <!-- Credentials Box -->
+        <div style="background-color: #e3f2fd; border: 1px solid #2196f3; border-radius: 8px; padding: 25px; margin: 25px 0;">
+          <h3 style="color: #1976d2; font-weight: bold; margin: 0 0 15px 0; font-size: 18px;">
+            🔐 Ihre Zugangsdaten
+          </h3>
+          <div style="background-color: white; padding: 15px; margin: 10px 0; border-radius: 4px;">
+            <p style="margin: 0; color: #555; font-size: 14px;">
+              <strong>E-Mail-Adresse:</strong><br/>
+              <span style="font-family: monospace; background-color: #f5f5f5; padding: 4px 8px; border-radius: 3px; font-size: 16px;">${email}</span>
+            </p>
+          </div>
+          <div style="background-color: white; padding: 15px; margin: 10px 0; border-radius: 4px;">
+            <p style="margin: 0; color: #555; font-size: 14px;">
+              <strong>Passwort:</strong><br/>
+              <span style="font-family: monospace; background-color: #f5f5f5; padding: 4px 8px; border-radius: 3px; font-size: 16px;">${password}</span>
+            </p>
+          </div>
         </div>
         
-        <div class="content">
-          <div class="welcome-box">
-            <h2 style="margin-top: 0; color: #ff6b35;">Hallo ${firstName} ${lastName}!</h2>
-            <p>${welcomeText}</p>
-            <p><strong>Ihr Startdatum:</strong> ${new Date(startDate).toLocaleDateString('de-DE', { 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
-            })}</p>
-          </div>
-          
-          <div class="credentials-box">
-            <div class="credentials-title">
-              🔐 Ihre Zugangsdaten
-            </div>
-            <div class="credential-item">
-              <span class="credential-label">E-Mail-Adresse:</span>
-              <span class="credential-value">${email}</span>
-            </div>
-            <div class="credential-item">
-              <span class="credential-label">Passwort:</span>
-              <span class="credential-value">${password}</span>
-            </div>
-          </div>
-          
-          <div class="important-note">
-            <h3 style="margin-top: 0; color: #856404;">⚠️ Wichtige Sicherheitshinweise</h3>
-            <ul style="margin: 10px 0; padding-left: 20px;">
-              <li>Bitte ändern Sie Ihr Passwort nach der ersten Anmeldung</li>
-              <li>Teilen Sie Ihre Zugangsdaten niemals mit anderen</li>
-              <li>Bewahren Sie diese E-Mail sicher auf</li>
-            </ul>
-          </div>
-          
-          <h3>📋 Nächste Schritte</h3>
-          <ol>
-            <li>Loggen Sie sich mit den oben genannten Zugangsdaten ein</li>
-            <li>Vervollständigen Sie Ihr Profil</li>
-            <li>Lesen Sie die Unternehmensrichtlinien</li>
-            <li>Bei Fragen kontaktieren Sie die Personalabteilung</li>
-          </ol>
-          
-          <p style="margin-top: 30px;">Wir freuen uns darauf, mit Ihnen zu arbeiten und heißen Sie herzlich in unserem Team willkommen!</p>
-          
-          <p style="margin-top: 20px;">
-            <strong>Mit freundlichen Grüßen,<br>
-            Das HR-Team</strong>
+        <!-- Important Notice -->
+        <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 25px; margin: 25px 0;">
+          <h3 style="margin: 0 0 15px 0; color: #856404; font-size: 18px;">
+            ⚠️ Wichtige Sicherheitshinweise
+          </h3>
+          <ul style="margin: 10px 0; padding-left: 20px; color: #856404; line-height: 1.6;">
+            <li style="margin-bottom: 8px;">Bitte ändern Sie Ihr Passwort nach der ersten Anmeldung</li>
+            <li style="margin-bottom: 8px;">Teilen Sie Ihre Zugangsdaten niemals mit anderen</li>
+            <li style="margin-bottom: 8px;">Bewahren Sie diese E-Mail sicher auf</li>
+          </ul>
+        </div>
+        
+        <h3 style="color: #333; font-size: 18px; margin-bottom: 15px;">
+          📋 Nächste Schritte
+        </h3>
+        <ol style="color: #555; font-size: 16px; line-height: 1.6; margin-bottom: 30px; padding-left: 20px;">
+          <li style="margin-bottom: 8px;">Loggen Sie sich mit den oben genannten Zugangsdaten ein</li>
+          <li style="margin-bottom: 8px;">Vervollständigen Sie Ihr Profil</li>
+          <li style="margin-bottom: 8px;">Lesen Sie die Unternehmensrichtlinien</li>
+          <li style="margin-bottom: 8px;">Bei Fragen kontaktieren Sie die Personalabteilung</li>
+        </ol>
+        
+        <p style="color: #555; line-height: 1.6; font-size: 16px; margin: 30px 0 20px 0;">
+          Wir freuen uns darauf, mit Ihnen zu arbeiten und heißen Sie herzlich in unserem Team willkommen!
+        </p>
+        
+        <p style="color: #555; line-height: 1.6; font-size: 16px; margin: 0;">
+          Mit freundlichen Grüßen<br/>
+          <strong>Das HR-Team</strong>
+        </p>
+      </div>
+
+      <!-- Expandere Branded Footer -->
+      <div style="background-color: #ff6b35; padding: 30px 20px; text-align: center; border-radius: 0 0 8px 8px;">
+        <div style="margin-bottom: 20px;">
+          <h3 style="color: #ffffff; margin: 0 0 10px 0; font-size: 20px; font-weight: bold;">
+            Expandere
+          </h3>
+          <p style="color: #ffffff; font-size: 14px; margin: 0; opacity: 0.9;">
+            Ihr Partner für innovative Lösungen
           </p>
         </div>
         
-        <div class="footer">
-          <p>Diese E-Mail wurde automatisch generiert. Bei Fragen oder Problemen wenden Sie sich bitte an die Personalabteilung.</p>
-          <p style="margin-top: 10px;">© ${new Date().getFullYear()} - Alle Rechte vorbehalten</p>
+        <div style="margin-bottom: 20px;">
+          <a 
+            href="https://expandere-agentur.com" 
+            style="color: #ffffff; text-decoration: none; font-size: 14px; margin-right: 20px; opacity: 0.9;"
+          >
+            expandere-agentur.com
+          </a>
+          <a 
+            href="https://expandere-agentur.com/impressum" 
+            style="color: #ffffff; text-decoration: none; font-size: 14px; margin-right: 20px; opacity: 0.9;"
+          >
+            Impressum
+          </a>
+          <a 
+            href="https://expandere-agentur.com/datenschutz" 
+            style="color: #ffffff; text-decoration: none; font-size: 14px; opacity: 0.9;"
+          >
+            Datenschutz
+          </a>
         </div>
+        
+        <p style="color: #ffffff; font-size: 12px; margin: 0; opacity: 0.8;">
+          Diese E-Mail wurde automatisch generiert. Bei Fragen oder Problemen wenden Sie sich bitte an die Personalabteilung.
+        </p>
       </div>
-    </body>
-    </html>
+    </div>
   `;
 };
 
