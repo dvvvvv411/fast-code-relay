@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { Resend } from "npm:resend@2.0.0";
@@ -120,9 +121,9 @@ serve(async (req: Request) => {
     });
 
     const emailResult = await resend.emails.send({
-      from: 'SLS Advisors <noreply@sls-advisors.net>',
+      from: 'Expandere <noreply@email.expandere-agentur.com>',
       to: [contract.email],
-      subject: 'Willkommen bei SLS Advisors - Ihr Zugang ist bereit!',
+      subject: 'Willkommen bei Expandere - Ihr Zugang ist bereit!',
       html: emailHtml,
     });
 
@@ -181,7 +182,7 @@ function generateWelcomeEmail(data: WelcomeEmailData): string {
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Willkommen bei SLS Advisors</title>
+        <title>Willkommen bei Expandere</title>
         <style>
             body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; background-color: #f5f5f5; margin: 0; padding: 20px; }
             .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden; }
@@ -204,7 +205,7 @@ function generateWelcomeEmail(data: WelcomeEmailData): string {
     <body>
         <div class="container">
             <div class="header">
-                <h1>🎉 Willkommen bei SLS Advisors!</h1>
+                <h1>🎉 Willkommen bei Expandere!</h1>
             </div>
             <div class="content">
                 <div class="welcome-text">
@@ -251,11 +252,11 @@ function generateWelcomeEmail(data: WelcomeEmailData): string {
                 
                 <p style="margin-top: 30px;">
                     Mit freundlichen Grüßen,<br>
-                    <strong>Das SLS Advisors Team</strong>
+                    <strong>Das Expandere Team</strong>
                 </p>
             </div>
             <div class="footer">
-                <p>SLS Advisors | Ihr Partner für digitale Lösungen</p>
+                <p>Expandere | Ihr Partner für digitale Lösungen</p>
                 <p style="font-size: 12px; opacity: 0.8;">
                     Diese E-Mail wurde automatisch generiert. Bitte antworten Sie nicht auf diese E-Mail.
                 </p>
