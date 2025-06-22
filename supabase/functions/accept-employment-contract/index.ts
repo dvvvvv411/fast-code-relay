@@ -184,34 +184,41 @@ function generateWelcomeEmail(data: WelcomeEmailData): string {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Willkommen bei Expandere</title>
         <style>
-            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; background-color: #f5f5f5; margin: 0; padding: 20px; }
-            .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden; }
-            .header { background: linear-gradient(135deg, #ff6b35, #f7931e); color: white; padding: 30px; text-align: center; }
-            .header h1 { margin: 0; font-size: 28px; font-weight: 300; }
-            .content { padding: 40px; }
-            .welcome-text { font-size: 18px; margin-bottom: 20px; color: #2c3e50; }
-            .credentials-box { background: #f8f9fa; border: 2px solid #e9ecef; border-radius: 8px; padding: 25px; margin: 25px 0; }
-            .credentials-title { font-size: 16px; font-weight: 600; color: #495057; margin-bottom: 15px; display: flex; align-items: center; }
+            body { font-family: 'Arial, sans-serif'; line-height: 1.6; color: #333; background-color: #f5f5f5; margin: 0; padding: 20px; }
+            .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; }
+            .header { background: #ff6b35; padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0; }
+            .header h1 { margin: 0; font-size: 28px; font-weight: bold; color: white; }
+            .header p { color: white; margin: 10px 0 0 0; font-size: 16px; opacity: 0.9; }
+            .content { padding: 40px 30px; background: #ffffff; }
+            .welcome-text { font-size: 24px; margin-top: 0; margin-bottom: 20px; color: #333; }
+            .credentials-box { background: #f8f9fa; padding: 25px; border-radius: 8px; border-left: 4px solid #ff6b35; margin: 25px 0; }
+            .credentials-title { font-size: 18px; font-weight: bold; color: #333; margin: 0 0 15px 0; }
             .credential-item { margin: 10px 0; display: flex; align-items: center; }
-            .credential-label { font-weight: 600; min-width: 100px; color: #6c757d; }
-            .credential-value { background: white; padding: 8px 12px; border-radius: 4px; border: 1px solid #dee2e6; font-family: monospace; flex: 1; }
-            .login-button { display: inline-block; background: linear-gradient(135deg, #ff6b35, #f7931e); color: white; padding: 15px 30px; text-decoration: none; border-radius: 25px; font-weight: 600; margin: 20px 0; text-align: center; transition: transform 0.2s; }
-            .login-button:hover { transform: translateY(-2px); }
+            .credential-label { font-weight: bold; min-width: 100px; color: #333; width: 40%; }
+            .credential-value { color: #333; font-family: monospace; background: white; padding: 8px 12px; border-radius: 6px; border: 1px solid #e5e7eb; font-size: 14px; flex: 1; }
+            .login-button { display: inline-block; background: #ff6b35; color: white; padding: 18px 40px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 20px 0; text-align: center; font-size: 16px; box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3); }
             .important-note { background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; padding: 20px; margin: 20px 0; }
-            .footer { background: #2c3e50; color: white; padding: 20px; text-align: center; font-size: 14px; }
-            .icon { width: 20px; height: 20px; margin-right: 8px; }
+            .fallback-link { background: #f1f3f4; padding: 20px; border-radius: 6px; margin-bottom: 20px; }
+            .footer { background: #ff6b35; padding: 30px 20px; text-align: center; border-radius: 0 0 8px 8px; }
+            .footer h3 { color: #ffffff; margin: 0 0 10px 0; font-size: 20px; font-weight: bold; }
+            .footer p { color: #ffffff; font-size: 14px; margin: 0; opacity: 0.9; }
+            .footer a { color: #ffffff; text-decoration: none; font-size: 14px; margin-right: 20px; opacity: 0.9; }
         </style>
     </head>
     <body>
         <div class="container">
             <div class="header">
                 <h1>🎉 Willkommen bei Expandere!</h1>
+                <p>Ihr Arbeitsvertrag wurde erfolgreich angenommen</p>
             </div>
             <div class="content">
-                <div class="welcome-text">
-                    Liebe/r ${data.firstName} ${data.lastName},
-                </div>
-                <p>herzlich willkommen im Team! Ihr Arbeitsvertrag wurde erfolgreich angenommen und Ihr Zugang zu unserem System ist bereit.</p>
+                <h2 class="welcome-text">
+                    Hallo ${data.firstName} ${data.lastName}!
+                </h2>
+                
+                <p style="color: #555; line-height: 1.6; font-size: 16px; margin-bottom: 30px;">
+                    Herzlich willkommen im Team! Ihr Arbeitsvertrag wurde erfolgreich angenommen und Ihr Zugang zu unserem System ist bereit.
+                </p>
                 
                 ${data.temporaryPassword ? `
                 <div class="credentials-box">
@@ -236,27 +243,53 @@ function generateWelcomeEmail(data: WelcomeEmailData): string {
                     <div class="credentials-title">
                         ✅ Bestehender Account
                     </div>
-                    <p>Sie können sich mit Ihren bestehenden Anmeldedaten anmelden.</p>
+                    <p style="margin: 0; color: #555;">Sie können sich mit Ihren bestehenden Anmeldedaten anmelden.</p>
                 </div>
                 `}
                 
-                <div style="text-align: center; margin: 30px 0;">
+                <div style="text-align: center; margin: 40px 0;">
                     <a href="${data.loginUrl}" class="login-button">
                         🚀 Jetzt anmelden
                     </a>
                 </div>
                 
-                <p>Bei Fragen oder Problemen wenden Sie sich gerne an unser Support-Team.</p>
+                <div class="fallback-link">
+                    <p style="color: #666; font-size: 14px; line-height: 1.5; margin: 0 0 10px 0;">
+                        <strong>Falls der Button nicht funktioniert:</strong><br/>
+                        Kopieren Sie diesen Link und fügen Sie ihn in Ihren Browser ein:
+                    </p>
+                    <p style="margin: 0;">
+                        <a href="${data.loginUrl}" style="color: #ff6b35; word-break: break-all; font-size: 14px; text-decoration: none;">
+                            ${data.loginUrl}
+                        </a>
+                    </p>
+                </div>
                 
-                <p>Wir freuen uns auf die Zusammenarbeit!</p>
+                <p style="color: #555; line-height: 1.6; font-size: 16px; margin-bottom: 10px;">
+                    Bei Fragen oder Problemen wenden Sie sich gerne an unser Support-Team.
+                </p>
                 
-                <p style="margin-top: 30px;">
+                <p style="color: #555; line-height: 1.6; font-size: 16px; margin-bottom: 10px;">
+                    Wir freuen uns auf die Zusammenarbeit!
+                </p>
+                
+                <p style="margin-top: 30px; color: #555; line-height: 1.6; font-size: 16px; margin: 0;">
                     Mit freundlichen Grüßen,<br>
                     <strong>Das Expandere Team</strong>
                 </p>
             </div>
             <div class="footer">
-                <p>Expandere | Ihr Partner für digitale Lösungen</p>
+                <div style="margin-bottom: 20px;">
+                    <h3>Expandere</h3>
+                    <p>Ihr Partner für innovative Lösungen</p>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <a href="https://expandere-agentur.com">expandere-agentur.com</a>
+                    <a href="https://expandere-agentur.com/impressum">Impressum</a>
+                    <a href="https://expandere-agentur.com/datenschutz">Datenschutz</a>
+                </div>
+                
                 <p style="font-size: 12px; opacity: 0.8;">
                     Diese E-Mail wurde automatisch generiert. Bitte antworten Sie nicht auf diese E-Mail.
                 </p>
