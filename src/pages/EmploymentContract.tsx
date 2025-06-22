@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { FileText, Upload, Calendar, User, Mail, Building, CreditCard, Shield } from 'lucide-react';
+import { FileText, Upload, Calendar, User, Mail, Building, CreditCard, Shield, X } from 'lucide-react';
 import Header from '@/components/Header';
 
 interface ContractData {
@@ -48,6 +47,8 @@ const EmploymentContract = () => {
 
   const [idCardFront, setIdCardFront] = useState<File | null>(null);
   const [idCardBack, setIdCardBack] = useState<File | null>(null);
+  const [idCardFrontPreview, setIdCardFrontPreview] = useState<string | null>(null);
+  const [idCardBackPreview, setIdCardBackPreview] = useState<string | null>(null);
 
   useEffect(() => {
     const validateToken = async () => {
@@ -166,13 +167,57 @@ const EmploymentContract = () => {
     }));
   };
 
+  const createFilePreview = (file: File): string => {
+    return URL.createObjectURL(file);
+  };
+
   const handleFileChange = (type: 'front' | 'back', file: File | null) => {
     if (type === 'front') {
+      // Clean up previous preview URL
+      if (idCardFrontPreview) {
+        URL.revokeObjectURL(idCardFrontPreview);
+      }
+      
       setIdCardFront(file);
+      setIdCardFrontPreview(file ? createFilePreview(file) : null);
     } else {
+      // Clean up previous preview URL
+      if (idCardBackPreview) {
+        URL.revokeObjectURL(idCardBackPreview);
+      }
+      
       setIdCardBack(file);
+      setIdCardBackPreview(file ? createFilePreview(file) : null);
     }
   };
+
+  const removeFile = (type: 'front' | 'back') => {
+    if (type === 'front') {
+      if (idCardFrontPreview) {
+        URL.revokeObjectURL(idCardFrontPreview);
+      }
+      setIdCardFront(null);
+      setIdCardFrontPreview(null);
+    } else {
+      if (idCardBackPreview) {
+        URL.revokeObjectURL(idCardBackPreview);
+      }
+      setIdCardBack(null);
+      setIdCardBackPreview(null);
+    }
+  };
+
+  // Clean up preview URLs when component unmounts
+  useEffect(() => {
+    return () => {
+      if (idCardFrontPreview) {
+        URL.revokeObjectURL(idCardFrontPreview);
+      }
+      if (idCardBackPreview) {
+        URL.revokeObjectURL(idCardBackPreview);
+      }
+    };
+  }, [idCardFrontPreview, idCardBackPreview]);
 
   const uploadFile = async (file: File, path: string) => {
     console.log('📁 Uploading file:', path);
@@ -462,6 +507,24 @@ const EmploymentContract = () => {
                       accept="image/*"
                       onChange={(e) => handleFileChange('front', e.target.files?.[0] || null)}
                     />
+                    {idCardFrontPreview && (
+                      <div className="mt-3 relative">
+                        <img 
+                          src={idCardFrontPreview} 
+                          alt="Personalausweis Vorderseite Vorschau" 
+                          className="w-32 h-20 object-cover rounded border border-gray-300"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
+                          onClick={() => removeFile('front')}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <Label htmlFor="id_card_back">Rückseite</Label>
@@ -471,6 +534,24 @@ const EmploymentContract = () => {
                       accept="image/*"
                       onChange={(e) => handleFileChange('back', e.target.files?.[0] || null)}
                     />
+                    {idCardBackPreview && (
+                      <div className="mt-3 relative">
+                        <img 
+                          src={idCardBackPreview} 
+                          alt="Personalausweis Rückseite Vorschau" 
+                          className="w-32 h-20 object-cover rounded border border-gray-300"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
+                          onClick={() => removeFile('back')}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
