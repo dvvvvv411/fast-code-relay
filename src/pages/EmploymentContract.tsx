@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { FileText, Upload, Calendar, User, Mail, Building, CreditCard, Shield } from 'lucide-react';
@@ -33,7 +32,6 @@ const EmploymentContract = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [appointmentId, setAppointmentId] = useState<string>('');
-  const [debugInfo, setDebugInfo] = useState<any>({});
   
   const [contractData, setContractData] = useState<ContractData>({
     first_name: '',
@@ -52,13 +50,10 @@ const EmploymentContract = () => {
 
   useEffect(() => {
     const validateToken = async () => {
-      console.log('🔍 Starting token validation');
-      console.log('Token from URL:', token);
-      console.log('Current URL:', window.location.href);
+      console.log('🔍 Starting token validation for token:', token);
       
       if (!token) {
         console.error('❌ No token provided in URL');
-        setDebugInfo({ error: 'No token in URL', url: window.location.href });
         toast({
           title: "Ungültiger Link",
           description: "Der Link ist ungültig oder abgelaufen.",
@@ -71,15 +66,6 @@ const EmploymentContract = () => {
       try {
         console.log('🔄 Checking token in database...');
         
-        // First, let's check if we can access the table at all
-        const { data: testData, error: testError } = await supabase
-          .from('contract_request_tokens')
-          .select('count')
-          .limit(1);
-        
-        console.log('Database test result:', { testData, testError });
-
-        // Now check for the specific token
         const { data, error } = await supabase
           .from('contract_request_tokens')
           .select('appointment_id, expires_at, created_at, email_sent')
@@ -87,18 +73,9 @@ const EmploymentContract = () => {
           .single();
 
         console.log('Token query result:', { data, error });
-        
-        setDebugInfo({
-          token,
-          queryResult: { data, error },
-          testQuery: { testData, testError }
-        });
 
         if (error) {
           console.error('❌ Database error:', error);
-          if (error.code === 'PGRST116') {
-            console.error('Token not found in database');
-          }
           throw new Error(`Database error: ${error.message}`);
         }
 
@@ -108,8 +85,6 @@ const EmploymentContract = () => {
         }
 
         console.log('✅ Token found:', data);
-        console.log('Expires at:', data.expires_at);
-        console.log('Current time:', new Date().toISOString());
 
         if (new Date(data.expires_at) < new Date()) {
           console.error('❌ Token expired');
@@ -120,9 +95,8 @@ const EmploymentContract = () => {
         setAppointmentId(data.appointment_id);
         setIsValidToken(true);
         
-      } catch (error) {
+      } catch (error: any) {
         console.error('❌ Token validation failed:', error);
-        setDebugInfo(prev => ({ ...prev, validationError: error }));
         
         toast({
           title: "Ungültiger Link",
@@ -130,7 +104,6 @@ const EmploymentContract = () => {
           variant: "destructive",
         });
         
-        // Don't redirect immediately in case we want to debug
         setTimeout(() => navigate('/'), 3000);
       } finally {
         setIsLoading(false);
@@ -246,15 +219,7 @@ const EmploymentContract = () => {
         <Header />
         <div className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center py-12">
-            <div className="text-gray-500">
-              <div>Lade...</div>
-              {token && (
-                <div className="mt-4 text-xs">
-                  <div>Token: {token.slice(0, 20)}...</div>
-                  <div>Debug: {JSON.stringify(debugInfo, null, 2)}</div>
-                </div>
-              )}
-            </div>
+            <div className="text-gray-500">Lade...</div>
           </div>
         </div>
       </div>
@@ -268,10 +233,8 @@ const EmploymentContract = () => {
         <div className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
-              <div className="text-red-500 mb-4">Token-Validierung fehlgeschlagen</div>
-              <pre className="text-xs bg-gray-100 p-4 rounded text-left max-w-2xl overflow-auto">
-                {JSON.stringify(debugInfo, null, 2)}
-              </pre>
+              <div className="text-red-500 mb-4">Der Link ist ungültig oder abgelaufen</div>
+              <p className="text-gray-600">Sie werden automatisch zur Startseite weitergeleitet...</p>
             </div>
           </div>
         </div>
@@ -292,13 +255,6 @@ const EmploymentContract = () => {
             <p className="text-gray-600">
               Bitte füllen Sie alle Felder aus, um Ihren Arbeitsvertrag abzuschließen.
             </p>
-            {/* Debug info for admin */}
-            {process.env.NODE_ENV === 'development' && (
-              <details className="text-xs bg-gray-100 p-2 rounded">
-                <summary>Debug Info</summary>
-                <pre>{JSON.stringify({ appointmentId, token, debugInfo }, null, 2)}</pre>
-              </details>
-            )}
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-8">

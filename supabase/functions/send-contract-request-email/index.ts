@@ -51,8 +51,9 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('✅ Token stored successfully');
 
-    // Create the contract form URL
-    const contractUrl = `${supabaseUrl.replace('.supabase.co', '.lovable.app')}/arbeitsvertrag?token=${token}`;
+    // Create the contract form URL - Use the correct app domain
+    const appUrl = Deno.env.get('APP_URL') || 'https://uylujlvfyhftgaztwowf.lovable.app';
+    const contractUrl = `${appUrl}/arbeitsvertrag?token=${token}`;
     console.log('🔗 Generated contract URL:', contractUrl);
 
     // Send email with verified sender address
