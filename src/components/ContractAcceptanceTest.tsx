@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
-import { TestTube, PlayCircle, CheckCircle, XCircle, User, Mail, Calendar, Database, Loader2 } from 'lucide-react';
+import { TestTube, PlayCircle, CheckCircle, XCircle, User, Mail, Calendar, Database, Loader2, AlertTriangle } from 'lucide-react';
 
 interface TestContract {
   id: string;
@@ -24,8 +25,9 @@ const ContractAcceptanceTest = () => {
   const [testResults, setTestResults] = useState<{
     contractCreated: boolean;
     contractAccepted: boolean;
-    userCreated: boolean;
-    emailSent: boolean;
+    userIdReturned: boolean;
+    contractUserIdSet: boolean;
+    functionSuccess: boolean;
     userId?: string;
     error?: string;
   } | null>(null);
@@ -94,7 +96,13 @@ const ContractAcceptanceTest = () => {
       if (contractError) throw contractError;
 
       setTestContract(contract);
-      setTestResults({ contractCreated: true, contractAccepted: false, userCreated: false, emailSent: false });
+      setTestResults({ 
+        contractCreated: true, 
+        contractAccepted: false, 
+        userIdReturned: false, 
+        contractUserIdSet: false, 
+        functionSuccess: false 
+      });
       
       toast({
         title: "Test-Vertrag erstellt!",
@@ -108,8 +116,9 @@ const ContractAcceptanceTest = () => {
       setTestResults({ 
         contractCreated: false, 
         contractAccepted: false, 
-        userCreated: false, 
-        emailSent: false, 
+        userIdReturned: false, 
+        contractUserIdSet: false, 
+        functionSuccess: false, 
         error: error.message 
       });
       
@@ -146,22 +155,13 @@ const ContractAcceptanceTest = () => {
         throw new Error(data?.error || 'Unknown error from function');
       }
 
-      // Check if user was created by listing users
-      const { data: authResponse, error: userListError } = await supabase.auth.admin.listUsers();
-      
-      let userFound = false;
-      let userId = '';
-      
-      if (!userListError && authResponse?.users && Array.isArray(authResponse.users)) {
-        const foundUser = authResponse.users.find((user: any) => user.email === testContract.email);
-        if (foundUser) {
-          userFound = true;
-          userId = foundUser.id;
-          console.log('✅ User found in auth.users:', userId);
-        }
-      }
+      // Extract userId from function response
+      const userIdFromFunction = data?.userId;
+      const userIdReturned = !!userIdFromFunction;
 
-      // Verify contract status was updated
+      console.log('✅ Function executed successfully, userId returned:', userIdFromFunction);
+
+      // Verify contract status was updated and user_id was set
       const { data: updatedContract, error: contractError } = await supabase
         .from('employment_contracts')
         .select('*')
@@ -173,24 +173,40 @@ const ContractAcceptanceTest = () => {
       }
 
       const contractAccepted = updatedContract?.status === 'accepted';
+      const contractUserIdSet = !!updatedContract?.user_id;
       
+      console.log('Contract verification:', {
+        status: updatedContract?.status,
+        user_id: updatedContract?.user_id,
+        contractAccepted,
+        contractUserIdSet
+      });
+
       setTestResults({
         contractCreated: true,
         contractAccepted,
-        userCreated: userFound,
-        emailSent: true, // Assume email was sent if no error
-        userId,
+        userIdReturned,
+        contractUserIdSet,
+        functionSuccess: data?.success,
+        userId: userIdFromFunction,
       });
 
-      if (contractAccepted && userFound) {
+      const allTestsPassed = contractAccepted && userIdReturned && contractUserIdSet;
+
+      if (allTestsPassed) {
         toast({
           title: "Test erfolgreich! ✅",
-          description: `Benutzer wurde erstellt (ID: ${userId.substring(0, 8)}...) und Vertrag akzeptiert.`,
+          description: `Benutzer wurde erstellt (ID: ${userIdFromFunction?.substring(0, 8)}...) und Vertrag akzeptiert.`,
         });
       } else {
+        const failedTests = [];
+        if (!contractAccepted) failedTests.push('Vertragsstatus');
+        if (!userIdReturned) failedTests.push('Benutzer-ID von Funktion');
+        if (!contractUserIdSet) failedTests.push('Benutzer-ID im Vertrag');
+        
         toast({
           title: "Test teilweise erfolgreich",
-          description: `Vertrag: ${contractAccepted ? '✅' : '❌'}, Benutzer: ${userFound ? '✅' : '❌'}`,
+          description: `Fehlgeschlagen: ${failedTests.join(', ')}`,
           variant: "destructive",
         });
       }
@@ -200,8 +216,9 @@ const ContractAcceptanceTest = () => {
       setTestResults(prev => prev ? { 
         ...prev, 
         contractAccepted: false, 
-        userCreated: false, 
-        emailSent: false, 
+        userIdReturned: false, 
+        contractUserIdSet: false, 
+        functionSuccess: false, 
         error: error.message 
       } : null);
       
@@ -221,28 +238,18 @@ const ContractAcceptanceTest = () => {
     try {
       console.log('🧹 Cleaning up test data...');
       
-      // Delete test contract
+      // Delete test contract (this will cascade delete related records)
       await supabase
         .from('employment_contracts')
         .delete()
         .eq('id', testContract.id);
-      
-      // Try to delete test user if created
-      if (testResults?.userId) {
-        try {
-          await supabase.auth.admin.deleteUser(testResults.userId);
-          console.log('✅ Test user deleted');
-        } catch (error) {
-          console.log('⚠️ Could not delete test user:', error);
-        }
-      }
       
       setTestContract(null);
       setTestResults(null);
       
       toast({
         title: "Test-Daten bereinigt",
-        description: "Alle Test-Daten wurden erfolgreich entfernt.",
+        description: "Test-Vertrag wurde erfolgreich entfernt. Hinweis: Erstellte Benutzerkonten müssen manuell über die Supabase-Konsole gelöscht werden.",
       });
       
     } catch (error: any) {
@@ -382,21 +389,30 @@ const ContractAcceptanceTest = () => {
               </div>
               
               <div className="flex items-center gap-2">
+                {testResults.functionSuccess ? (
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                ) : (
+                  <XCircle className="h-4 w-4 text-red-600" />
+                )}
+                <span>Edge Function erfolgreich</span>
+              </div>
+              
+              <div className="flex items-center gap-2">
                 {testResults.contractAccepted ? (
                   <CheckCircle className="h-4 w-4 text-green-600" />
                 ) : (
                   <XCircle className="h-4 w-4 text-red-600" />
                 )}
-                <span>Vertrag akzeptiert</span>
+                <span>Vertrag akzeptiert (Status geändert)</span>
               </div>
               
               <div className="flex items-center gap-2">
-                {testResults.userCreated ? (
+                {testResults.userIdReturned ? (
                   <CheckCircle className="h-4 w-4 text-green-600" />
                 ) : (
                   <XCircle className="h-4 w-4 text-red-600" />
                 )}
-                <span>Benutzer erstellt</span>
+                <span>Benutzer-ID von Funktion zurückgegeben</span>
                 {testResults.userId && (
                   <Badge variant="outline" className="text-xs">
                     {testResults.userId.substring(0, 8)}...
@@ -405,12 +421,12 @@ const ContractAcceptanceTest = () => {
               </div>
               
               <div className="flex items-center gap-2">
-                {testResults.emailSent ? (
+                {testResults.contractUserIdSet ? (
                   <CheckCircle className="h-4 w-4 text-green-600" />
                 ) : (
                   <XCircle className="h-4 w-4 text-red-600" />
                 )}
-                <span>E-Mail versendet</span>
+                <span>Benutzer-ID im Vertrag gesetzt</span>
               </div>
 
               {testResults.error && (
@@ -422,15 +438,31 @@ const ContractAcceptanceTest = () => {
           </div>
         )}
 
+        {/* Admin Verification Note */}
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+            <div>
+              <h4 className="font-medium text-amber-900 mb-2">Admin-Verifikation</h4>
+              <p className="text-sm text-amber-800 mb-2">
+                Um zu überprüfen, ob der Benutzer tatsächlich erstellt wurde, können Admins die Benutzerliste in der Supabase-Konsole einsehen.
+              </p>
+              <p className="text-sm text-amber-800">
+                Die automatische Verifikation über die Benutzerliste ist aus Sicherheitsgründen nur für Service-Role-Keys verfügbar.
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Instructions */}
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <h4 className="font-medium text-yellow-900 mb-2">Test-Anweisungen</h4>
-          <ol className="list-decimal list-inside text-sm text-yellow-800 space-y-1">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h4 className="font-medium text-blue-900 mb-2">Test-Anweisungen</h4>
+          <ol className="list-decimal list-inside text-sm text-blue-800 space-y-1">
             <li>Konfigurieren Sie die Test-Daten oben</li>
             <li>Klicken Sie auf "Test-Vertrag erstellen"</li>
             <li>Klicken Sie auf "Vertragsannahme testen"</li>
-            <li>Überprüfen Sie die Ergebnisse</li>
-            <li>Gehen Sie zu den Benutzern in Supabase, um den erstellten Benutzer zu sehen</li>
+            <li>Überprüfen Sie die Ergebnisse - alle Tests sollten ✅ zeigen</li>
+            <li>Gehen Sie zur Supabase-Konsole → Authentication → Users, um den erstellten Benutzer zu sehen</li>
             <li>Klicken Sie auf "Test-Daten bereinigen" wenn fertig</li>
           </ol>
         </div>
