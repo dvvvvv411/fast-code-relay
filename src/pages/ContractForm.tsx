@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -341,20 +340,14 @@ const ContractForm = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4">
       <div className="max-w-4xl mx-auto">
-        {/* Header with Company Logo */}
+        {/* Centered Company Logo */}
         <div className="mb-8 text-center">
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <div className="w-16 h-16 rounded-xl flex items-center justify-center shadow-lg overflow-hidden bg-white">
-              <img 
-                src="https://ulbgpsjexsgcpivphrxq.supabase.co/storage/v1/object/public/branding/logo_dark_1741580695335.png" 
-                alt="Company Logo"
-                className="w-full h-full object-contain p-2"
-              />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Ihr Unternehmen</h1>
-              <p className="text-lg text-gray-600">Arbeitsvertrag-Portal</p>
-            </div>
+          <div className="w-20 h-20 mx-auto rounded-xl flex items-center justify-center shadow-lg overflow-hidden bg-white">
+            <img 
+              src="https://ulbgpsjexsgcpivphrxq.supabase.co/storage/v1/object/public/branding/logo_dark_1741580695335.png" 
+              alt="Company Logo"
+              className="w-full h-full object-contain p-2"
+            />
           </div>
         </div>
 
