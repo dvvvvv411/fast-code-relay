@@ -1,13 +1,13 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
-import { FileText, User, Mail, Calendar, Clock, Download, Eye, RefreshCw, X } from 'lucide-react';
+import { FileText, User, Mail, Calendar, Clock, Download, Eye, RefreshCw, X, Check, UserPlus, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 
@@ -28,6 +28,9 @@ interface EmploymentContract {
   id_card_back_url: string | null;
   submitted_at: string;
   created_at: string;
+  status: string;
+  accepted_at: string | null;
+  user_id: string | null;
   appointment?: {
     appointment_date: string;
     appointment_time: string;
@@ -44,6 +47,7 @@ const EmploymentContractManager = () => {
   const [selectedContract, setSelectedContract] = useState<EmploymentContract | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isProcessing, setIsProcessing] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<{ url: string; filename: string; title: string } | null>(null);
   const { toast } = useToast();
 
@@ -88,6 +92,93 @@ const EmploymentContractManager = () => {
   const handleRefresh = () => {
     setIsRefreshing(true);
     fetchContracts();
+  };
+
+  const handleAcceptContract = async (contractId: string) => {
+    setIsProcessing(contractId);
+    
+    try {
+      console.log('🚀 Accepting contract:', contractId);
+      
+      const { data, error } = await supabase.functions.invoke('accept-employment-contract', {
+        body: { contractId }
+      });
+
+      if (error) {
+        console.error('❌ Function error:', error);
+        throw error;
+      }
+
+      if (!data?.success) {
+        throw new Error(data?.error || 'Unbekannter Fehler beim Akzeptieren des Vertrags');
+      }
+
+      console.log('✅ Contract accepted successfully');
+
+      toast({
+        title: "Vertrag akzeptiert!",
+        description: data.message || "Der Arbeitsvertrag wurde erfolgreich akzeptiert und eine E-Mail wurde versendet.",
+      });
+
+      // Refresh the contracts list
+      await fetchContracts();
+      
+      // Update selected contract if it's the one we just processed
+      if (selectedContract?.id === contractId) {
+        const updatedContract = contracts.find(c => c.id === contractId);
+        if (updatedContract) {
+          setSelectedContract({ ...updatedContract, status: 'accepted', accepted_at: new Date().toISOString() });
+        }
+      }
+
+    } catch (error: any) {
+      console.error('❌ Error accepting contract:', error);
+      toast({
+        title: "Fehler",
+        description: error.message || "Beim Akzeptieren des Vertrags ist ein Fehler aufgetreten.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(null);
+    }
+  };
+
+  const handleRejectContract = async (contractId: string) => {
+    setIsProcessing(contractId);
+    
+    try {
+      const { error } = await supabase
+        .from('employment_contracts')
+        .update({
+          status: 'rejected',
+        })
+        .eq('id', contractId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Vertrag abgelehnt",
+        description: "Der Arbeitsvertrag wurde abgelehnt.",
+      });
+
+      // Refresh the contracts list
+      await fetchContracts();
+      
+      // Update selected contract if it's the one we just processed
+      if (selectedContract?.id === contractId) {
+        setSelectedContract({ ...selectedContract, status: 'rejected' });
+      }
+
+    } catch (error: any) {
+      console.error('Error rejecting contract:', error);
+      toast({
+        title: "Fehler",
+        description: "Beim Ablehnen des Vertrags ist ein Fehler aufgetreten.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(null);
+    }
   };
 
   const handleDownloadFile = async (url: string, filename: string) => {
@@ -137,6 +228,19 @@ const EmploymentContractManager = () => {
     }
   };
 
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <Badge variant="secondary">Ausstehend</Badge>;
+      case 'accepted':
+        return <Badge variant="default" className="bg-green-500">Akzeptiert</Badge>;
+      case 'rejected':
+        return <Badge variant="destructive">Abgelehnt</Badge>;
+      default:
+        return <Badge variant="outline">Unbekannt</Badge>;
+    }
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -164,16 +268,118 @@ const EmploymentContractManager = () => {
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5" />
                 Arbeitsvertrag Details
+                {getStatusBadge(selectedContract.status)}
               </CardTitle>
-              <Button
-                variant="outline"
-                onClick={() => setSelectedContract(null)}
-              >
-                Zurück zur Übersicht
-              </Button>
+              <div className="flex items-center gap-2">
+                {selectedContract.status === 'pending' && (
+                  <>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="default" 
+                          className="bg-green-600 hover:bg-green-700"
+                          disabled={isProcessing === selectedContract.id}
+                        >
+                          <Check className="h-4 w-4 mr-2" />
+                          Akzeptieren
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Vertrag akzeptieren</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Möchten Sie den Arbeitsvertrag von {selectedContract.first_name} {selectedContract.last_name} wirklich akzeptieren?
+                            <br /><br />
+                            Dies wird:
+                            <ul className="list-disc ml-6 mt-2">
+                              <li>Ein Benutzerkonto erstellen (falls noch nicht vorhanden)</li>
+                              <li>Eine Willkommens-E-Mail mit Anmeldedaten senden</li>
+                              <li>Den Vertragsstatus auf "Akzeptiert" setzen</li>
+                            </ul>
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                          <AlertDialogAction 
+                            onClick={() => handleAcceptContract(selectedContract.id)}
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            <UserPlus className="h-4 w-4 mr-2" />
+                            Akzeptieren & Konto erstellen
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="destructive"
+                          disabled={isProcessing === selectedContract.id}
+                        >
+                          <X className="h-4 w-4 mr-2" />
+                          Ablehnen
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Vertrag ablehnen</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Möchten Sie den Arbeitsvertrag von {selectedContract.first_name} {selectedContract.last_name} wirklich ablehnen?
+                            Diese Aktion kann nicht rückgängig gemacht werden.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                          <AlertDialogAction 
+                            onClick={() => handleRejectContract(selectedContract.id)}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            <AlertTriangle className="h-4 w-4 mr-2" />
+                            Ablehnen
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </>
+                )}
+                <Button
+                  variant="outline"
+                  onClick={() => setSelectedContract(null)}
+                >
+                  Zurück zur Übersicht
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Status Information */}
+            {selectedContract.status !== 'pending' && (
+              <div className="bg-gray-50 border rounded-lg p-4">
+                <h3 className="text-lg font-semibold mb-2">Status-Information</h3>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">Status:</span>
+                    {getStatusBadge(selectedContract.status)}
+                  </div>
+                  {selectedContract.accepted_at && (
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-gray-500" />
+                      <span className="font-medium">Akzeptiert am:</span>
+                      <span>{format(new Date(selectedContract.accepted_at), 'dd.MM.yyyy HH:mm', { locale: de })} Uhr</span>
+                    </div>
+                  )}
+                  {selectedContract.user_id && (
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-gray-500" />
+                      <span className="font-medium">Benutzer-ID:</span>
+                      <span className="font-mono text-sm">{selectedContract.user_id}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Personal Information */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -382,6 +588,7 @@ const EmploymentContractManager = () => {
                 <TableHead>Name</TableHead>
                 <TableHead>E-Mail</TableHead>
                 <TableHead>Startdatum</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Termin</TableHead>
                 <TableHead>Eingereicht</TableHead>
                 <TableHead>Dokumente</TableHead>
@@ -399,6 +606,9 @@ const EmploymentContractManager = () => {
                   </TableCell>
                   <TableCell>
                     {format(new Date(contract.start_date), 'dd.MM.yyyy', { locale: de })}
+                  </TableCell>
+                  <TableCell>
+                    {getStatusBadge(contract.status)}
                   </TableCell>
                   <TableCell>
                     {contract.appointment ? (
@@ -433,14 +643,44 @@ const EmploymentContractManager = () => {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSelectedContract(contract)}
-                      title="Details anzeigen"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSelectedContract(contract)}
+                        title="Details anzeigen"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      {contract.status === 'pending' && (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleAcceptContract(contract.id)}
+                            disabled={isProcessing === contract.id}
+                            title="Vertrag akzeptieren"
+                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                          >
+                            {isProcessing === contract.id ? (
+                              <RefreshCw className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Check className="h-4 w-4" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRejectContract(contract.id)}
+                            disabled={isProcessing === contract.id}
+                            title="Vertrag ablehnen"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
