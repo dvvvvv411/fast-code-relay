@@ -6,6 +6,7 @@ import PhoneNumberManager from './PhoneNumberManager';
 import AuftraegeManager from './AuftraegeManager';
 import AllRequestsList from './AllRequestsList';
 import SupportTickets from './SupportTickets';
+import EmailManager from './EmailManager';
 import AppointmentManager from './AppointmentManager';
 import EmploymentContractManager from './EmploymentContractManager';
 import FeedbackManager from './FeedbackManager';
@@ -37,6 +38,8 @@ const AdminPanel = () => {
         return <SupportTickets />;
       case 'livechat':
         return <LiveChatAdmin />;
+      case 'mails':
+        return <EmailManager />;
       case 'appointments':
         return <AppointmentManager />;
       case 'contracts':
