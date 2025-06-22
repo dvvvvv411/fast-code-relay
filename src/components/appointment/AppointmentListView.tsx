@@ -462,7 +462,7 @@ const AppointmentListView = ({
                           <Mail className="h-4 w-4" />
                         </Button>
                       )}
-                      {(appointment.status === 'confirmed' || appointment.status === 'interessiert') && onContractInfoSend && (
+                      {onContractInfoSend && (
                         <Button
                           variant="ghost"
                           size="sm"

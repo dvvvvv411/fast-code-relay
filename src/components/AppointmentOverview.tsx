@@ -239,6 +239,8 @@ const AppointmentOverview = () => {
           onClose={() => setShowContractPreview(false)}
           recipient={selectedRecipient}
           contractToken={contractToken}
+          onSendEmail={sendContractEmail}
+          isSending={sendingEmail}
         />
 
         <Dialog open={showMissedEmailPreview} onOpenChange={setShowMissedEmailPreview}>

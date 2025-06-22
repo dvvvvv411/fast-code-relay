@@ -1,7 +1,9 @@
 
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Mail, Loader2 } from 'lucide-react';
 import ContractEmailTemplate from './ContractEmailTemplate';
 
 interface Recipient {
@@ -19,13 +21,17 @@ interface ContractEmailPreviewDialogProps {
   onClose: () => void;
   recipient: Recipient | null;
   contractToken: string | null;
+  onSendEmail?: () => void;
+  isSending?: boolean;
 }
 
 const ContractEmailPreviewDialog: React.FC<ContractEmailPreviewDialogProps> = ({
   isOpen,
   onClose,
   recipient,
-  contractToken
+  contractToken,
+  onSendEmail,
+  isSending = false
 }) => {
   if (!recipient || !contractToken) {
     return null;
@@ -37,7 +43,7 @@ const ContractEmailPreviewDialog: React.FC<ContractEmailPreviewDialogProps> = ({
         <DialogHeader>
           <DialogTitle>E-Mail Vorschau - Arbeitsvertrag Infos</DialogTitle>
         </DialogHeader>
-        <ScrollArea className="h-[70vh] w-full">
+        <ScrollArea className="h-[60vh] w-full">
           <div className="p-4">
             <ContractEmailTemplate
               recipientFirstName={recipient.first_name}
@@ -46,6 +52,32 @@ const ContractEmailPreviewDialog: React.FC<ContractEmailPreviewDialogProps> = ({
             />
           </div>
         </ScrollArea>
+        <div className="flex justify-end gap-2 p-4 border-t">
+          <Button 
+            variant="outline" 
+            onClick={onClose}
+            disabled={isSending}
+          >
+            Abbrechen
+          </Button>
+          <Button 
+            onClick={onSendEmail}
+            disabled={isSending}
+            className="bg-orange hover:bg-orange/90"
+          >
+            {isSending ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Wird gesendet...
+              </>
+            ) : (
+              <>
+                <Mail className="h-4 w-4 mr-2" />
+                E-Mail senden
+              </>
+            )}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

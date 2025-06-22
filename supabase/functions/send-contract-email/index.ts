@@ -156,7 +156,7 @@ const handler = async (req: Request): Promise<Response> => {
     `;
 
     const emailResponse = await resend.emails.send({
-      from: "Termine <noreply@resend.dev>",
+      from: "Expandere Agentur <noreply@email.expandere-agentur.com>",
       to: [recipient.email],
       subject: "Arbeitsvertrag - Zusätzliche Informationen erforderlich",
       html: emailHtml,
