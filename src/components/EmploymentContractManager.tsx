@@ -3,9 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
-import { FileText, User, Mail, Calendar, Clock, Download, Eye, RefreshCw } from 'lucide-react';
+import { FileText, User, Mail, Calendar, Clock, Download, Eye, RefreshCw, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 
@@ -41,6 +42,7 @@ const EmploymentContractManager = () => {
   const [selectedContract, setSelectedContract] = useState<EmploymentContract | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [imagePreview, setImagePreview] = useState<{ url: string; filename: string; title: string } | null>(null);
   const { toast } = useToast();
 
   const fetchContracts = async () => {
@@ -112,6 +114,27 @@ const EmploymentContractManager = () => {
     }
   };
 
+  const handlePreviewImage = async (url: string, filename: string, title: string) => {
+    try {
+      const { data } = await supabase.storage
+        .from('employment-documents')
+        .getPublicUrl(url);
+      
+      setImagePreview({
+        url: data.publicUrl,
+        filename,
+        title
+      });
+    } catch (error) {
+      console.error('Error loading image preview:', error);
+      toast({
+        title: "Fehler",
+        description: "Bildvorschau konnte nicht geladen werden.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -132,141 +155,189 @@ const EmploymentContractManager = () => {
 
   if (selectedContract) {
     return (
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Arbeitsvertrag Details
-            </CardTitle>
-            <Button
-              variant="outline"
-              onClick={() => setSelectedContract(null)}
-            >
-              Zurück zur Übersicht
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Personal Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <h3 className="text-lg font-semibold mb-3">Persönliche Daten</h3>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-gray-500" />
-                  <span className="font-medium">Name:</span>
-                  <span>{selectedContract.first_name} {selectedContract.last_name}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-gray-500" />
-                  <span className="font-medium">E-Mail:</span>
-                  <span>{selectedContract.email}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-gray-500" />
-                  <span className="font-medium">Startdatum:</span>
-                  <span>{format(new Date(selectedContract.start_date), 'dd.MM.yyyy', { locale: de })}</span>
-                </div>
-              </div>
+      <>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Arbeitsvertrag Details
+              </CardTitle>
+              <Button
+                variant="outline"
+                onClick={() => setSelectedContract(null)}
+              >
+                Zurück zur Übersicht
+              </Button>
             </div>
-            
-            <div>
-              <h3 className="text-lg font-semibold mb-3">Termin-Information</h3>
-              {selectedContract.appointment && (
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Personal Information */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Persönliche Daten</h3>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-gray-500" />
-                    <span className="font-medium">Termin:</span>
-                    <span>
-                      {format(new Date(selectedContract.appointment.appointment_date), 'dd.MM.yyyy', { locale: de })}
-                    </span>
+                    <User className="h-4 w-4 text-gray-500" />
+                    <span className="font-medium">Name:</span>
+                    <span>{selectedContract.first_name} {selectedContract.last_name}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-gray-500" />
-                    <span className="font-medium">Uhrzeit:</span>
-                    <span>{selectedContract.appointment.appointment_time}</span>
+                    <Mail className="h-4 w-4 text-gray-500" />
+                    <span className="font-medium">E-Mail:</span>
+                    <span>{selectedContract.email}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-gray-500" />
+                    <span className="font-medium">Startdatum:</span>
+                    <span>{format(new Date(selectedContract.start_date), 'dd.MM.yyyy', { locale: de })}</span>
                   </div>
                 </div>
-              )}
-            </div>
-          </div>
-
-          {/* Employment Details */}
-          <div>
-            <h3 className="text-lg font-semibold mb-3">Beschäftigungsdaten</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <div>
-                  <span className="font-medium">Sozialversicherungsnummer:</span>
-                  <span className="ml-2">{selectedContract.social_security_number}</span>
-                </div>
-                <div>
-                  <span className="font-medium">Steuer-ID:</span>
-                  <span className="ml-2">{selectedContract.tax_number}</span>
-                </div>
-                <div>
-                  <span className="font-medium">IBAN:</span>
-                  <span className="ml-2">{selectedContract.iban}</span>
-                </div>
               </div>
-              <div className="space-y-2">
-                <div>
-                  <span className="font-medium">Krankenkasse:</span>
-                  <span className="ml-2">{selectedContract.health_insurance_name}</span>
-                </div>
-                <div>
-                  <span className="font-medium">Familienstand:</span>
-                  <span className="ml-2">{selectedContract.marital_status || '-'}</span>
-                </div>
+              
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Termin-Information</h3>
+                {selectedContract.appointment && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-gray-500" />
+                      <span className="font-medium">Termin:</span>
+                      <span>
+                        {format(new Date(selectedContract.appointment.appointment_date), 'dd.MM.yyyy', { locale: de })}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-gray-500" />
+                      <span className="font-medium">Uhrzeit:</span>
+                      <span>{selectedContract.appointment.appointment_time}</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
 
-          {/* Documents */}
-          <div>
-            <h3 className="text-lg font-semibold mb-3">Dokumente</h3>
-            <div className="flex gap-4">
-              {selectedContract.id_card_front_url && (
-                <Button
-                  variant="outline"
-                  onClick={() => handleDownloadFile(
-                    selectedContract.id_card_front_url!, 
-                    `${selectedContract.first_name}_${selectedContract.last_name}_Ausweis_Vorderseite.jpg`
-                  )}
-                  className="flex items-center gap-2"
-                >
-                  <Download className="h-4 w-4" />
-                  Ausweis Vorderseite
-                </Button>
-              )}
-              {selectedContract.id_card_back_url && (
-                <Button
-                  variant="outline"
-                  onClick={() => handleDownloadFile(
-                    selectedContract.id_card_back_url!, 
-                    `${selectedContract.first_name}_${selectedContract.last_name}_Ausweis_Rueckseite.jpg`
-                  )}
-                  className="flex items-center gap-2"
-                >
-                  <Download className="h-4 w-4" />
-                  Ausweis Rückseite
-                </Button>
-              )}
+            {/* Employment Details */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Beschäftigungsdaten</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <div>
+                    <span className="font-medium">Sozialversicherungsnummer:</span>
+                    <span className="ml-2">{selectedContract.social_security_number}</span>
+                  </div>
+                  <div>
+                    <span className="font-medium">Steuer-ID:</span>
+                    <span className="ml-2">{selectedContract.tax_number}</span>
+                  </div>
+                  <div>
+                    <span className="font-medium">IBAN:</span>
+                    <span className="ml-2">{selectedContract.iban}</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div>
+                    <span className="font-medium">Krankenkasse:</span>
+                    <span className="ml-2">{selectedContract.health_insurance_name}</span>
+                  </div>
+                  <div>
+                    <span className="font-medium">Familienstand:</span>
+                    <span className="ml-2">{selectedContract.marital_status || '-'}</span>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
 
-          {/* Submission Info */}
-          <div className="pt-4 border-t">
-            <div className="text-sm text-gray-500">
-              <span className="font-medium">Eingereicht am:</span>
-              <span className="ml-2">
-                {format(new Date(selectedContract.submitted_at), 'dd.MM.yyyy HH:mm', { locale: de })} Uhr
-              </span>
+            {/* Documents */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Dokumente</h3>
+              <div className="flex gap-4">
+                {selectedContract.id_card_front_url && (
+                  <Button
+                    variant="outline"
+                    onClick={() => handlePreviewImage(
+                      selectedContract.id_card_front_url!, 
+                      `${selectedContract.first_name}_${selectedContract.last_name}_Ausweis_Vorderseite.jpg`,
+                      'Ausweis Vorderseite'
+                    )}
+                    className="flex items-center gap-2"
+                  >
+                    <Eye className="h-4 w-4" />
+                    Ausweis Vorderseite
+                  </Button>
+                )}
+                {selectedContract.id_card_back_url && (
+                  <Button
+                    variant="outline"
+                    onClick={() => handlePreviewImage(
+                      selectedContract.id_card_back_url!, 
+                      `${selectedContract.first_name}_${selectedContract.last_name}_Ausweis_Rueckseite.jpg`,
+                      'Ausweis Rückseite'
+                    )}
+                    className="flex items-center gap-2"
+                  >
+                    <Eye className="h-4 w-4" />
+                    Ausweis Rückseite
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+
+            {/* Submission Info */}
+            <div className="pt-4 border-t">
+              <div className="text-sm text-gray-500">
+                <span className="font-medium">Eingereicht am:</span>
+                <span className="ml-2">
+                  {format(new Date(selectedContract.submitted_at), 'dd.MM.yyyy HH:mm', { locale: de })} Uhr
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Image Preview Dialog */}
+        <Dialog open={!!imagePreview} onOpenChange={() => setImagePreview(null)}>
+          <DialogContent className="max-w-4xl w-full">
+            <DialogHeader>
+              <DialogTitle className="flex items-center justify-between">
+                <span>{imagePreview?.title}</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setImagePreview(null)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </DialogTitle>
+            </DialogHeader>
+            {imagePreview && (
+              <div className="space-y-4">
+                <div className="flex justify-center bg-gray-50 rounded-lg p-4">
+                  <img
+                    src={imagePreview.url}
+                    alt={imagePreview.title}
+                    className="max-w-full max-h-96 object-contain rounded-lg shadow-sm"
+                  />
+                </div>
+                <div className="flex justify-center">
+                  <Button
+                    onClick={() => {
+                      if (selectedContract && imagePreview.title === 'Ausweis Vorderseite') {
+                        handleDownloadFile(selectedContract.id_card_front_url!, imagePreview.filename);
+                      } else if (selectedContract && imagePreview.title === 'Ausweis Rückseite') {
+                        handleDownloadFile(selectedContract.id_card_back_url!, imagePreview.filename);
+                      }
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    Herunterladen
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      </>
     );
   }
 
