@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,7 @@ import { format, isAfter, isBefore, startOfDay, addDays, isWithinInterval } from
 import { de } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
+import ContractRequestEmailPreviewDialog from './ContractRequestEmailPreviewDialog';
 
 interface Appointment {
   id: string;
@@ -52,6 +54,9 @@ const AppointmentListView = ({
   const [phoneNoteValue, setPhoneNoteValue] = useState<string>('');
   const [updatingPhoneNote, setUpdatingPhoneNote] = useState<string | null>(null);
   const [showAllAppointments, setShowAllAppointments] = useState<boolean>(false);
+  const [showContractPreview, setShowContractPreview] = useState<boolean>(false);
+  const [selectedAppointmentForContract, setSelectedAppointmentForContract] = useState<Appointment | null>(null);
+  
   const now = new Date();
   const today = startOfDay(now);
   const tomorrow = addDays(today, 1);
@@ -192,9 +197,8 @@ const AppointmentListView = ({
 
   const handleContractRequestClick = (appointment: Appointment, event: React.MouseEvent) => {
     event.stopPropagation();
-    if (onContractRequestSend) {
-      onContractRequestSend(appointment);
-    }
+    setSelectedAppointmentForContract(appointment);
+    setShowContractPreview(true);
   };
 
   return (
@@ -462,17 +466,15 @@ const AppointmentListView = ({
                           <Mail className="h-4 w-4" />
                         </Button>
                       )}
-                      {appointment.status === 'interessiert' && onContractRequestSend && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => handleContractRequestClick(appointment, e)}
-                          className="hover:bg-green/10 hover:text-green-600"
-                          title="Arbeitsvertrag-Anfrage senden"
-                        >
-                          <FileText className="h-4 w-4" />
-                        </Button>
-                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => handleContractRequestClick(appointment, e)}
+                        className="hover:bg-green/10 hover:text-green-600"
+                        title="Arbeitsvertrag-Anfrage Vorschau"
+                      >
+                        <FileText className="h-4 w-4" />
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -496,6 +498,15 @@ const AppointmentListView = ({
           )}
         </CardContent>
       </Card>
+
+      <ContractRequestEmailPreviewDialog
+        isOpen={showContractPreview}
+        onClose={() => {
+          setShowContractPreview(false);
+          setSelectedAppointmentForContract(null);
+        }}
+        appointment={selectedAppointmentForContract}
+      />
     </div>
   );
 };
