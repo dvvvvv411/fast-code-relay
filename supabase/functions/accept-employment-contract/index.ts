@@ -185,7 +185,7 @@ function generateWelcomeEmail(data: WelcomeEmailData): string {
         <title>Willkommen bei Expandere</title>
         <style>
             body { font-family: 'Arial, sans-serif'; line-height: 1.6; color: #333; background-color: #f5f5f5; margin: 0; padding: 20px; }
-            .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; }
+            .container { max-width: 600px; margin: '0 auto'; background: white; border-radius: 8px; overflow: hidden; }
             .header { background: #ff6b35; padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0; }
             .header h1 { margin: 0; font-size: 28px; font-weight: bold; color: white; }
             .header p { color: white; margin: 10px 0 0 0; font-size: 16px; opacity: 0.9; }
@@ -208,7 +208,7 @@ function generateWelcomeEmail(data: WelcomeEmailData): string {
     <body>
         <div class="container">
             <div class="header">
-                <h1>🎉 Willkommen bei Expandere!</h1>
+                <h1>Willkommen bei Expandere!</h1>
                 <p>Ihr Arbeitsvertrag wurde erfolgreich angenommen</p>
             </div>
             <div class="content">
