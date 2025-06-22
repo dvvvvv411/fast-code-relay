@@ -75,27 +75,9 @@ const EmploymentContractEmailTemplate: React.FC<EmploymentContractEmailTemplateP
           </div>
         </div>
         
-        {/* Important Notice */}
-        <div style={{ backgroundColor: '#fff3cd', border: '1px solid #ffeaa7', borderRadius: '8px', padding: '25px', margin: '25px 0' }}>
-          <h3 style={{ margin: '0 0 15px 0', color: '#856404', fontSize: '18px' }}>
-            ⚠️ Wichtige Sicherheitshinweise
-          </h3>
-          <ul style={{ margin: '10px 0', paddingLeft: '20px', color: '#856404', lineHeight: '1.6' }}>
-            <li style={{ marginBottom: '8px' }}>Bitte ändern Sie Ihr Passwort nach der ersten Anmeldung</li>
-            <li style={{ marginBottom: '8px' }}>Teilen Sie Ihre Zugangsdaten niemals mit anderen</li>
-            <li style={{ marginBottom: '8px' }}>Bewahren Sie diese E-Mail sicher auf</li>
-          </ul>
-        </div>
-        
-        <h3 style={{ color: '#333', fontSize: '18px', marginBottom: '15px' }}>
-          📋 Nächste Schritte
-        </h3>
-        <ol style={{ color: '#555', fontSize: '16px', lineHeight: '1.6', marginBottom: '30px', paddingLeft: '20px' }}>
-          <li style={{ marginBottom: '8px' }}>Loggen Sie sich mit den oben genannten Zugangsdaten ein</li>
-          <li style={{ marginBottom: '8px' }}>Vervollständigen Sie Ihr Profil</li>
-          <li style={{ marginBottom: '8px' }}>Lesen Sie die Unternehmensrichtlinien</li>
-          <li style={{ marginBottom: '8px' }}>Bei Fragen kontaktieren Sie die Personalabteilung</li>
-        </ol>
+        <p style={{ color: '#555', lineHeight: '1.6', fontSize: '16px', margin: '30px 0 20px 0' }}>
+          Ab Ihrem Startdatum werden Sie Ihre täglichen Aufgaben im Mitarbeiter-Dashboard einsehen können.
+        </p>
         
         <p style={{ color: '#555', lineHeight: '1.6', fontSize: '16px', margin: '30px 0 20px 0' }}>
           Wir freuen uns darauf, mit Ihnen zu arbeiten und heißen Sie herzlich in unserem Team willkommen!
@@ -103,7 +85,7 @@ const EmploymentContractEmailTemplate: React.FC<EmploymentContractEmailTemplateP
         
         <p style={{ color: '#555', lineHeight: '1.6', fontSize: '16px', margin: '0' }}>
           Mit freundlichen Grüßen<br/>
-          <strong>Das HR-Team</strong>
+          <strong>Dein Expandere Team</strong>
         </p>
       </div>
 
