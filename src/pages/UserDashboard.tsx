@@ -1,12 +1,15 @@
 
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader, LogOut, User, Calendar, FileText } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Loader, LogOut, BarChart3, User, Star, Target } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import UserAssignments from '@/components/UserAssignments';
+import DashboardSummary from '@/components/dashboard/DashboardSummary';
+import PersonalDataTab from '@/components/dashboard/PersonalDataTab';
+import EvaluationsTab from '@/components/dashboard/EvaluationsTab';
+import AssignmentsTab from '@/components/dashboard/AssignmentsTab';
 
 const UserDashboard = () => {
   const { user, isLoading, isAdmin, signOut } = useAuth();
@@ -41,12 +44,19 @@ const UserDashboard = () => {
       <div className="flex-grow container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-2xl font-bold">Mitarbeiter-Dashboard</h1>
-            <p className="text-gray-600">Willkommen, {user.user_metadata?.first_name || user.email}!</p>
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+              <div className="bg-orange text-white p-2 rounded-lg">
+                <BarChart3 className="h-6 w-6" />
+              </div>
+              App-Tester Kontrollzentrum
+            </h1>
+            <p className="text-gray-600 mt-2">
+              Verwalten Sie Ihre Tests, sehen Sie Ihre Fortschritte und optimieren Sie Ihre Performance
+            </p>
           </div>
           <Button 
             variant="outline"
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 hover:bg-red-50 hover:border-red-200 hover:text-red-600"
             onClick={handleSignOut}
           >
             <LogOut className="h-4 w-4" />
@@ -54,72 +64,54 @@ const UserDashboard = () => {
           </Button>
         </div>
 
-        <div className="space-y-8">
-          {/* User Assignments Section */}
-          <UserAssignments />
+        <Tabs defaultValue="dashboard" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4 lg:w-2/3 mx-auto bg-white border border-gray-200 rounded-lg p-1">
+            <TabsTrigger 
+              value="dashboard" 
+              className="flex items-center gap-2 data-[state=active]:bg-orange data-[state=active]:text-white transition-all"
+            >
+              <BarChart3 className="h-4 w-4" />
+              <span className="hidden sm:inline">Übersicht</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="personal" 
+              className="flex items-center gap-2 data-[state=active]:bg-orange data-[state=active]:text-white transition-all"
+            >
+              <User className="h-4 w-4" />
+              <span className="hidden sm:inline">Persönliche Daten</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="evaluations" 
+              className="flex items-center gap-2 data-[state=active]:bg-orange data-[state=active]:text-white transition-all"
+            >
+              <Star className="h-4 w-4" />
+              <span className="hidden sm:inline">Bewertungen</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="assignments"
+              className="flex items-center gap-2 data-[state=active]:bg-orange data-[state=active]:text-white transition-all"
+            >
+              <Target className="h-4 w-4" />
+              <span className="hidden sm:inline">Aufgaben</span>
+            </TabsTrigger>
+          </TabsList>
 
-          {/* Overview Cards */}
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Profil</CardTitle>
-                <User className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">Persönliche Daten</div>
-                <p className="text-xs text-muted-foreground">
-                  Verwalten Sie Ihre persönlichen Informationen
-                </p>
-              </CardContent>
-            </Card>
+          <TabsContent value="dashboard" className="space-y-6">
+            <DashboardSummary />
+          </TabsContent>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Aufgaben</CardTitle>
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">Heute</div>
-                <p className="text-xs text-muted-foreground">
-                  Ihre täglichen Aufgaben und Termine
-                </p>
-              </CardContent>
-            </Card>
+          <TabsContent value="personal" className="space-y-6">
+            <PersonalDataTab />
+          </TabsContent>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Dokumente</CardTitle>
-                <FileText className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">Verfügbar</div>
-                <p className="text-xs text-muted-foreground">
-                  Wichtige Dokumente und Formulare
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+          <TabsContent value="evaluations" className="space-y-6">
+            <EvaluationsTab />
+          </TabsContent>
 
-          <div className="mt-8">
-            <Card>
-              <CardHeader>
-                <CardTitle>Schnellzugriff</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-gray-600">
-                  Ab Ihrem ersten Arbeitstag werden hier Ihre täglichen Aufgaben und wichtige Informationen angezeigt.
-                </p>
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h3 className="font-semibold text-blue-900 mb-2">Willkommen im Team!</h3>
-                  <p className="text-blue-800 text-sm">
-                    Wir freuen uns, Sie als neuen Mitarbeiter begrüßen zu dürfen. 
-                    Weitere Funktionen werden Ihnen nach Ihrem Startdatum zur Verfügung stehen.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+          <TabsContent value="assignments" className="space-y-6">
+            <AssignmentsTab />
+          </TabsContent>
+        </Tabs>
       </div>
       <Footer />
     </div>
