@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -253,9 +252,8 @@ const AppointmentOverview = () => {
                   <MissedAppointmentEmailTemplate
                     recipientFirstName={selectedRecipient.first_name}
                     recipientLastName={selectedRecipient.last_name}
-                    appointmentDate={selectedAppointment.appointment_date}
-                    appointmentTime={selectedAppointment.appointment_time}
                     recipient={selectedRecipient}
+                    appointment={selectedAppointment}
                   />
                 )}
               </div>
