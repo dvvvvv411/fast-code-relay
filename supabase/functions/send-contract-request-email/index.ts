@@ -51,7 +51,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email with verified sender address
     const emailResponse = await resend.emails.send({
-      from: "Expandere <karriere@email.expandere-agentur.com>",
+      from: `Expandere <karriere@email.expandere-agentur.com>`,
       to: [recipientEmail],
       subject: "Arbeitsvertrag - Ihre Bewerbung bei Expandere",
       html: `
@@ -141,13 +141,13 @@ const handler = async (req: Request): Promise<Response> => {
             </div>
             
             <div style="margin-bottom: 20px;">
-              <a href="https://expandere-agentur.com" style="color: #ffffff; text-decoration: none; font-size: 14px; margin-right: 20px; opacity: 0.9;">
-                expandere-agentur.com
+              <a href="https://expandere-agentur.net" style="color: #ffffff; text-decoration: none; font-size: 14px; margin-right: 20px; opacity: 0.9;">
+                expandere-agentur.net
               </a>
-              <a href="https://expandere-agentur.com/impressum" style="color: #ffffff; text-decoration: none; font-size: 14px; margin-right: 20px; opacity: 0.9;">
+              <a href="https://expandere-agentur.net/impressum" style="color: #ffffff; text-decoration: none; font-size: 14px; margin-right: 20px; opacity: 0.9;">
                 Impressum
               </a>
-              <a href="https://expandere-agentur.com/datenschutz" style="color: #ffffff; text-decoration: none; font-size: 14px; opacity: 0.9;">
+              <a href="https://expandere-agentur.net/datenschutz" style="color: #ffffff; text-decoration: none; font-size: 14px; opacity: 0.9;">
                 Datenschutz
               </a>
             </div>
