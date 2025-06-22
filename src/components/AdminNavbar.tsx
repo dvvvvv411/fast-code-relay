@@ -1,18 +1,24 @@
 
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { 
-  MessageSquare, 
   Phone, 
-  Users, 
-  FolderOpen, 
-  LifeBuoy, 
-  MessageCircle, 
+  Briefcase, 
+  MessageSquare, 
+  Headphones, 
   Mail, 
-  Calendar,
+  Calendar, 
   Star,
-  FileText
+  ChevronDown,
+  Users
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface AdminNavbarProps {
   activeTab: string;
@@ -20,43 +26,137 @@ interface AdminNavbarProps {
 }
 
 const AdminNavbar = ({ activeTab, onTabChange }: AdminNavbarProps) => {
-  const tabs = [
-    { id: 'requests', label: 'Anfragen', icon: MessageSquare },
-    { id: 'phones', label: 'Telefonnummern', icon: Phone },
-    { id: 'uebersicht', label: 'Mitarbeiter-Übersicht', icon: Users },
-    { id: 'auftraege', label: 'Aufträge', icon: FolderOpen },
-    { id: 'support', label: 'Support', icon: LifeBuoy },
-    { id: 'livechat', label: 'Live Chat', icon: MessageCircle },
-    { id: 'mails', label: 'E-Mails', icon: Mail },
-    { id: 'appointments', label: 'Termine', icon: Calendar },
-    { id: 'contracts', label: 'Arbeitsverträge', icon: FileText },
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+
+  const smsMenuItems = [
+    { id: 'requests', label: 'SMS', icon: MessageSquare },
+    { id: 'phones', label: 'Nummern', icon: Phone },
+    { id: 'support', label: 'Support', icon: Headphones },
+    { id: 'livechat', label: 'Live Chat', icon: MessageSquare },
+  ];
+
+  const auftraegeMenuItems = [
+    { id: 'uebersicht', label: 'Übersicht', icon: Users },
+    { id: 'auftraege', label: 'Aufträge', icon: Briefcase },
+    { id: 'mails', label: 'Mails', icon: Mail },
     { id: 'feedback', label: 'Bewertungen', icon: Star },
   ];
 
+  const isActiveInGroup = (items: typeof smsMenuItems) => {
+    return items.some(item => item.id === activeTab);
+  };
+
+  const handleDropdownClick = (dropdownName: string) => {
+    setOpenDropdown(openDropdown === dropdownName ? null : dropdownName);
+  };
+
   return (
-    <div className="border rounded-lg p-1 bg-white shadow-sm">
-      <div className="flex flex-wrap gap-1">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          return (
-            <Button
-              key={tab.id}
-              variant={activeTab === tab.id ? "default" : "ghost"}
-              size="sm"
-              onClick={() => onTabChange(tab.id)}
-              className={`flex items-center gap-2 ${
-                activeTab === tab.id 
-                  ? "bg-orange hover:bg-orange/90 text-white" 
-                  : "hover:bg-gray-100"
-              }`}
-            >
-              <Icon className="h-4 w-4" />
-              {tab.label}
-            </Button>
-          );
-        })}
+    <nav className="bg-white border-b border-gray-200 shadow-sm">
+      <div className="px-6 py-4">
+        <div className="flex items-center space-x-8">
+          {/* SMS Aktivierung Dropdown */}
+          <DropdownMenu 
+            open={openDropdown === 'sms'} 
+            onOpenChange={(open) => setOpenDropdown(open ? 'sms' : null)}
+          >
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2 rounded-md transition-colors",
+                  isActiveInGroup(smsMenuItems)
+                    ? "bg-orange/10 text-orange hover:bg-orange/20"
+                    : "text-gray-700 hover:bg-gray-100"
+                )}
+                onClick={() => handleDropdownClick('sms')}
+              >
+                <MessageSquare className="h-4 w-4" />
+                SMS Aktivierung
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-48 bg-white shadow-lg border border-gray-200">
+              {smsMenuItems.map((item) => (
+                <DropdownMenuItem
+                  key={item.id}
+                  onClick={() => {
+                    onTabChange(item.id);
+                    setOpenDropdown(null);
+                  }}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-2 cursor-pointer",
+                    activeTab === item.id
+                      ? "bg-orange/10 text-orange"
+                      : "hover:bg-gray-50"
+                  )}
+                >
+                  <item.icon className="h-4 w-4" />
+                  {item.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Aufträge Dropdown */}
+          <DropdownMenu 
+            open={openDropdown === 'auftraege'} 
+            onOpenChange={(open) => setOpenDropdown(open ? 'auftraege' : null)}
+          >
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2 rounded-md transition-colors",
+                  isActiveInGroup(auftraegeMenuItems)
+                    ? "bg-orange/10 text-orange hover:bg-orange/20"
+                    : "text-gray-700 hover:bg-gray-100"
+                )}
+                onClick={() => handleDropdownClick('auftraege')}
+              >
+                <Briefcase className="h-4 w-4" />
+                Aufträge
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-48 bg-white shadow-lg border border-gray-200">
+              {auftraegeMenuItems.map((item) => (
+                <DropdownMenuItem
+                  key={item.id}
+                  onClick={() => {
+                    onTabChange(item.id);
+                    setOpenDropdown(null);
+                  }}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-2 cursor-pointer",
+                    activeTab === item.id
+                      ? "bg-orange/10 text-orange"
+                      : "hover:bg-gray-50"
+                  )}
+                >
+                  <item.icon className="h-4 w-4" />
+                  {item.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Termine - Single Item */}
+          <Button
+            variant="ghost"
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-md transition-colors",
+              activeTab === 'appointments'
+                ? "bg-orange/10 text-orange hover:bg-orange/20"
+                : "text-gray-700 hover:bg-gray-100"
+            )}
+            onClick={() => onTabChange('appointments')}
+          >
+            <Calendar className="h-4 w-4" />
+            Termine
+          </Button>
+        </div>
       </div>
-    </div>
+    </nav>
   );
 };
 

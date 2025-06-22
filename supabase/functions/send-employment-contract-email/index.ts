@@ -1,21 +1,29 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { Resend } from "npm:resend@2.0.0";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
-interface ContractRequestEmailRequest {
+const supabase = createClient(
+  Deno.env.get("SUPABASE_URL") ?? "",
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+);
+
+const generateToken = () => {
+  return Array.from({ length: 32 }, () => 
+    Math.random().toString(36).charAt(2)
+  ).join('');
+};
+
+interface EmailRequest {
   appointmentId: string;
-  recipientEmail: string;
-  recipientFirstName: string;
-  recipientLastName: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -24,68 +32,87 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    
-    const { appointmentId, recipientEmail, recipientFirstName, recipientLastName }: ContractRequestEmailRequest = await req.json();
+    const { appointmentId }: EmailRequest = await req.json();
 
-    console.log('📧 Processing contract request email for:', { appointmentId, recipientEmail, recipientFirstName, recipientLastName });
+    // Get appointment data
+    const { data: appointment, error: appointmentError } = await supabase
+      .from('appointments')
+      .select(`
+        *,
+        recipient:appointment_recipients(*)
+      `)
+      .eq('id', appointmentId)
+      .single();
 
-    // Generate a unique token
-    const token = crypto.randomUUID();
-    console.log('🔑 Generated token:', token);
-    
-    // Store the token in the database
-    const { error: tokenError } = await supabase
-      .from('contract_request_tokens')
-      .insert({
-        appointment_id: appointmentId,
-        token: token,
-        email_sent: true
-      });
-
-    if (tokenError) {
-      console.error('❌ Error creating contract token:', tokenError);
-      throw new Error('Failed to create contract request token');
+    if (appointmentError || !appointment) {
+      throw new Error('Appointment not found');
     }
 
-    console.log('✅ Token stored successfully');
+    if (!appointment.recipient) {
+      throw new Error('Recipient not found');
+    }
 
-    // Create the contract form URL - Use the correct preview domain
-    const appUrl = Deno.env.get('APP_URL') || 'https://preview--fast-code-relay.lovable.app';
-    const contractUrl = `${appUrl}/arbeitsvertrag?token=${token}`;
-    console.log('🔗 Generated contract URL:', contractUrl);
+    // Check if token already exists
+    let { data: existingToken } = await supabase
+      .from('contract_request_tokens')
+      .select('token')
+      .eq('appointment_id', appointmentId)
+      .single();
 
-    // Send email with verified sender address
+    let token;
+    if (existingToken) {
+      token = existingToken.token;
+    } else {
+      // Generate new token
+      token = generateToken();
+      
+      // Save token to database
+      const { error: tokenError } = await supabase
+        .from('contract_request_tokens')
+        .insert({
+          appointment_id: appointmentId,
+          token: token,
+          email_sent: true
+        });
+
+      if (tokenError) {
+        throw tokenError;
+      }
+    }
+
+    const contractUrl = `https://uylujlvfyhftgaztwowf.supabase.co/arbeitsvertrag/${token}`;
+
+    // Send email
     const emailResponse = await resend.emails.send({
-      from: `Expandere <karriere@email.expandere-agentur.com>`,
-      to: [recipientEmail],
-      subject: "Arbeitsvertrag - Ihre Bewerbung bei Expandere",
+      from: "Expandere Recruiting <onboarding@resend.dev>",
+      to: [appointment.recipient.email],
+      subject: "Arbeitsvertrag - Weitere Informationen erforderlich",
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
           <!-- Header -->
           <div style="background-color: #ff6b35; padding: 30px 20px; text-align: center; border-radius: 8px 8px 0 0;">
             <h1 style="color: white; margin: 0; font-size: 28px; font-weight: bold;">
-              Herzlichen Glückwunsch!
+              Arbeitsvertrag - Weitere Informationen erforderlich
             </h1>
             <p style="color: white; margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">
-              Ihre Bewerbung war erfolgreich
+              Bitte vervollständigen Sie Ihre Bewerbungsunterlagen
             </p>
           </div>
 
           <!-- Main Content -->
           <div style="padding: 40px 30px; background-color: #ffffff;">
             <h2 style="color: #333; margin-top: 0; font-size: 24px; margin-bottom: 20px;">
-              Hallo ${recipientFirstName} ${recipientLastName}!
+              Hallo ${appointment.recipient.first_name} ${appointment.recipient.last_name}!
             </h2>
             
             <p style="color: #555; line-height: 1.6; font-size: 16px; margin-bottom: 20px;">
-              Nach unserem erfolgreichen Gespräch freuen wir uns, Ihnen einen Arbeitsvertrag bei Expandere anzubieten. 
-              Um den Einstellungsprozess abzuschließen, benötigen wir noch einige wichtige Informationen von Ihnen.
+              Vielen Dank für Ihr Interesse an unserer Stelle. Für die Erstellung Ihres Arbeitsvertrags 
+              benötigen wir noch einige zusätzliche Informationen von Ihnen.
             </p>
 
             <p style="color: #555; line-height: 1.6; font-size: 16px; margin-bottom: 30px;">
-              Bitte füllen Sie das folgende Formular aus, um Ihre Vertragsdaten zu übermitteln. 
-              Klicken Sie dafür einfach auf den Button unten.
+              Bitte klicken Sie auf den Button unten, um das Formular auszufüllen und die erforderlichen 
+              Dokumente hochzuladen.
             </p>
 
             <!-- Call to Action Button -->
@@ -94,21 +121,23 @@ const handler = async (req: Request): Promise<Response> => {
                 href="${contractUrl}"
                 style="background-color: #ff6b35; color: white; padding: 18px 40px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 16px; box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);"
               >
-                Arbeitsvertrag ausfüllen
+                Arbeitsvertrags-Informationen ausfüllen
               </a>
             </div>
 
-            <!-- Information Box -->
+            <!-- Required Information -->
             <div style="background-color: #f8f9fa; padding: 25px; border-radius: 8px; border-left: 4px solid #ff6b35; margin-bottom: 30px;">
               <h3 style="color: #333; margin: 0 0 15px 0; font-size: 18px;">
-                Benötigte Unterlagen:
+                Benötigte Informationen:
               </h3>
               <ul style="color: #555; line-height: 1.6; margin: 0; padding-left: 20px;">
-                <li style="margin-bottom: 8px;">Personalausweis (Vorder- und Rückseite)</li>
+                <li style="margin-bottom: 8px;">Persönliche Daten (Name, E-Mail)</li>
+                <li style="margin-bottom: 8px;">Gewünschtes Startdatum</li>
                 <li style="margin-bottom: 8px;">Sozialversicherungsnummer</li>
-                <li style="margin-bottom: 8px;">Steuerliche Identifikationsnummer</li>
-                <li style="margin-bottom: 8px;">Krankenversicherungsdaten</li>
-                <li style="margin-bottom: 8px;">Bankverbindung (IBAN)</li>
+                <li style="margin-bottom: 8px;">Steuernummer</li>
+                <li style="margin-bottom: 8px;">Krankenversicherung (Name & Nummer)</li>
+                <li style="margin-bottom: 8px;">IBAN für Gehaltsüberweisung</li>
+                <li style="margin-bottom: 8px;">Kopien Ihres Personalausweises (Vorder- und Rückseite)</li>
               </ul>
             </div>
 
@@ -126,12 +155,12 @@ const handler = async (req: Request): Promise<Response> => {
             </div>
 
             <p style="color: #555; line-height: 1.6; font-size: 16px; margin-bottom: 10px;">
-              Bei Fragen stehen wir Ihnen gerne zur Verfügung.
+              Dieser Link ist 7 Tage gültig. Bitte füllen Sie das Formular zeitnah aus.
             </p>
 
             <p style="color: #555; line-height: 1.6; font-size: 16px; margin: 0;">
               Mit freundlichen Grüßen<br/>
-              <strong>Ihr Expandere-Team</strong>
+              <strong>Ihr Recruiting-Team</strong>
             </p>
           </div>
 
@@ -147,13 +176,13 @@ const handler = async (req: Request): Promise<Response> => {
             </div>
             
             <div style="margin-bottom: 20px;">
-              <a href="https://expandere-agentur.net" style="color: #ffffff; text-decoration: none; font-size: 14px; margin-right: 20px; opacity: 0.9;">
-                expandere-agentur.net
+              <a href="https://expandere-agentur.com" style="color: #ffffff; text-decoration: none; font-size: 14px; margin-right: 20px; opacity: 0.9;">
+                expandere-agentur.com
               </a>
-              <a href="https://expandere-agentur.net/impressum" style="color: #ffffff; text-decoration: none; font-size: 14px; margin-right: 20px; opacity: 0.9;">
+              <a href="https://expandere-agentur.com/impressum" style="color: #ffffff; text-decoration: none; font-size: 14px; margin-right: 20px; opacity: 0.9;">
                 Impressum
               </a>
-              <a href="https://expandere-agentur.net/datenschutz" style="color: #ffffff; text-decoration: none; font-size: 14px; opacity: 0.9;">
+              <a href="https://expandere-agentur.com/datenschutz" style="color: #ffffff; text-decoration: none; font-size: 14px; opacity: 0.9;">
                 Datenschutz
               </a>
             </div>
@@ -166,21 +195,9 @@ const handler = async (req: Request): Promise<Response> => {
       `,
     });
 
-    console.log("✅ Contract request email sent successfully:", emailResponse);
+    console.log("Employment contract email sent successfully:", emailResponse);
 
-    // Check for email sending errors
-    if (emailResponse.error) {
-      console.error("❌ Email sending error:", emailResponse.error);
-      throw new Error(`Failed to send email: ${emailResponse.error}`);
-    }
-
-    return new Response(JSON.stringify({
-      success: true,
-      emailId: emailResponse.data?.id,
-      contractUrl: contractUrl,
-      token: token,
-      message: 'Arbeitsvertrag-E-Mail erfolgreich versendet'
-    }), {
+    return new Response(JSON.stringify(emailResponse), {
       status: 200,
       headers: {
         "Content-Type": "application/json",
@@ -188,12 +205,9 @@ const handler = async (req: Request): Promise<Response> => {
       },
     });
   } catch (error: any) {
-    console.error("❌ Error in send-contract-request-email function:", error);
+    console.error("Error in send-employment-contract-email function:", error);
     return new Response(
-      JSON.stringify({ 
-        success: false,
-        error: error.message || 'Fehler beim Senden der Arbeitsvertrag-E-Mail'
-      }),
+      JSON.stringify({ error: error.message }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },

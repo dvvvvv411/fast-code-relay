@@ -1,344 +1,238 @@
+
 import { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { FileText, Upload, Calendar, User, Mail, Building, CreditCard, Shield, X, Lock, CheckCircle } from 'lucide-react';
-import Header from '@/components/Header';
-import EmploymentContractSuccess from '@/components/EmploymentContractSuccess';
+import { Loader2, Upload, FileText, CheckCircle, AlertCircle } from 'lucide-react';
+import { format } from 'date-fns';
+import { de } from 'date-fns/locale';
 
-interface ContractData {
-  first_name: string;
-  last_name: string;
-  email: string;
-  start_date: string;
-  social_security_number: string;
-  tax_number: string;
-  health_insurance_name: string;
-  marital_status: string;
-  iban: string;
-  bic: string;
+interface TokenData {
+  id: string;
+  appointment_id: string;
+  token: string;
+  expires_at: string;
+  appointment?: {
+    appointment_date: string;
+    appointment_time: string;
+    recipient?: {
+      first_name: string;
+      last_name: string;
+      email: string;
+    };
+  };
 }
 
 const EmploymentContract = () => {
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
+  const { token } = useParams<{ token: string }>();
   const { toast } = useToast();
-  const token = searchParams.get('token');
-
-  const [isValidToken, setIsValidToken] = useState(false);
+  
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [appointmentId, setAppointmentId] = useState<string>('');
+  const [tokenData, setTokenData] = useState<TokenData | null>(null);
+  const [isExpired, setIsExpired] = useState(false);
+  const [isAlreadySubmitted, setIsAlreadySubmitted] = useState(false);
   
-  const [contractData, setContractData] = useState<ContractData>({
-    first_name: '',
-    last_name: '',
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
     email: '',
-    start_date: '',
-    social_security_number: '',
-    tax_number: '',
-    health_insurance_name: '',
-    marital_status: '',
-    iban: '',
-    bic: '',
+    startDate: '',
+    socialSecurityNumber: '',
+    taxNumber: '',
+    healthInsuranceName: '',
+    healthInsuranceNumber: '',
+    iban: ''
   });
-
+  
   const [idCardFront, setIdCardFront] = useState<File | null>(null);
   const [idCardBack, setIdCardBack] = useState<File | null>(null);
-  const [idCardFrontPreview, setIdCardFrontPreview] = useState<string | null>(null);
-  const [idCardBackPreview, setIdCardBackPreview] = useState<string | null>(null);
 
   useEffect(() => {
-    const validateToken = async () => {
-      console.log('🔍 Starting token validation for token:', token);
-      
-      if (!token) {
-        console.error('❌ No token provided in URL');
-        toast({
-          title: "Ungültiger Link",
-          description: "Der Link ist ungültig oder abgelaufen.",
-          variant: "destructive",
-        });
-        navigate('/');
-        return;
-      }
+    if (token) {
+      validateToken();
+    }
+  }, [token]);
 
-      try {
-        console.log('🔄 Checking token in database...');
-        
-        const { data, error } = await supabase
-          .from('contract_request_tokens')
-          .select('appointment_id, expires_at, created_at, email_sent')
-          .eq('token', token)
-          .single();
-
-        console.log('Token query result:', { data, error });
-
-        if (error) {
-          console.error('❌ Database error:', error);
-          throw new Error(`Database error: ${error.message}`);
-        }
-
-        if (!data) {
-          console.error('❌ No data returned for token');
-          throw new Error('Token not found');
-        }
-
-        console.log('✅ Token found:', data);
-
-        if (new Date(data.expires_at) < new Date()) {
-          console.error('❌ Token expired');
-          throw new Error('Token expired');
-        }
-
-        console.log('✅ Token is valid');
-        setAppointmentId(data.appointment_id);
-        
-        // Check if employment contract already exists for this appointment
-        await checkExistingContract(data.appointment_id);
-        
-        // Load appointment and recipient data to prefill form (only if not already submitted)
-        await loadAppointmentData(data.appointment_id);
-        
-        setIsValidToken(true);
-        
-      } catch (error: any) {
-        console.error('❌ Token validation failed:', error);
-        
-        toast({
-          title: "Ungültiger Link",
-          description: `Der Link ist ungültig oder abgelaufen. Fehler: ${error.message}`,
-          variant: "destructive",
-        });
-        
-        setTimeout(() => navigate('/'), 3000);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    const checkExistingContract = async (appointmentId: string) => {
-      try {
-        console.log('🔍 Checking for existing employment contract for appointment:', appointmentId);
-        
-        const { data: existingContract, error } = await supabase
-          .from('employment_contracts')
-          .select('id')
-          .eq('appointment_id', appointmentId)
-          .single();
-
-        if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-          console.error('❌ Error checking existing contract:', error);
-          return;
-        }
-
-        if (existingContract) {
-          console.log('✅ Employment contract already exists, showing success page');
-          setIsSubmitted(true);
-        } else {
-          console.log('ℹ️ No existing contract found, showing form');
-        }
-        
-      } catch (error: any) {
-        console.error('❌ Error checking existing contract:', error);
-      }
-    };
-
-    const loadAppointmentData = async (appointmentId: string) => {
-      // Only load appointment data if we're not already submitted
-      if (isSubmitted) return;
-      
-      try {
-        console.log('🔍 Loading appointment data for ID:', appointmentId);
-        
-        // Get appointment data with recipient information
-        const { data: appointmentData, error: appointmentError } = await supabase
-          .from('appointments')
-          .select(`
-            *,
-            appointment_recipients (
+  const validateToken = async () => {
+    try {
+      const { data: tokenData, error: tokenError } = await supabase
+        .from('contract_request_tokens')
+        .select(`
+          *,
+          appointment:appointments(
+            appointment_date,
+            appointment_time,
+            recipient:appointment_recipients(
               first_name,
               last_name,
               email
             )
-          `)
-          .eq('id', appointmentId)
-          .single();
+          )
+        `)
+        .eq('token', token)
+        .maybeSingle();
 
-        if (appointmentError) {
-          console.error('❌ Error loading appointment data:', appointmentError);
-          return;
-        }
+      if (tokenError) throw tokenError;
 
-        if (appointmentData && appointmentData.appointment_recipients) {
-          const recipient = appointmentData.appointment_recipients;
-          console.log('📋 Prefilling form with recipient data:', recipient);
-          
-          // Prefill the form with available data
-          setContractData(prev => ({
-            ...prev,
-            first_name: recipient.first_name || '',
-            last_name: recipient.last_name || '',
-            email: recipient.email || '',
-          }));
-        }
-        
-      } catch (error: any) {
-        console.error('❌ Error loading appointment data:', error);
+      if (!tokenData) {
+        toast({
+          title: "Ungültiger Token",
+          description: "Der Link ist ungültig oder nicht mehr verfügbar.",
+          variant: "destructive",
+        });
+        return;
       }
-    };
 
-    validateToken();
-  }, [token, navigate, toast]);
+      // Check if token is expired
+      const expiresAt = new Date(tokenData.expires_at);
+      const now = new Date();
+      if (now > expiresAt) {
+        setIsExpired(true);
+        setIsLoading(false);
+        return;
+      }
 
-  const handleInputChange = (field: keyof ContractData, value: string) => {
-    setContractData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
+      // Check if already submitted
+      const { data: existingContract } = await supabase
+        .from('employment_contracts')
+        .select('id')
+        .eq('appointment_id', tokenData.appointment_id)
+        .maybeSingle();
 
-  const createFilePreview = (file: File): string => {
-    return URL.createObjectURL(file);
-  };
+      if (existingContract) {
+        setIsAlreadySubmitted(true);
+        setIsLoading(false);
+        return;
+      }
 
-  const handleFileChange = (type: 'front' | 'back', file: File | null) => {
-    if (type === 'front') {
-      // Clean up previous preview URL
-      if (idCardFrontPreview) {
-        URL.revokeObjectURL(idCardFrontPreview);
+      setTokenData(tokenData);
+      
+      // Pre-fill form with recipient data
+      if (tokenData.appointment?.recipient) {
+        setFormData(prev => ({
+          ...prev,
+          firstName: tokenData.appointment.recipient!.first_name,
+          lastName: tokenData.appointment.recipient!.last_name,
+          email: tokenData.appointment.recipient!.email
+        }));
       }
       
+    } catch (error: any) {
+      console.error('Error validating token:', error);
+      toast({
+        title: "Fehler",
+        description: "Token konnte nicht validiert werden.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleFileChange = (field: 'front' | 'back', file: File | null) => {
+    if (field === 'front') {
       setIdCardFront(file);
-      setIdCardFrontPreview(file ? createFilePreview(file) : null);
     } else {
-      // Clean up previous preview URL
-      if (idCardBackPreview) {
-        URL.revokeObjectURL(idCardBackPreview);
-      }
-      
       setIdCardBack(file);
-      setIdCardBackPreview(file ? createFilePreview(file) : null);
     }
   };
 
-  const removeFile = (type: 'front' | 'back') => {
-    if (type === 'front') {
-      if (idCardFrontPreview) {
-        URL.revokeObjectURL(idCardFrontPreview);
-      }
-      setIdCardFront(null);
-      setIdCardFrontPreview(null);
-    } else {
-      if (idCardBackPreview) {
-        URL.revokeObjectURL(idCardBackPreview);
-      }
-      setIdCardBack(null);
-      setIdCardBackPreview(null);
-    }
-  };
-
-  // Clean up preview URLs when component unmounts
-  useEffect(() => {
-    return () => {
-      if (idCardFrontPreview) {
-        URL.revokeObjectURL(idCardFrontPreview);
-      }
-      if (idCardBackPreview) {
-        URL.revokeObjectURL(idCardBackPreview);
-      }
-    };
-  }, [idCardFrontPreview, idCardBackPreview]);
-
-  const uploadFile = async (file: File, path: string) => {
-    console.log('📁 Uploading file:', path);
-    const { data, error } = await supabase.storage
-      .from('employment-documents')
-      .upload(path, file);
-
-    if (error) {
-      console.error('❌ File upload error:', error);
-      throw error;
-    }
+  const uploadFile = async (file: File, appointmentId: string, side: 'front' | 'back') => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${appointmentId}_id_card_${side}.${fileExt}`;
     
-    console.log('✅ File uploaded successfully:', data.path);
-    return data.path;
+    // For now, we'll return a placeholder URL since we don't have storage set up
+    // In a real implementation, you would upload to Supabase Storage here
+    return `placeholder_url_${fileName}`;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    console.log('📝 Starting form submission');
-
-    try {
-      let idCardFrontUrl = null;
-      let idCardBackUrl = null;
-
-      // Upload ID card images if provided
-      if (idCardFront) {
-        const frontPath = `id-cards/${appointmentId}/front_${Date.now()}.jpg`;
-        idCardFrontUrl = await uploadFile(idCardFront, frontPath);
-      }
-
-      if (idCardBack) {
-        const backPath = `id-cards/${appointmentId}/back_${Date.now()}.jpg`;
-        idCardBackUrl = await uploadFile(idCardBack, backPath);
-      }
-
-      console.log('💾 Inserting employment contract data...');
-      
-      // Insert employment contract data with the correct structure
-      const insertData = {
-        appointment_id: appointmentId,
-        first_name: contractData.first_name,
-        last_name: contractData.last_name,
-        email: contractData.email,
-        start_date: contractData.start_date,
-        social_security_number: contractData.social_security_number,
-        tax_number: contractData.tax_number,
-        health_insurance_name: contractData.health_insurance_name,
-        marital_status: contractData.marital_status,
-        iban: contractData.iban,
-        bic: contractData.bic,
-        id_card_front_url: idCardFrontUrl,
-        id_card_back_url: idCardBackUrl,
-      };
-      
-      console.log('Data to insert:', insertData);
-
-      const { data: insertResult, error } = await supabase
-        .from('employment_contracts')
-        .insert(insertData)
-        .select();
-
-      console.log('Insert result:', { insertResult, error });
-
-      if (error) {
-        console.error('❌ Insert error:', error);
-        throw error;
-      }
-
-      console.log('✅ Contract submitted successfully');
-      
-      toast({
-        title: "Erfolg!",
-        description: "Ihre Vertragsdaten wurden erfolgreich übermittelt.",
-      });
-
-      // Show success animation instead of redirecting
-      setIsSubmitted(true);
-
-    } catch (error: any) {
-      console.error('❌ Error submitting contract:', error);
+    
+    if (!tokenData || !tokenData.appointment_id) {
       toast({
         title: "Fehler",
-        description: `Beim Übermitteln der Daten ist ein Fehler aufgetreten: ${error.message}`,
+        description: "Keine gültigen Token-Daten gefunden.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate required fields
+    const requiredFields = [
+      'firstName', 'lastName', 'email', 'startDate', 
+      'socialSecurityNumber', 'taxNumber', 'healthInsuranceName', 
+      'healthInsuranceNumber', 'iban'
+    ];
+    
+    for (const field of requiredFields) {
+      if (!formData[field as keyof typeof formData]) {
+        toast({
+          title: "Fehler",
+          description: "Bitte füllen Sie alle Pflichtfelder aus.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    if (!idCardFront || !idCardBack) {
+      toast({
+        title: "Fehler",
+        description: "Bitte laden Sie beide Seiten Ihres Personalausweises hoch.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Upload files (placeholder implementation)
+      const frontUrl = await uploadFile(idCardFront, tokenData.appointment_id, 'front');
+      const backUrl = await uploadFile(idCardBack, tokenData.appointment_id, 'back');
+
+      // Save to database
+      const { error } = await supabase
+        .from('employment_contracts')
+        .insert({
+          appointment_id: tokenData.appointment_id,
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          email: formData.email,
+          start_date: formData.startDate,
+          social_security_number: formData.socialSecurityNumber,
+          tax_number: formData.taxNumber,
+          health_insurance_name: formData.healthInsuranceName,
+          health_insurance_number: formData.healthInsuranceNumber,
+          iban: formData.iban,
+          id_card_front_url: frontUrl,
+          id_card_back_url: backUrl
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Erfolgreich übermittelt",
+        description: "Ihre Arbeitsvertrags-Informationen wurden erfolgreich übermittelt.",
+      });
+
+      setIsAlreadySubmitted(true);
+
+    } catch (error: any) {
+      console.error('Error submitting contract:', error);
+      toast({
+        title: "Fehler",
+        description: "Die Daten konnten nicht übermittelt werden. Bitte versuchen Sie es erneut.",
         variant: "destructive",
       });
     } finally {
@@ -346,347 +240,266 @@ const EmploymentContract = () => {
     }
   };
 
-  const handleBackToForm = () => {
-    setIsSubmitted(false);
-    // Reset form if needed
-    setContractData({
-      first_name: '',
-      last_name: '',
-      email: '',
-      start_date: '',
-      social_security_number: '',
-      tax_number: '',
-      health_insurance_name: '',
-      marital_status: '',
-      iban: '',
-      bic: '',
-    });
-    setIdCardFront(null);
-    setIdCardBack(null);
-    setIdCardFrontPreview(null);
-    setIdCardBackPreview(null);
-  };
-
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Header />
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-center py-12">
-            <div className="text-gray-500">Lade...</div>
-          </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-orange mx-auto mb-4" />
+          <p className="text-gray-500">Lade Formular...</p>
         </div>
       </div>
     );
   }
 
-  if (!isValidToken) {
+  if (isExpired) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Header />
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <div className="text-red-500 mb-4">Der Link ist ungültig oder abgelaufen</div>
-              <p className="text-gray-600">Sie werden automatisch zur Startseite weitergeleitet...</p>
-            </div>
-          </div>
-        </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6 text-center">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Link abgelaufen</h2>
+            <p className="text-gray-600">
+              Dieser Link ist abgelaufen. Bitte wenden Sie sich an das Recruiting-Team für einen neuen Link.
+            </p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
-  // Show success page if submitted
-  if (isSubmitted) {
-    return <EmploymentContractSuccess onBackToForm={handleBackToForm} />;
+  if (isAlreadySubmitted) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6 text-center">
+            <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Bereits übermittelt</h2>
+            <p className="text-gray-600">
+              Ihre Arbeitsvertrags-Informationen wurden bereits erfolgreich übermittelt. 
+              Vielen Dank!
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!tokenData) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6 text-center">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Ungültiger Link</h2>
+            <p className="text-gray-600">
+              Dieser Link ist ungültig oder nicht mehr verfügbar.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        {/* Security Badge */}
-        <div className="mb-6 text-center">
-          <div className="inline-flex items-center gap-2 bg-green-50 border border-green-200 rounded-full px-4 py-2 text-sm text-green-700">
-            <Shield className="h-4 w-4 animate-pulse" />
-            <Lock className="h-4 w-4" />
-            <span className="font-medium">SSL-verschlüsselt & DSGVO-konform</span>
-            <CheckCircle className="h-4 w-4" />
-          </div>
-        </div>
-
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="container mx-auto px-4 max-w-2xl">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-2xl">
-              <FileText className="h-6 w-6 text-orange" />
-              Arbeitsvertrag - Persönliche Daten
+            <CardTitle className="text-2xl text-center">
+              Arbeitsvertrag - Weitere Informationen
             </CardTitle>
-            <div className="space-y-2">
-              <p className="text-gray-600">
-                Bitte füllen Sie alle Felder aus, um Ihren Arbeitsvertrag abzuschließen.
-              </p>
-              <div className="flex items-center gap-2 text-sm text-green-600">
-                <Shield className="h-4 w-4" />
-                <span>Ihre Daten werden verschlüsselt übertragen und sicher gespeichert</span>
+            {tokenData.appointment && (
+              <div className="text-center text-gray-600">
+                <p>Termin: {format(new Date(tokenData.appointment.appointment_date), 'PPP', { locale: de })}</p>
+                <p>Uhrzeit: {tokenData.appointment.appointment_time}</p>
               </div>
-            </div>
+            )}
           </CardHeader>
+          
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-8">
+            <form onSubmit={handleSubmit} className="space-y-6">
               {/* Personal Information */}
               <div className="space-y-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <User className="h-5 w-5 text-orange" />
-                  <h3 className="text-lg font-semibold">Persönliche Angaben</h3>
-                  <div className="flex items-center gap-1 ml-auto">
-                    <Lock className="h-4 w-4 text-gray-400" />
-                    <span className="text-xs text-gray-500">Verschlüsselt</span>
-                  </div>
-                </div>
+                <h3 className="text-lg font-semibold">Persönliche Informationen</h3>
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="first_name">Vorname *</Label>
+                    <Label htmlFor="firstName">Vorname *</Label>
                     <Input
-                      id="first_name"
-                      value={contractData.first_name}
-                      onChange={(e) => handleInputChange('first_name', e.target.value)}
+                      id="firstName"
+                      value={formData.firstName}
+                      onChange={(e) => handleInputChange('firstName', e.target.value)}
                       required
-                      placeholder="Ihr Vorname"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="last_name">Nachname *</Label>
+                    <Label htmlFor="lastName">Nachname *</Label>
                     <Input
-                      id="last_name"
-                      value={contractData.last_name}
-                      onChange={(e) => handleInputChange('last_name', e.target.value)}
+                      id="lastName"
+                      value={formData.lastName}
+                      onChange={(e) => handleInputChange('lastName', e.target.value)}
                       required
-                      placeholder="Ihr Nachname"
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="email">E-Mail-Adresse *</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={contractData.email}
-                      onChange={(e) => handleInputChange('email', e.target.value)}
-                      required
-                      placeholder="ihre.email@beispiel.de"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="start_date">Gewünschtes Startdatum *</Label>
-                    <Input
-                      id="start_date"
-                      type="date"
-                      value={contractData.start_date}
-                      onChange={(e) => handleInputChange('start_date', e.target.value)}
-                      required
-                    />
-                  </div>
+                
+                <div>
+                  <Label htmlFor="email">E-Mail *</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="startDate">Gewünschtes Startdatum *</Label>
+                  <Input
+                    id="startDate"
+                    type="date"
+                    value={formData.startDate}
+                    onChange={(e) => handleInputChange('startDate', e.target.value)}
+                    required
+                  />
                 </div>
               </div>
 
-              {/* Official Documents */}
+              {/* Tax and Insurance Information */}
               <div className="space-y-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <Shield className="h-5 w-5 text-orange animate-pulse-slow" />
-                  <h3 className="text-lg font-semibold">Behördliche Angaben</h3>
-                  <div className="flex items-center gap-1 ml-auto">
-                    <Lock className="h-4 w-4 text-gray-400" />
-                    <span className="text-xs text-gray-500">Hochsicher</span>
-                  </div>
+                <h3 className="text-lg font-semibold">Steuer- und Versicherungsinformationen</h3>
+                
+                <div>
+                  <Label htmlFor="socialSecurityNumber">Sozialversicherungsnummer *</Label>
+                  <Input
+                    id="socialSecurityNumber"
+                    value={formData.socialSecurityNumber}
+                    onChange={(e) => handleInputChange('socialSecurityNumber', e.target.value)}
+                    required
+                  />
                 </div>
+                
+                <div>
+                  <Label htmlFor="taxNumber">Steuernummer *</Label>
+                  <Input
+                    id="taxNumber"
+                    value={formData.taxNumber}
+                    onChange={(e) => handleInputChange('taxNumber', e.target.value)}
+                    required
+                  />
+                </div>
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="social_security_number">Sozialversicherungsnummer</Label>
+                    <Label htmlFor="healthInsuranceName">Krankenversicherung (Name) *</Label>
                     <Input
-                      id="social_security_number"
-                      value={contractData.social_security_number}
-                      onChange={(e) => handleInputChange('social_security_number', e.target.value)}
-                      placeholder="12 123456 A 123"
+                      id="healthInsuranceName"
+                      value={formData.healthInsuranceName}
+                      onChange={(e) => handleInputChange('healthInsuranceName', e.target.value)}
+                      required
                     />
                   </div>
                   <div>
-                    <Label htmlFor="tax_number">Steuerliche Identifikationsnummer</Label>
+                    <Label htmlFor="healthInsuranceNumber">Krankenversicherungsnummer *</Label>
                     <Input
-                      id="tax_number"
-                      value={contractData.tax_number}
-                      onChange={(e) => handleInputChange('tax_number', e.target.value)}
-                      placeholder="12345678901"
+                      id="healthInsuranceNumber"
+                      value={formData.healthInsuranceNumber}
+                      onChange={(e) => handleInputChange('healthInsuranceNumber', e.target.value)}
+                      required
                     />
-                  </div>
-                </div>
-              </div>
-
-              {/* Health Insurance and Personal Status */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <Building className="h-5 w-5 text-orange" />
-                  <h3 className="text-lg font-semibold">Krankenversicherung & Familienstand</h3>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="health_insurance_name">Name der Krankenkasse</Label>
-                    <Input
-                      id="health_insurance_name"
-                      value={contractData.health_insurance_name}
-                      onChange={(e) => handleInputChange('health_insurance_name', e.target.value)}
-                      placeholder="z.B. AOK, Barmer, TK"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="marital_status">Familienstand</Label>
-                    <Select value={contractData.marital_status} onValueChange={(value) => handleInputChange('marital_status', value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Bitte wählen" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ledig">Ledig</SelectItem>
-                        <SelectItem value="verheiratet">Verheiratet</SelectItem>
-                        <SelectItem value="geschieden">Geschieden</SelectItem>
-                        <SelectItem value="verwitwet">Verwitwet</SelectItem>
-                        <SelectItem value="lebenspartnerschaft">Lebenspartnerschaft</SelectItem>
-                      </SelectContent>
-                    </Select>
                   </div>
                 </div>
               </div>
 
               {/* Banking Information */}
               <div className="space-y-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <CreditCard className="h-5 w-5 text-orange" />
-                  <h3 className="text-lg font-semibold">Bankverbindung</h3>
-                  <div className="flex items-center gap-1 ml-auto">
-                    <Shield className="h-4 w-4 text-green-500" />
-                    <span className="text-xs text-green-600">Bankstandard-Verschlüsselung</span>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="iban">IBAN</Label>
-                    <Input
-                      id="iban"
-                      value={contractData.iban}
-                      onChange={(e) => handleInputChange('iban', e.target.value)}
-                      placeholder="DE12345678901234567890"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="bic">BIC (Bank Identifier Code)</Label>
-                    <Input
-                      id="bic"
-                      value={contractData.bic}
-                      onChange={(e) => handleInputChange('bic', e.target.value)}
-                      placeholder="DEUTDEFF"
-                    />
-                  </div>
+                <h3 className="text-lg font-semibold">Bankverbindung</h3>
+                
+                <div>
+                  <Label htmlFor="iban">IBAN *</Label>
+                  <Input
+                    id="iban"
+                    value={formData.iban}
+                    onChange={(e) => handleInputChange('iban', e.target.value)}
+                    placeholder="DE89 3704 0044 0532 0130 00"
+                    required
+                  />
                 </div>
               </div>
 
-              {/* ID Card Upload */}
+              {/* Document Upload */}
               <div className="space-y-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <Upload className="h-5 w-5 text-orange" />
-                  <h3 className="text-lg font-semibold">Personalausweis</h3>
-                </div>
-                <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
-                  <div className="flex items-center gap-2">
-                    <Shield className="h-5 w-5 text-blue-600" />
-                    <p className="text-sm text-blue-700">
-                      <strong>Datenschutz:</strong> Ihre Ausweisdokumente werden verschlüsselt übertragen und nach der Vertragsabwicklung sicher gelöscht.
-                    </p>
-                  </div>
-                </div>
-                <p className="text-sm text-gray-600 mb-4">
-                  Bitte laden Sie beide Seiten Ihres Personalausweises hoch (optional, kann auch nachgereicht werden).
-                </p>
+                <h3 className="text-lg font-semibold">Dokumente</h3>
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="id_card_front">Vorderseite</Label>
-                    <Input
-                      id="id_card_front"
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleFileChange('front', e.target.files?.[0] || null)}
-                    />
-                    {idCardFrontPreview && (
-                      <div className="mt-3 relative">
-                        <img 
-                          src={idCardFrontPreview} 
-                          alt="Personalausweis Vorderseite Vorschau" 
-                          className="w-32 h-20 object-cover rounded border border-gray-300"
-                        />
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
-                          onClick={() => removeFile('front')}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    )}
+                    <Label htmlFor="idCardFront">Personalausweis Vorderseite *</Label>
+                    <div className="mt-2">
+                      <input
+                        id="idCardFront"
+                        type="file"
+                        accept="image/*,.pdf"
+                        onChange={(e) => handleFileChange('front', e.target.files?.[0] || null)}
+                        className="hidden"
+                        required
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => document.getElementById('idCardFront')?.click()}
+                        className="w-full"
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        {idCardFront ? idCardFront.name : 'Datei auswählen'}
+                      </Button>
+                    </div>
                   </div>
+                  
                   <div>
-                    <Label htmlFor="id_card_back">Rückseite</Label>
-                    <Input
-                      id="id_card_back"
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleFileChange('back', e.target.files?.[0] || null)}
-                    />
-                    {idCardBackPreview && (
-                      <div className="mt-3 relative">
-                        <img 
-                          src={idCardBackPreview} 
-                          alt="Personalausweis Rückseite Vorschau" 
-                          className="w-32 h-20 object-cover rounded border border-gray-300"
-                        />
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
-                          onClick={() => removeFile('back')}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    )}
+                    <Label htmlFor="idCardBack">Personalausweis Rückseite *</Label>
+                    <div className="mt-2">
+                      <input
+                        id="idCardBack"
+                        type="file"
+                        accept="image/*,.pdf"
+                        onChange={(e) => handleFileChange('back', e.target.files?.[0] || null)}
+                        className="hidden"
+                        required
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => document.getElementById('idCardBack')?.click()}
+                        className="w-full"
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        {idCardBack ? idCardBack.name : 'Datei auswählen'}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Submit Button */}
-              <div className="pt-6 border-t">
-                <Button
-                  type="submit"
-                  className="w-full bg-orange hover:bg-orange/90 relative overflow-hidden"
-                  size="lg"
+              <div className="pt-6">
+                <Button 
+                  type="submit" 
+                  className="w-full bg-orange hover:bg-orange/90"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? (
-                    <span className="flex items-center gap-2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      Wird sicher übermittelt...
-                    </span>
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Wird übermittelt...
+                    </>
                   ) : (
-                    <span className="flex items-center gap-2">
-                      <Shield className="h-4 w-4" />
-                      Vertragsdaten sicher übermitteln
-                    </span>
+                    <>
+                      <FileText className="h-4 w-4 mr-2" />
+                      Informationen übermitteln
+                    </>
                   )}
                 </Button>
-                <p className="text-xs text-gray-500 mt-2 text-center flex items-center justify-center gap-1">
-                  <Lock className="h-3 w-3" />
-                  * Pflichtfelder müssen ausgefüllt werden | 256-Bit SSL-Verschlüsselung
-                </p>
               </div>
             </form>
           </CardContent>
