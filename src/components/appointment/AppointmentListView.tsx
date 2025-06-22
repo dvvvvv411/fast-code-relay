@@ -35,6 +35,7 @@ interface AppointmentListViewProps {
   isRefreshing?: boolean;
   onMissedEmailSend?: (appointment: Appointment) => void;
   onContractInfoSend?: (appointment: Appointment) => void;
+  sendingContractEmails?: Set<string>;
 }
 
 const AppointmentListView = ({ 
@@ -45,7 +46,8 @@ const AppointmentListView = ({
   onRefresh,
   isRefreshing = false,
   onMissedEmailSend,
-  onContractInfoSend
+  onContractInfoSend,
+  sendingContractEmails = new Set()
 }: AppointmentListViewProps) => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [editingPhoneNote, setEditingPhoneNote] = useState<string | null>(null);
@@ -469,8 +471,13 @@ const AppointmentListView = ({
                           onClick={(e) => handleContractInfoClick(appointment, e)}
                           className="hover:bg-blue/10 hover:text-blue-600"
                           title="Arbeitsvertrag Infos senden"
+                          disabled={sendingContractEmails.has(appointment.id)}
                         >
-                          <FileText className="h-4 w-4" />
+                          {sendingContractEmails.has(appointment.id) ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <FileText className="h-4 w-4" />
+                          )}
                         </Button>
                       )}
                     </div>

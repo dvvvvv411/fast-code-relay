@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +8,6 @@ import { toast } from 'sonner';
 import AppointmentListView from './appointment/AppointmentListView';
 import AppointmentDetailView from './appointment/AppointmentDetailView';
 import AppointmentEmailPreviewDialog from './appointment/AppointmentEmailPreviewDialog';
-import ContractEmailPreviewDialog from './appointment/ContractEmailPreviewDialog';
 import MissedAppointmentEmailTemplate from './appointment/MissedAppointmentEmailTemplate';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -34,11 +34,10 @@ const AppointmentOverview = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [showEmailPreview, setShowEmailPreview] = useState(false);
-  const [showContractPreview, setShowContractPreview] = useState(false);
   const [showMissedEmailPreview, setShowMissedEmailPreview] = useState(false);
   const [selectedRecipient, setSelectedRecipient] = useState<any>(null);
-  const [contractToken, setContractToken] = useState<string | null>(null);
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [sendingContractEmails, setSendingContractEmails] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchAppointments();
@@ -128,6 +127,9 @@ const AppointmentOverview = () => {
   const handleContractInfoSend = async (appointment: Appointment) => {
     if (!appointment.recipient) return;
 
+    // Add appointment ID to loading set
+    setSendingContractEmails(prev => new Set(prev).add(appointment.id));
+
     try {
       // Generate a secure token for the contract form
       const { data: tokenData, error: tokenError } = await supabase
@@ -146,13 +148,43 @@ const AppointmentOverview = () => {
 
       if (insertError) throw insertError;
 
-      setSelectedAppointment(appointment);
-      setSelectedRecipient(appointment.recipient);
-      setContractToken(tokenData);
-      setShowContractPreview(true);
+      // Send the contract email directly
+      const { error: emailError } = await supabase.functions.invoke('send-contract-email', {
+        body: {
+          appointment: appointment,
+          recipient: appointment.recipient,
+          contractToken: tokenData
+        }
+      });
+
+      if (emailError) throw emailError;
+
+      // Mark token as email sent and update appointment status
+      await Promise.all([
+        supabase
+          .from('contract_request_tokens')
+          .update({ email_sent: true })
+          .eq('token', tokenData),
+        supabase
+          .from('appointments')
+          .update({ status: 'Infos angefragt' })
+          .eq('id', appointment.id)
+      ]);
+
+      toast.success(`Arbeitsvertrag-E-Mail erfolgreich an ${appointment.recipient.first_name} ${appointment.recipient.last_name} gesendet`);
+      
+      // Refresh appointments to show updated status
+      await fetchAppointments();
     } catch (error) {
-      console.error('Error preparing contract email:', error);
-      toast.error('Fehler beim Vorbereiten der Arbeitsvertrag-E-Mail');
+      console.error('Error sending contract email:', error);
+      toast.error('Fehler beim Senden der Arbeitsvertrag-E-Mail');
+    } finally {
+      // Remove appointment ID from loading set
+      setSendingContractEmails(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(appointment.id);
+        return newSet;
+      });
     }
   };
 
@@ -180,37 +212,6 @@ const AppointmentOverview = () => {
     }
   };
 
-  const sendContractEmail = async () => {
-    if (!selectedAppointment || !selectedRecipient || !contractToken) return;
-
-    setSendingEmail(true);
-    try {
-      const { error } = await supabase.functions.invoke('send-contract-email', {
-        body: {
-          appointment: selectedAppointment,
-          recipient: selectedRecipient,
-          contractToken: contractToken
-        }
-      });
-
-      if (error) throw error;
-
-      // Mark token as email sent
-      await supabase
-        .from('contract_request_tokens')
-        .update({ email_sent: true })
-        .eq('token', contractToken);
-
-      toast.success('Arbeitsvertrag-E-Mail erfolgreich gesendet');
-      setShowContractPreview(false);
-    } catch (error) {
-      console.error('Error sending contract email:', error);
-      toast.error('Fehler beim Senden der Arbeitsvertrag-E-Mail');
-    } finally {
-      setSendingEmail(false);
-    }
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -232,15 +233,6 @@ const AppointmentOverview = () => {
           isOpen={showEmailPreview}
           onClose={() => setShowEmailPreview(false)}
           recipient={selectedRecipient}
-        />
-
-        <ContractEmailPreviewDialog
-          isOpen={showContractPreview}
-          onClose={() => setShowContractPreview(false)}
-          recipient={selectedRecipient}
-          contractToken={contractToken}
-          onSendEmail={sendContractEmail}
-          isSending={sendingEmail}
         />
 
         <Dialog open={showMissedEmailPreview} onOpenChange={setShowMissedEmailPreview}>
@@ -310,6 +302,7 @@ const AppointmentOverview = () => {
         isRefreshing={refreshing}
         onMissedEmailSend={handleMissedEmailSend}
         onContractInfoSend={handleContractInfoSend}
+        sendingContractEmails={sendingContractEmails}
       />
     </div>
   );
