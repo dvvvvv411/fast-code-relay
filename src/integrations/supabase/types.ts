@@ -363,55 +363,67 @@ export type Database = {
       }
       employment_contracts: {
         Row: {
+          accepted_at: string | null
           appointment_id: string
+          bic: string | null
           created_at: string
           email: string
           first_name: string
           health_insurance_name: string
-          health_insurance_number: string
           iban: string
           id: string
           id_card_back_url: string | null
           id_card_front_url: string | null
           last_name: string
+          marital_status: string | null
           social_security_number: string
           start_date: string
+          status: string
           submitted_at: string
           tax_number: string
+          user_id: string | null
         }
         Insert: {
+          accepted_at?: string | null
           appointment_id: string
+          bic?: string | null
           created_at?: string
           email: string
           first_name: string
           health_insurance_name: string
-          health_insurance_number: string
           iban: string
           id?: string
           id_card_back_url?: string | null
           id_card_front_url?: string | null
           last_name: string
+          marital_status?: string | null
           social_security_number: string
           start_date: string
+          status?: string
           submitted_at?: string
           tax_number: string
+          user_id?: string | null
         }
         Update: {
+          accepted_at?: string | null
           appointment_id?: string
+          bic?: string | null
           created_at?: string
           email?: string
           first_name?: string
           health_insurance_name?: string
-          health_insurance_number?: string
           iban?: string
           id?: string
           id_card_back_url?: string | null
           id_card_front_url?: string | null
           last_name?: string
+          marital_status?: string | null
           social_security_number?: string
           start_date?: string
+          status?: string
           submitted_at?: string
           tax_number?: string
+          user_id?: string | null
         }
         Relationships: [
           {

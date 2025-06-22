@@ -54,10 +54,6 @@ const handler = async (req: Request): Promise<Response> => {
     // Generate booking URL with correct domain
     const bookingUrl = `https://termin.expandere-agentur.net/termin-buchen/${appointment.recipient.unique_token}`;
 
-    // Generate random number for dynamic sender email
-    const randomNumber = Math.floor(Math.random() * 900000) + 100000; // 6-digit random number
-    const dynamicSenderEmail = `noreply${randomNumber}@email.expandere-agentur.com`;
-
     // Create HTML email content
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
@@ -176,22 +172,26 @@ const handler = async (req: Request): Promise<Response> => {
       </div>
     `;
 
-    // Send email using Resend with dynamic sender
+    // Send email using Resend with verified sender
     const emailResponse = await resend.emails.send({
-      from: `Expandere <${dynamicSenderEmail}>`,
+      from: `Expandere <karriere@email.expandere-agentur.com>`,
       to: [appointment.recipient.email],
       subject: "Verpasster Termin - Neuen Termin buchen bei Expandere",
       html: htmlContent,
     });
 
     console.log("Missed appointment email sent successfully:", emailResponse);
-    console.log("Dynamic sender email used:", dynamicSenderEmail);
+
+    // Check for email sending errors
+    if (emailResponse.error) {
+      console.error("Email sending error:", emailResponse.error);
+      throw new Error(`Failed to send email: ${emailResponse.error}`);
+    }
 
     return new Response(JSON.stringify({ 
       success: true, 
       emailId: emailResponse.data?.id,
-      message: 'E-Mail für verpassten Termin erfolgreich versendet',
-      senderEmail: dynamicSenderEmail
+      message: 'E-Mail für verpassten Termin erfolgreich versendet'
     }), {
       status: 200,
       headers: {
@@ -202,7 +202,10 @@ const handler = async (req: Request): Promise<Response> => {
   } catch (error: any) {
     console.error("Error in send-missed-appointment-email function:", error);
     return new Response(
-      JSON.stringify({ error: error.message || 'Fehler beim Senden der E-Mail für verpassten Termin' }),
+      JSON.stringify({ 
+        success: false,
+        error: error.message || 'Fehler beim Senden der E-Mail für verpassten Termin' 
+      }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },

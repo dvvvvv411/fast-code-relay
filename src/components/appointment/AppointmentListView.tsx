@@ -9,7 +9,6 @@ import { format, isAfter, isBefore, startOfDay, addDays, isWithinInterval } from
 import { de } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
-import EmploymentContractEmailPreviewDialog from './EmploymentContractEmailPreviewDialog';
 
 interface Appointment {
   id: string;
@@ -35,7 +34,7 @@ interface AppointmentListViewProps {
   onRefresh?: () => void;
   isRefreshing?: boolean;
   onMissedEmailSend?: (appointment: Appointment) => void;
-  onEmploymentContractEmailSend?: (appointment: Appointment) => void;
+  onContractRequestSend?: (appointment: Appointment) => void;
 }
 
 const AppointmentListView = ({ 
@@ -46,19 +45,18 @@ const AppointmentListView = ({
   onRefresh,
   isRefreshing = false,
   onMissedEmailSend,
-  onEmploymentContractEmailSend
+  onContractRequestSend
 }: AppointmentListViewProps) => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [editingPhoneNote, setEditingPhoneNote] = useState<string | null>(null);
   const [phoneNoteValue, setPhoneNoteValue] = useState<string>('');
   const [updatingPhoneNote, setUpdatingPhoneNote] = useState<string | null>(null);
   const [showAllAppointments, setShowAllAppointments] = useState<boolean>(false);
+  const [sendingContractRequest, setSendingContractRequest] = useState<string | null>(null);
+  
   const now = new Date();
   const today = startOfDay(now);
   const tomorrow = addDays(today, 1);
-  
-  const [showContractEmailPreview, setShowContractEmailPreview] = useState(false);
-  const [contractEmailAppointment, setContractEmailAppointment] = useState<Appointment | null>(null);
 
   // Filter appointments by date (today and tomorrow only) and status
   const filteredAppointments = appointments.filter(appointment => {
@@ -194,17 +192,15 @@ const AppointmentListView = ({
     }
   };
 
-  const handleContractEmailClick = (appointment: Appointment, event: React.MouseEvent) => {
+  const handleContractRequestClick = async (appointment: Appointment, event: React.MouseEvent) => {
     event.stopPropagation();
-    setContractEmailAppointment(appointment);
-    setShowContractEmailPreview(true);
-  };
+    if (!onContractRequestSend) return;
 
-  const handleSendContractEmail = () => {
-    if (contractEmailAppointment && onEmploymentContractEmailSend) {
-      onEmploymentContractEmailSend(contractEmailAppointment);
-      setShowContractEmailPreview(false);
-      setContractEmailAppointment(null);
+    setSendingContractRequest(appointment.id);
+    try {
+      await onContractRequestSend(appointment);
+    } finally {
+      setSendingContractRequest(null);
     }
   };
 
@@ -473,17 +469,20 @@ const AppointmentListView = ({
                           <Mail className="h-4 w-4" />
                         </Button>
                       )}
-                      {(appointment.status === 'confirmed' || appointment.status === 'interessiert') && onEmploymentContractEmailSend && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => handleContractEmailClick(appointment, e)}
-                          className="hover:bg-blue-100 hover:text-blue-600"
-                          title="Arbeitsvertrag E-Mail senden"
-                        >
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => handleContractRequestClick(appointment, e)}
+                        disabled={sendingContractRequest === appointment.id}
+                        className="hover:bg-green/10 hover:text-green-600"
+                        title="Arbeitsvertrag-Anfrage senden"
+                      >
+                        {sendingContractRequest === appointment.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
                           <FileText className="h-4 w-4" />
-                        </Button>
-                      )}
+                        )}
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -507,14 +506,6 @@ const AppointmentListView = ({
           )}
         </CardContent>
       </Card>
-
-      {/* Employment Contract Email Preview Dialog */}
-      <EmploymentContractEmailPreviewDialog
-        isOpen={showContractEmailPreview}
-        onClose={() => setShowContractEmailPreview(false)}
-        appointment={contractEmailAppointment}
-        onSend={handleSendContractEmail}
-      />
     </div>
   );
 };
