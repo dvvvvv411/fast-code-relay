@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,7 +19,7 @@ interface EmploymentContract {
   social_security_number: string;
   tax_number: string;
   health_insurance_name: string;
-  health_insurance_number: string;
+  marital_status: string | null;
   iban: string;
   id_card_front_url: string | null;
   id_card_back_url: string | null;
@@ -217,8 +216,8 @@ const EmploymentContractManager = () => {
                   <span className="ml-2">{selectedContract.health_insurance_name}</span>
                 </div>
                 <div>
-                  <span className="font-medium">Versichertennummer:</span>
-                  <span className="ml-2">{selectedContract.health_insurance_number}</span>
+                  <span className="font-medium">Familienstand:</span>
+                  <span className="ml-2">{selectedContract.marital_status || '-'}</span>
                 </div>
               </div>
             </div>
