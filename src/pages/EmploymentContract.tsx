@@ -100,7 +100,10 @@ const EmploymentContract = () => {
         console.log('✅ Token is valid');
         setAppointmentId(data.appointment_id);
         
-        // Load appointment and recipient data to prefill form
+        // Check if employment contract already exists for this appointment
+        await checkExistingContract(data.appointment_id);
+        
+        // Load appointment and recipient data to prefill form (only if not already submitted)
         await loadAppointmentData(data.appointment_id);
         
         setIsValidToken(true);
@@ -120,7 +123,37 @@ const EmploymentContract = () => {
       }
     };
 
+    const checkExistingContract = async (appointmentId: string) => {
+      try {
+        console.log('🔍 Checking for existing employment contract for appointment:', appointmentId);
+        
+        const { data: existingContract, error } = await supabase
+          .from('employment_contracts')
+          .select('id')
+          .eq('appointment_id', appointmentId)
+          .single();
+
+        if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+          console.error('❌ Error checking existing contract:', error);
+          return;
+        }
+
+        if (existingContract) {
+          console.log('✅ Employment contract already exists, showing success page');
+          setIsSubmitted(true);
+        } else {
+          console.log('ℹ️ No existing contract found, showing form');
+        }
+        
+      } catch (error: any) {
+        console.error('❌ Error checking existing contract:', error);
+      }
+    };
+
     const loadAppointmentData = async (appointmentId: string) => {
+      // Only load appointment data if we're not already submitted
+      if (isSubmitted) return;
+      
       try {
         console.log('🔍 Loading appointment data for ID:', appointmentId);
         
