@@ -13,6 +13,7 @@ import EmployeeOverview from './EmployeeOverview';
 import AdminNavbar from './AdminNavbar';
 import AppointmentOverview from './AppointmentOverview';
 import AppointmentRecipients from './AppointmentRecipients';
+import EmploymentContractManager from './EmploymentContractManager';
 import { useSMS } from '@/context/SMSContext';
 import { MessageSquare } from 'lucide-react';
 
@@ -44,6 +45,8 @@ const AdminPanel = () => {
         return <AppointmentOverview />;
       case 'appointment-recipients':
         return <AppointmentRecipients />;
+      case 'arbeitsvertrag':
+        return <EmploymentContractManager />;
       case 'feedback':
         return <FeedbackManager />;
       default:

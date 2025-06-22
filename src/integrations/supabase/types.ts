@@ -713,6 +713,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      generate_secure_token: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       generate_short_id: {
         Args: Record<PropertyKey, never>
         Returns: string

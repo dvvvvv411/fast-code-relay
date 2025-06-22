@@ -18,7 +18,8 @@ import {
   ChevronDown,
   Users,
   Grid3X3,
-  UserCheck
+  UserCheck,
+  FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -47,6 +48,7 @@ const AdminNavbar = ({ activeTab, onTabChange }: AdminNavbarProps) => {
   const termineMenuItems = [
     { id: 'appointment-overview', label: 'Übersicht', icon: Grid3X3 },
     { id: 'appointment-recipients', label: 'Empfänger', icon: UserCheck },
+    { id: 'arbeitsvertrag', label: 'Arbeitsvertrag', icon: FileText },
   ];
 
   const isActiveInGroup = (items: typeof smsMenuItems) => {
