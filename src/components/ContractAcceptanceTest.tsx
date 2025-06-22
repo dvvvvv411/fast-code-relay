@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
-import { TestTube, PlayCircle, CheckCircle, XCircle, User, Mail, Calendar, Database, Loader2, AlertTriangle } from 'lucide-react';
+import { TestTube, PlayCircle, CheckCircle, XCircle, User, Mail, Calendar, Database, Loader2, AlertTriangle, Users } from 'lucide-react';
 
 interface TestContract {
   id: string;
@@ -20,8 +20,10 @@ interface TestContract {
 
 const ContractAcceptanceTest = () => {
   const [isCreatingTest, setIsCreatingTest] = useState(false);
+  const [isCreatingBulk, setIsCreatingBulk] = useState(false);
   const [isAcceptingContract, setIsAcceptingContract] = useState(false);
   const [testContract, setTestContract] = useState<TestContract | null>(null);
+  const [bulkCount, setBulkCount] = useState(5);
   const [testResults, setTestResults] = useState<{
     contractCreated: boolean;
     contractAccepted: boolean;
@@ -39,6 +41,109 @@ const ContractAcceptanceTest = () => {
   });
 
   const { toast } = useToast();
+
+  const generateRandomData = () => {
+    const firstNames = ['Max', 'Anna', 'Peter', 'Lisa', 'Tom', 'Sarah', 'Ben', 'Emma', 'Tim', 'Lena', 'Jan', 'Mia', 'Felix', 'Nina', 'Paul'];
+    const lastNames = ['Müller', 'Schmidt', 'Schneider', 'Fischer', 'Weber', 'Meyer', 'Wagner', 'Becker', 'Schulz', 'Hoffmann', 'Klein', 'Wolf', 'Neumann', 'Schwarz', 'Zimmermann'];
+    const maritalStatuses = ['ledig', 'verheiratet', 'geschieden', 'verwitwet'];
+    const healthInsurances = ['AOK', 'Barmer', 'TK', 'DAK', 'IKK', 'BKK'];
+    
+    const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+    const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+    const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}${Math.floor(Math.random() * 1000)}@yopmail.com`;
+    
+    return {
+      firstName,
+      lastName,
+      email,
+      socialSecurityNumber: `${Math.floor(Math.random() * 90000000) + 10000000}${Math.floor(Math.random() * 900) + 100}`,
+      taxNumber: `${Math.floor(Math.random() * 900000000) + 100000000}${Math.floor(Math.random() * 90) + 10}`,
+      healthInsurance: healthInsurances[Math.floor(Math.random() * healthInsurances.length)],
+      iban: `DE${Math.floor(Math.random() * 90) + 10}${Math.floor(Math.random() * 900000000000000000) + 100000000000000000}`,
+      maritalStatus: maritalStatuses[Math.floor(Math.random() * maritalStatuses.length)]
+    };
+  };
+
+  const createBulkTestContracts = async () => {
+    setIsCreatingBulk(true);
+    
+    try {
+      console.log(`🧪 Creating ${bulkCount} test employment contracts...`);
+      
+      const contractsToCreate = [];
+      
+      for (let i = 0; i < bulkCount; i++) {
+        const randomData = generateRandomData();
+        
+        // Create test appointment and recipient for each contract
+        const { data: recipient, error: recipientError } = await supabase
+          .from('appointment_recipients')
+          .insert({
+            first_name: randomData.firstName,
+            last_name: randomData.lastName,
+            email: randomData.email,
+            unique_token: `bulk-test-${Date.now()}-${i}`,
+          })
+          .select()
+          .single();
+
+        if (recipientError) throw recipientError;
+
+        const { data: appointment, error: appointmentError } = await supabase
+          .from('appointments')
+          .insert({
+            recipient_id: recipient.id,
+            appointment_date: new Date(Date.now() + Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            appointment_time: `${Math.floor(Math.random() * 8) + 9}:00:00`,
+            status: 'confirmed',
+          })
+          .select()
+          .single();
+
+        if (appointmentError) throw appointmentError;
+
+        contractsToCreate.push({
+          appointment_id: appointment.id,
+          first_name: randomData.firstName,
+          last_name: randomData.lastName,
+          email: randomData.email,
+          start_date: new Date(Date.now() + Math.floor(Math.random() * 60) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          social_security_number: randomData.socialSecurityNumber,
+          tax_number: randomData.taxNumber,
+          health_insurance_name: randomData.healthInsurance,
+          iban: randomData.iban,
+          marital_status: randomData.maritalStatus,
+          status: 'pending',
+        });
+      }
+
+      // Insert all contracts at once
+      const { data: contracts, error: contractError } = await supabase
+        .from('employment_contracts')
+        .insert(contractsToCreate)
+        .select();
+
+      if (contractError) throw contractError;
+
+      toast({
+        title: "Bulk-Test-Verträge erstellt!",
+        description: `${bulkCount} Verträge mit @yopmail.com E-Mail-Adressen wurden erfolgreich erstellt.`,
+      });
+
+      console.log(`✅ ${bulkCount} test contracts created successfully`);
+      
+    } catch (error: any) {
+      console.error('❌ Error creating bulk test contracts:', error);
+      
+      toast({
+        title: "Fehler beim Erstellen der Bulk-Test-Verträge",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreatingBulk(false);
+    }
+  };
 
   const createTestContract = async () => {
     setIsCreatingTest(true);
@@ -271,9 +376,46 @@ const ContractAcceptanceTest = () => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Bulk Creation Section */}
+        <div className="space-y-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <h3 className="font-semibold flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Bulk-Test-Verträge erstellen
+          </h3>
+          <div className="flex items-center gap-4">
+            <div>
+              <Label htmlFor="bulkCount">Anzahl Verträge</Label>
+              <Input
+                id="bulkCount"
+                type="number"
+                min="1"
+                max="50"
+                value={bulkCount}
+                onChange={(e) => setBulkCount(Math.max(1, Math.min(50, parseInt(e.target.value) || 1)))}
+                className="w-20"
+              />
+            </div>
+            <Button
+              onClick={createBulkTestContracts}
+              disabled={isCreatingBulk}
+              className="flex items-center gap-2"
+            >
+              {isCreatingBulk ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Users className="h-4 w-4" />
+              )}
+              {bulkCount} Verträge erstellen
+            </Button>
+          </div>
+          <p className="text-sm text-blue-800">
+            Erstellt {bulkCount} zufällige Arbeitsverträge mit @yopmail.com E-Mail-Adressen, deutschen Namen und realistischen Daten.
+          </p>
+        </div>
+
         {/* Test Data Configuration */}
         <div className="space-y-4">
-          <h3 className="font-semibold">Test-Daten konfigurieren</h3>
+          <h3 className="font-semibold">Einzelnen Test-Vertrag konfigurieren</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <Label htmlFor="firstName">Vorname</Label>
@@ -458,11 +600,11 @@ const ContractAcceptanceTest = () => {
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <h4 className="font-medium text-blue-900 mb-2">Test-Anweisungen</h4>
           <ol className="list-decimal list-inside text-sm text-blue-800 space-y-1">
-            <li>Konfigurieren Sie die Test-Daten oben</li>
-            <li>Klicken Sie auf "Test-Vertrag erstellen"</li>
+            <li>Für Bulk-Erstellung: Anzahl wählen und "X Verträge erstellen" klicken</li>
+            <li>Für Einzeltest: Test-Daten konfigurieren und "Test-Vertrag erstellen" klicken</li>
             <li>Klicken Sie auf "Vertragsannahme testen"</li>
             <li>Überprüfen Sie die Ergebnisse - alle Tests sollten ✅ zeigen</li>
-            <li>Gehen Sie zur Supabase-Konsole → Authentication → Users, um den erstellten Benutzer zu sehen</li>
+            <li>Gehen Sie zur Supabase-Konsole → Authentication → Users, um die erstellten Benutzer zu sehen</li>
             <li>Klicken Sie auf "Test-Daten bereinigen" wenn fertig</li>
           </ol>
         </div>
