@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -6,13 +5,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
-import { FileText, User, Mail, Calendar, Clock, Download, Eye, RefreshCw, X, Check, UserPlus, AlertTriangle, TestTube } from 'lucide-react';
+import { FileText, User, Mail, Calendar, Clock, Download, Eye, RefreshCw, X, Check, UserPlus, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
-import ContractAcceptanceTest from './ContractAcceptanceTest';
 
 interface EmploymentContract {
   id: string;
@@ -559,19 +556,7 @@ const EmploymentContractManager = () => {
   }
 
   return (
-    <Tabs defaultValue="contracts" className="w-full">
-      <TabsList className="grid w-full grid-cols-2">
-        <TabsTrigger value="contracts" className="flex items-center gap-2">
-          <FileText className="h-4 w-4" />
-          Arbeitsverträge
-        </TabsTrigger>
-        <TabsTrigger value="test" className="flex items-center gap-2">
-          <TestTube className="h-4 w-4" />
-          Test-Modus
-        </TabsTrigger>
-      </TabsList>
-      
-      <TabsContent value="contracts">
+    
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -705,12 +690,52 @@ const EmploymentContractManager = () => {
             )}
           </CardContent>
         </Card>
-      </TabsContent>
       
-      <TabsContent value="test">
-        <ContractAcceptanceTest />
-      </TabsContent>
-    </Tabs>
+
+      {/* Image Preview Dialog */}
+      <Dialog open={!!imagePreview} onOpenChange={() => setImagePreview(null)}>
+        <DialogContent className="max-w-4xl w-full">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              <span>{imagePreview?.title}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setImagePreview(null)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </DialogTitle>
+          </DialogHeader>
+          {imagePreview && (
+            <div className="space-y-4">
+              <div className="flex justify-center bg-gray-50 rounded-lg p-4">
+                <img
+                  src={imagePreview.url}
+                  alt={imagePreview.title}
+                  className="max-w-full max-h-96 object-contain rounded-lg shadow-sm"
+                />
+              </div>
+              <div className="flex justify-center">
+                <Button
+                  onClick={() => {
+                    if (selectedContract && imagePreview.title === 'Ausweis Vorderseite') {
+                      handleDownloadFile(selectedContract.id_card_front_url!, imagePreview.filename);
+                    } else if (selectedContract && imagePreview.title === 'Ausweis Rückseite') {
+                      handleDownloadFile(selectedContract.id_card_back_url!, imagePreview.filename);
+                    }
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Herunterladen
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    
   );
 };
 
