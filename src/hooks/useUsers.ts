@@ -14,32 +14,12 @@ export const useUsers = () => {
   return useQuery({
     queryKey: ['users'],
     queryFn: async () => {
-      console.log('🔍 Fetching users with role "user"...');
+      console.log('🔍 Fetching all users from profiles...');
       
-      // First get user IDs with 'user' role
-      const { data: userRoles, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id')
-        .eq('role', 'user');
-
-      if (rolesError) {
-        console.error('❌ Error fetching user roles:', rolesError);
-        throw rolesError;
-      }
-
-      if (!userRoles || userRoles.length === 0) {
-        console.log('📋 No users with "user" role found');
-        return [];
-      }
-
-      const userIds = userRoles.map(role => role.user_id);
-      console.log('👥 Found user IDs:', userIds);
-
-      // Get user profiles for these user IDs
+      // Get all user profiles directly
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, email, first_name, last_name')
-        .in('id', userIds);
+        .select('id, email, first_name, last_name');
 
       if (profilesError) {
         console.error('❌ Error fetching user profiles:', profilesError);
