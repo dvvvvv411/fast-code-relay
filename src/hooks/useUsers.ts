@@ -35,16 +35,29 @@ export const useUsers = () => {
       const userIds = userRoles.map(role => role.user_id);
       console.log('👥 Found user IDs:', userIds);
 
-      // Get user details from auth.users via RPC or admin API
-      // Since we can't directly query auth.users, we'll need to use the profiles approach
-      // For now, we'll create a basic structure with the user IDs we have
-      const users: User[] = userIds.map(id => ({
-        id,
-        email: `user-${id.slice(0, 8)}@example.com`, // Placeholder
-        display_name: `User ${id.slice(0, 8)}`
+      // Get user profiles for these user IDs
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, email, first_name, last_name')
+        .in('id', userIds);
+
+      if (profilesError) {
+        console.error('❌ Error fetching user profiles:', profilesError);
+        throw profilesError;
+      }
+
+      // Map profiles to User interface
+      const users: User[] = (profiles || []).map(profile => ({
+        id: profile.id,
+        email: profile.email || '',
+        first_name: profile.first_name || undefined,
+        last_name: profile.last_name || undefined,
+        display_name: profile.first_name && profile.last_name 
+          ? `${profile.first_name} ${profile.last_name}`
+          : profile.email || profile.id.slice(0, 8)
       }));
 
-      console.log('👤 Processed users:', users);
+      console.log('👤 Processed user profiles:', users);
       return users;
     },
   });
