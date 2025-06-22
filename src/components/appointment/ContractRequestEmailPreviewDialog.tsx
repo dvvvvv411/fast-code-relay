@@ -29,6 +29,9 @@ const ContractRequestEmailPreviewDialog: React.FC<ContractRequestEmailPreviewDia
     return null;
   }
 
+  // Generate example contract URL (matching the format from the edge function)
+  const contractUrl = `${window.location.origin}/arbeitsvertrag?token=example-token-12345`;
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[80vh]">
@@ -67,7 +70,7 @@ const ContractRequestEmailPreviewDialog: React.FC<ContractRequestEmailPreviewDia
                 {/* Call to Action Button */}
                 <div style={{ textAlign: 'center', margin: '40px 0' }}>
                   <a 
-                    href="#"
+                    href={contractUrl}
                     style={{ backgroundColor: '#ff6b35', color: 'white', padding: '18px 40px', textDecoration: 'none', borderRadius: '8px', display: 'inline-block', fontWeight: 'bold', fontSize: '16px', boxShadow: '0 4px 12px rgba(255, 107, 53, 0.3)' }}
                   >
                     Arbeitsvertrag ausfüllen
@@ -86,6 +89,24 @@ const ContractRequestEmailPreviewDialog: React.FC<ContractRequestEmailPreviewDia
                     <li style={{ marginBottom: '8px' }}>Krankenversicherungsdaten</li>
                     <li style={{ marginBottom: '8px' }}>Bankverbindung (IBAN)</li>
                   </ul>
+                </div>
+
+                {/* Fallback Link */}
+                <div style={{ backgroundColor: '#f1f3f4', padding: '20px', borderRadius: '6px', marginBottom: '20px' }}>
+                  <p style={{ color: '#666', fontSize: '14px', lineHeight: '1.5', margin: '0 0 10px 0' }}>
+                    <strong>Falls der Button nicht funktioniert:</strong><br/>
+                    Kopieren Sie diesen Link und fügen Sie ihn in Ihren Browser ein:
+                  </p>
+                  <p style={{ margin: '0' }}>
+                    <a href={contractUrl} style={{ 
+                      color: '#ff6b35', 
+                      wordBreak: 'break-all', 
+                      fontSize: '14px',
+                      textDecoration: 'none'
+                    }}>
+                      {contractUrl}
+                    </a>
+                  </p>
                 </div>
 
                 <p style={{ color: '#555', lineHeight: '1.6', fontSize: '16px', marginBottom: '10px' }}>
@@ -110,13 +131,13 @@ const ContractRequestEmailPreviewDialog: React.FC<ContractRequestEmailPreviewDia
                 </div>
                 
                 <div style={{ marginBottom: '20px' }}>
-                  <a href="#" style={{ color: '#ffffff', textDecoration: 'none', fontSize: '14px', marginRight: '20px', opacity: 0.9 }}>
+                  <a href="https://expandere-agentur.com" style={{ color: '#ffffff', textDecoration: 'none', fontSize: '14px', marginRight: '20px', opacity: 0.9 }}>
                     expandere-agentur.com
                   </a>
-                  <a href="#" style={{ color: '#ffffff', textDecoration: 'none', fontSize: '14px', marginRight: '20px', opacity: 0.9 }}>
+                  <a href="https://expandere-agentur.com/impressum" style={{ color: '#ffffff', textDecoration: 'none', fontSize: '14px', marginRight: '20px', opacity: 0.9 }}>
                     Impressum
                   </a>
-                  <a href="#" style={{ color: '#ffffff', textDecoration: 'none', fontSize: '14px', opacity: 0.9 }}>
+                  <a href="https://expandere-agentur.com/datenschutz" style={{ color: '#ffffff', textDecoration: 'none', fontSize: '14px', opacity: 0.9 }}>
                     Datenschutz
                   </a>
                 </div>
