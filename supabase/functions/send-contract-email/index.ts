@@ -34,7 +34,8 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const { appointment, recipient, contractToken }: ContractEmailRequest = await req.json();
 
-    const contractUrl = `${Deno.env.get("SUPABASE_URL")?.replace('https://', 'https://uylujlvfyhftgaztwowf.')?.replace('.supabase.co', '.lovable.app')}/arbeitsvertrag/${contractToken}`;
+    // Use the correct preview URL
+    const contractUrl = `https://preview--fast-code-relay.lovable.app/arbeitsvertrag/${contractToken}`;
 
     const emailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
