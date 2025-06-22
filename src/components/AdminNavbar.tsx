@@ -16,7 +16,9 @@ import {
   Calendar, 
   Star,
   ChevronDown,
-  Users
+  Users,
+  Grid3X3,
+  UserCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -40,6 +42,11 @@ const AdminNavbar = ({ activeTab, onTabChange }: AdminNavbarProps) => {
     { id: 'auftraege', label: 'Aufträge', icon: Briefcase },
     { id: 'mails', label: 'Mails', icon: Mail },
     { id: 'feedback', label: 'Bewertungen', icon: Star },
+  ];
+
+  const termineMenuItems = [
+    { id: 'appointment-overview', label: 'Übersicht', icon: Grid3X3 },
+    { id: 'appointment-recipients', label: 'Empfänger', icon: UserCheck },
   ];
 
   const isActiveInGroup = (items: typeof smsMenuItems) => {
@@ -140,20 +147,48 @@ const AdminNavbar = ({ activeTab, onTabChange }: AdminNavbarProps) => {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Termine - Single Item */}
-          <Button
-            variant="ghost"
-            className={cn(
-              "flex items-center gap-2 px-4 py-2 rounded-md transition-colors",
-              activeTab === 'appointments'
-                ? "bg-orange/10 text-orange hover:bg-orange/20"
-                : "text-gray-700 hover:bg-gray-100"
-            )}
-            onClick={() => onTabChange('appointments')}
+          {/* Termine Dropdown */}
+          <DropdownMenu 
+            open={openDropdown === 'termine'} 
+            onOpenChange={(open) => setOpenDropdown(open ? 'termine' : null)}
           >
-            <Calendar className="h-4 w-4" />
-            Termine
-          </Button>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2 rounded-md transition-colors",
+                  isActiveInGroup(termineMenuItems)
+                    ? "bg-orange/10 text-orange hover:bg-orange/20"
+                    : "text-gray-700 hover:bg-gray-100"
+                )}
+                onClick={() => handleDropdownClick('termine')}
+              >
+                <Calendar className="h-4 w-4" />
+                Termine
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-48 bg-white shadow-lg border border-gray-200">
+              {termineMenuItems.map((item) => (
+                <DropdownMenuItem
+                  key={item.id}
+                  onClick={() => {
+                    onTabChange(item.id);
+                    setOpenDropdown(null);
+                  }}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-2 cursor-pointer",
+                    activeTab === item.id
+                      ? "bg-orange/10 text-orange"
+                      : "hover:bg-gray-50"
+                  )}
+                >
+                  <item.icon className="h-4 w-4" />
+                  {item.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </nav>
