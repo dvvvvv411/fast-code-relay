@@ -7,13 +7,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Edit, Plus, Eye, UserPlus, Users } from 'lucide-react';
+import { Trash2, Edit, Plus, Eye, UserPlus, Users, UserCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import InstructionsBuilder from './InstructionsBuilder';
 import EvaluationQuestionsBuilder from './EvaluationQuestionsBuilder';
 import AssignmentDialog from './AssignmentDialog';
 import AssignmentListDialog from './AssignmentListDialog';
+import UserSelect from './UserSelect';
 
 interface Auftrag {
   id: string;
@@ -46,6 +47,9 @@ const AuftraegeManager = () => {
   const [selectedAuftragForAssignment, setSelectedAuftragForAssignment] = useState<Auftrag | null>(null);
   const [selectedAuftragForList, setSelectedAuftragForList] = useState<Auftrag | null>(null);
   const [assignments, setAssignments] = useState<Record<string, number>>({});
+  const [userAssignDialogOpen, setUserAssignDialogOpen] = useState(false);
+  const [selectedAuftragForUserAssign, setSelectedAuftragForUserAssign] = useState<Auftrag | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string | undefined>();
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -309,6 +313,58 @@ const AuftraegeManager = () => {
     fetchAssignmentCounts();
   };
 
+  const handleUserAssign = (auftrag: Auftrag) => {
+    setSelectedAuftragForUserAssign(auftrag);
+    setSelectedUserId(undefined);
+    setUserAssignDialogOpen(true);
+  };
+
+  const handleUserAssignSubmit = async () => {
+    if (!selectedAuftragForUserAssign || !selectedUserId) {
+      toast({
+        title: "Fehler",
+        description: "Bitte wählen Sie einen Benutzer aus.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      console.log('🎯 Assigning auftrag to user:', selectedAuftragForUserAssign.id, 'to user:', selectedUserId);
+      
+      const assignmentData = {
+        auftrag_id: selectedAuftragForUserAssign.id,
+        assigned_user_id: selectedUserId,
+        worker_first_name: 'System',
+        worker_last_name: 'Assignment',
+        assignment_url: '' // Will be auto-generated
+      };
+
+      const { error } = await supabase
+        .from('auftrag_assignments')
+        .insert(assignmentData);
+
+      if (error) throw error;
+
+      toast({
+        title: "Erfolg",
+        description: `Auftrag wurde erfolgreich zugewiesen.`
+      });
+
+      setUserAssignDialogOpen(false);
+      setSelectedAuftragForUserAssign(null);
+      setSelectedUserId(undefined);
+      fetchAssignmentCounts();
+    } catch (error) {
+      console.error('Error assigning auftrag to user:', error);
+      toast({
+        title: "Fehler",
+        description: "Auftrag konnte nicht zugewiesen werden.",
+        variant: "destructive"
+      });
+    }
+  };
+
   if (isLoading) {
     return <div className="flex justify-center p-8">Lade Aufträge...</div>;
   }
@@ -473,6 +529,15 @@ const AuftraegeManager = () => {
                     <Button
                       variant="outline"
                       size="sm"
+                      onClick={() => handleUserAssign(auftrag)}
+                      className="bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
+                    >
+                      <UserCheck className="h-4 w-4 mr-1" />
+                      An Benutzer
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => handleAssignAuftrag(auftrag)}
                       className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
                     >
@@ -547,6 +612,51 @@ const AuftraegeManager = () => {
           ))
         )}
       </div>
+
+      {/* User Assignment Dialog */}
+      <Dialog open={userAssignDialogOpen} onOpenChange={setUserAssignDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserCheck className="h-5 w-5 text-purple-500" />
+              Auftrag an Benutzer zuweisen
+            </DialogTitle>
+            {selectedAuftragForUserAssign && (
+              <p className="text-sm text-gray-600 mt-2">
+                <strong>{selectedAuftragForUserAssign.title}</strong>
+              </p>
+            )}
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label>Benutzer auswählen</Label>
+              <UserSelect
+                value={selectedUserId}
+                onValueChange={setSelectedUserId}
+                placeholder="Benutzer auswählen..."
+              />
+            </div>
+
+            <div className="flex gap-2 pt-4">
+              <Button 
+                onClick={handleUserAssignSubmit}
+                className="bg-purple-600 hover:bg-purple-700 flex-1"
+                disabled={!selectedUserId}
+              >
+                Zuweisen
+              </Button>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setUserAssignDialogOpen(false)}
+              >
+                Abbrechen
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Assignment Dialog */}
       {selectedAuftragForAssignment && (

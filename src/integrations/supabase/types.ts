@@ -197,6 +197,7 @@ export type Database = {
           access_email: string | null
           access_password: string | null
           access_phone: string | null
+          assigned_user_id: string | null
           assignment_url: string
           auftrag_id: string
           created_at: string
@@ -214,6 +215,7 @@ export type Database = {
           access_email?: string | null
           access_password?: string | null
           access_phone?: string | null
+          assigned_user_id?: string | null
           assignment_url: string
           auftrag_id: string
           created_at?: string
@@ -231,6 +233,7 @@ export type Database = {
           access_email?: string | null
           access_password?: string | null
           access_phone?: string | null
+          assigned_user_id?: string | null
           assignment_url?: string
           auftrag_id?: string
           created_at?: string
