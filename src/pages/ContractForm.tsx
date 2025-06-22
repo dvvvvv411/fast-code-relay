@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, FileText, Upload, CheckCircle } from 'lucide-react';
+import { Loader2, FileText, Upload, CheckCircle, Lock, Shield, Home } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -17,6 +17,7 @@ const ContractForm = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   const [tokenValid, setTokenValid] = useState(false);
   const [appointmentData, setAppointmentData] = useState<any>(null);
   const [formData, setFormData] = useState({
@@ -151,8 +152,13 @@ const ContractForm = () => {
 
       toast.success('Arbeitsvertrag-Informationen erfolgreich übermittelt!');
       
-      // Redirect to success page
-      navigate('/arbeitsvertrag-erfolg');
+      // Show success animation
+      setShowSuccess(true);
+      
+      // Navigate to success page after 3 seconds
+      setTimeout(() => {
+        navigate('/arbeitsvertrag-erfolg');
+      }, 3000);
       
     } catch (error) {
       console.error('Error submitting contract:', error);
@@ -191,6 +197,53 @@ const ContractForm = () => {
     );
   }
 
+  if (showSuccess) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md animate-scale-in">
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-4">
+              <CheckCircle className="h-16 w-16 text-green-500" />
+            </div>
+            <CardTitle className="text-2xl text-green-700">
+              Erfolgreich übermittelt!
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-center space-y-4">
+            <p className="text-gray-600">
+              Vielen Dank! Ihre Arbeitsvertrag-Informationen wurden erfolgreich übermittelt.
+            </p>
+            
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Shield className="h-5 w-5 text-blue-600" />
+                <span className="text-sm font-medium text-blue-800">Sicher übertragen</span>
+              </div>
+              <p className="text-xs text-blue-700">
+                Ihre Daten wurden verschlüsselt und sicher übermittelt.
+              </p>
+            </div>
+            
+            <p className="text-sm text-gray-500">
+              Wir werden Ihre Angaben prüfen und uns zeitnah bei Ihnen melden.
+            </p>
+            
+            <div className="pt-4">
+              <Button 
+                onClick={() => navigate('/')} 
+                variant="outline"
+                className="w-full"
+              >
+                <Home className="h-4 w-4 mr-2" />
+                Zur Startseite
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-2xl mx-auto">
@@ -203,6 +256,19 @@ const ContractForm = () => {
             <p className="text-sm text-gray-600">
               Bitte füllen Sie alle erforderlichen Felder aus, um den Arbeitsvertrag vorzubereiten.
             </p>
+            
+            {/* Security Notice */}
+            <div className="bg-green-50 p-4 rounded-lg border border-green-200 mt-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Lock className="h-5 w-5 text-green-600" />
+                <Shield className="h-5 w-5 text-green-600" />
+                <span className="text-sm font-medium text-green-800">Sicher & Verschlüsselt</span>
+              </div>
+              <p className="text-xs text-green-700">
+                Alle Ihre Daten werden verschlüsselt übertragen und gemäß DSGVO sicher verarbeitet. 
+                Ihre Privatsphäre und Datensicherheit haben für uns höchste Priorität.
+              </p>
+            </div>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -273,6 +339,15 @@ const ContractForm = () => {
               {/* Tax and Insurance Information */}
               <div className="space-y-4">
                 <h3 className="text-lg font-medium">Steuer- und Versicherungsdaten</h3>
+                
+                {/* Security Notice for Sensitive Data */}
+                <Alert>
+                  <Lock className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>Datenschutz:</strong> Ihre sensiblen Daten (Sozialversicherungsnummer, Steuernummer) 
+                    werden verschlüsselt übertragen und ausschließlich für die Vertragserstellung verwendet.
+                  </AlertDescription>
+                </Alert>
                 
                 <div>
                   <Label htmlFor="socialSecurityNumber">Sozialversicherungsnummer *</Label>
@@ -370,12 +445,12 @@ const ContractForm = () => {
                   {submitting ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Wird übermittelt...
+                      Wird sicher übermittelt...
                     </>
                   ) : (
                     <>
                       <Upload className="h-4 w-4 mr-2" />
-                      Daten übermitteln
+                      Daten sicher übermitteln
                     </>
                   )}
                 </Button>
