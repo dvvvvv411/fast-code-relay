@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -345,7 +346,7 @@ const ContractForm = () => {
           <img 
             src="https://ulbgpsjexsgcpivphrxq.supabase.co/storage/v1/object/public/branding/logo_dark_1741580695335.png" 
             alt="Company Logo"
-            className="w-20 h-20 mx-auto object-contain"
+            className="w-60 h-60 mx-auto object-contain"
           />
         </div>
 
