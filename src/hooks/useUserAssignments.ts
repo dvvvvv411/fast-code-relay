@@ -56,7 +56,27 @@ export const useUserAssignments = (userId?: string) => {
       }
 
       console.log('📋 User assignments found:', data?.length || 0);
-      return (data || []) as UserAssignment[];
+      
+      // Map the data to match the UserAssignment interface
+      const mappedData = (data || []).map(item => ({
+        id: item.id,
+        auftrag_id: item.auftrag_id,
+        worker_first_name: item.worker_first_name,
+        worker_last_name: item.worker_last_name,
+        assignment_url: item.assignment_url,
+        is_completed: item.is_completed,
+        is_evaluated: item.is_evaluated,
+        created_at: item.created_at,
+        auftrag: item.auftraege as {
+          id: string;
+          title: string;
+          auftragsnummer: string;
+          anbieter: string;
+          projektziel: string;
+        }
+      }));
+
+      return mappedData as UserAssignment[];
     },
     enabled: !!userId,
   });
