@@ -5,12 +5,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileText, Eye, RefreshCw, Calendar, User, Mail, Phone, CreditCard, Image, AlertCircle } from 'lucide-react';
+import { FileText, Eye, RefreshCw, Calendar, User, Mail, Phone, CreditCard, Image, AlertCircle, CheckCircle, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import AcceptContractDialog from '@/components/contract/AcceptContractDialog';
 
 interface EmploymentContract {
   id: string;
@@ -48,6 +49,9 @@ const EmploymentContractManager = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedContract, setSelectedContract] = useState<EmploymentContract | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [acceptDialogOpen, setAcceptDialogOpen] = useState(false);
+  const [contractToAccept, setContractToAccept] = useState<EmploymentContract | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -87,34 +91,6 @@ const EmploymentContractManager = () => {
     }
   };
 
-  const handleStatusUpdate = async (contractId: string, newStatus: string) => {
-    try {
-      const { error } = await supabase
-        .from('employment_contracts')
-        .update({ 
-          status: newStatus,
-          accepted_at: newStatus === 'accepted' ? new Date().toISOString() : null
-        })
-        .eq('id', contractId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Erfolg",
-        description: "Status wurde erfolgreich aktualisiert.",
-      });
-
-      loadContracts();
-    } catch (error: any) {
-      console.error('Error updating status:', error);
-      toast({
-        title: "Fehler",
-        description: "Status konnte nicht aktualisiert werden.",
-        variant: "destructive",
-      });
-    }
-  };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'accepted':
@@ -138,6 +114,87 @@ const EmploymentContractManager = () => {
         return 'Ausstehend';
       default:
         return status;
+    }
+  };
+
+  const handleRejectContract = async (contractId: string) => {
+    try {
+      setIsProcessing(true);
+      const { error } = await supabase
+        .from('employment_contracts')
+        .update({ 
+          status: 'rejected',
+          accepted_at: null
+        })
+        .eq('id', contractId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Erfolg",
+        description: "Arbeitsvertrag wurde abgelehnt.",
+      });
+
+      loadContracts();
+    } catch (error: any) {
+      console.error('Error rejecting contract:', error);
+      toast({
+        title: "Fehler",
+        description: "Arbeitsvertrag konnte nicht abgelehnt werden.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleAcceptContract = (contract: EmploymentContract) => {
+    setContractToAccept(contract);
+    setAcceptDialogOpen(true);
+  };
+
+  const confirmAcceptContract = async (startDate: string) => {
+    if (!contractToAccept) return;
+
+    try {
+      setIsProcessing(true);
+      
+      console.log('Calling accept-employment-contract function:', {
+        contractId: contractToAccept.id,
+        startDate
+      });
+
+      const { data, error } = await supabase.functions.invoke('accept-employment-contract', {
+        body: {
+          contractId: contractToAccept.id,
+          startDate: startDate
+        }
+      });
+
+      if (error) {
+        console.error('Edge function error:', error);
+        throw error;
+      }
+
+      console.log('Edge function response:', data);
+
+      toast({
+        title: "Erfolg",
+        description: "Arbeitsvertrag wurde angenommen und Benutzerkonto erstellt. Zugangsdaten wurden per E-Mail versendet.",
+      });
+
+      setAcceptDialogOpen(false);
+      setContractToAccept(null);
+      loadContracts();
+    } catch (error: any) {
+      console.error('Error accepting contract:', error);
+      toast({
+        title: "Fehler",
+        description: "Arbeitsvertrag konnte nicht angenommen werden: " + (error.message || 'Unbekannter Fehler'),
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -292,19 +349,36 @@ const EmploymentContractManager = () => {
                         <Eye className="h-4 w-4" />
                       </Button>
                       
-                      <Select
-                        value={contract.status}
-                        onValueChange={(value) => handleStatusUpdate(contract.id, value)}
-                      >
-                        <SelectTrigger className="w-32 h-8">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pending">Ausstehend</SelectItem>
-                          <SelectItem value="accepted">Angenommen</SelectItem>
-                          <SelectItem value="rejected">Abgelehnt</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      {contract.status === 'pending' && (
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRejectContract(contract.id)}
+                            disabled={isProcessing}
+                            className="text-red-600 border-red-300 hover:bg-red-50 hover:border-red-400"
+                          >
+                            <X className="h-4 w-4 mr-1" />
+                            Abgelehnt
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleAcceptContract(contract)}
+                            disabled={isProcessing}
+                            className="text-green-600 border-green-300 hover:bg-green-50 hover:border-green-400"
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            Angenommen
+                          </Button>
+                        </div>
+                      )}
+
+                      {contract.status !== 'pending' && (
+                        <span className="text-xs text-gray-500 px-2">
+                          {contract.status === 'accepted' ? 'Bereits angenommen' : 'Bereits abgelehnt'}
+                        </span>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -448,8 +522,28 @@ const EmploymentContractManager = () => {
               </Card>
             </div>
           )}
+          
         </DialogContent>
       </Dialog>
+
+      {/* Accept Contract Dialog */}
+      {contractToAccept && (
+        <AcceptContractDialog
+          isOpen={acceptDialogOpen}
+          onClose={() => {
+            setAcceptDialogOpen(false);
+            setContractToAccept(null);
+          }}
+          onConfirm={confirmAcceptContract}
+          contractData={{
+            first_name: contractToAccept.first_name,
+            last_name: contractToAccept.last_name,
+            email: contractToAccept.email,
+            start_date: contractToAccept.start_date
+          }}
+          isLoading={isProcessing}
+        />
+      )}
     </div>
   );
 };

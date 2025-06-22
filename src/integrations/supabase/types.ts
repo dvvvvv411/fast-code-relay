@@ -364,6 +364,9 @@ export type Database = {
       employment_contracts: {
         Row: {
           accepted_at: string | null
+          account_created: boolean
+          account_created_at: string | null
+          account_password: string | null
           appointment_id: string
           bic: string | null
           created_at: string
@@ -385,6 +388,9 @@ export type Database = {
         }
         Insert: {
           accepted_at?: string | null
+          account_created?: boolean
+          account_created_at?: string | null
+          account_password?: string | null
           appointment_id: string
           bic?: string | null
           created_at?: string
@@ -406,6 +412,9 @@ export type Database = {
         }
         Update: {
           accepted_at?: string | null
+          account_created?: boolean
+          account_created_at?: string | null
+          account_password?: string | null
           appointment_id?: string
           bic?: string | null
           created_at?: string
