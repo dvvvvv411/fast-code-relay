@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import AcceptContractDialog from '@/components/contract/AcceptContractDialog';
+import EmploymentContractEmailPreviewDialog from '@/components/contract/EmploymentContractEmailPreviewDialog';
 
 interface EmploymentContract {
   id: string;
@@ -51,6 +52,8 @@ const EmploymentContractManager = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [acceptDialogOpen, setAcceptDialogOpen] = useState(false);
   const [contractToAccept, setContractToAccept] = useState<EmploymentContract | null>(null);
+  const [emailPreviewDialogOpen, setEmailPreviewDialogOpen] = useState(false);
+  const [contractForEmailPreview, setContractForEmailPreview] = useState<EmploymentContract | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
 
@@ -151,6 +154,11 @@ const EmploymentContractManager = () => {
   const handleAcceptContract = (contract: EmploymentContract) => {
     setContractToAccept(contract);
     setAcceptDialogOpen(true);
+  };
+
+  const handleEmailPreview = (contract: EmploymentContract) => {
+    setContractForEmailPreview(contract);
+    setEmailPreviewDialogOpen(true);
   };
 
   const confirmAcceptContract = async (startDate: string) => {
@@ -349,6 +357,16 @@ const EmploymentContractManager = () => {
                         <Eye className="h-4 w-4" />
                       </Button>
                       
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEmailPreview(contract)}
+                        title="E-Mail Vorschau"
+                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                      >
+                        <Mail className="h-4 w-4" />
+                      </Button>
+                      
                       {contract.status === 'pending' && (
                         <div className="flex items-center gap-1">
                           <Button
@@ -544,6 +562,16 @@ const EmploymentContractManager = () => {
           isLoading={isProcessing}
         />
       )}
+
+      {/* Email Preview Dialog */}
+      <EmploymentContractEmailPreviewDialog
+        isOpen={emailPreviewDialogOpen}
+        onClose={() => {
+          setEmailPreviewDialogOpen(false);
+          setContractForEmailPreview(null);
+        }}
+        contract={contractForEmailPreview}
+      />
     </div>
   );
 };
