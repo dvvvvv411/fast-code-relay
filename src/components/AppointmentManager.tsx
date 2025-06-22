@@ -50,6 +50,18 @@ interface BlockedTime {
   created_at: string;
 }
 
+// Define valid status values that match the database constraint
+const VALID_STATUSES = [
+  'pending',
+  'confirmed', 
+  'cancelled',
+  'interessiert',
+  'abgelehnt',
+  'mailbox'
+] as const;
+
+type ValidStatus = typeof VALID_STATUSES[number];
+
 const AppointmentManager = () => {
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -332,23 +344,61 @@ const AppointmentManager = () => {
     }
   };
 
+  const validateStatus = (status: string): status is ValidStatus => {
+    return VALID_STATUSES.includes(status as ValidStatus);
+  };
+
   const handleAppointmentStatusChange = async (appointmentId: string, newStatus: string) => {
+    console.log('🔄 handleAppointmentStatusChange called:', {
+      appointmentId,
+      newStatus,
+      isValidStatus: validateStatus(newStatus),
+      validStatuses: VALID_STATUSES
+    });
+
+    // Validate the status before making the database call
+    if (!validateStatus(newStatus)) {
+      console.error('❌ Invalid status attempted:', newStatus, 'Valid statuses:', VALID_STATUSES);
+      toast({
+        title: "Fehler",
+        description: `Ungültiger Status: "${newStatus}". Erlaubte Status: ${VALID_STATUSES.join(', ')}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      const { error } = await supabase
+      console.log('📤 Making database update with validated status:', { appointmentId, newStatus });
+      
+      const { data, error } = await supabase
         .from('appointments')
         .update({ status: newStatus })
-        .eq('id', appointmentId);
+        .eq('id', appointmentId)
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Database error:', error);
+        throw error;
+      }
+
+      console.log('✅ Database update successful:', data);
 
       toast({
         title: "Erfolg",
         description: "Terminstatus wurde aktualisiert.",
       });
 
-      loadAppointments();
+      await loadAppointments();
       setSelectedAppointment(null);
     } catch (error: any) {
+      console.error('❌ Error in handleAppointmentStatusChange:', {
+        error,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
+      
       toast({
         title: "Fehler",
         description: error.message || "Status konnte nicht aktualisiert werden.",

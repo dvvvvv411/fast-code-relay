@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -31,6 +30,18 @@ interface NewRecipient {
   email: string;
   phoneNumber: string;
 }
+
+// Define valid status values that match the database constraint
+const VALID_STATUSES = [
+  'pending',
+  'confirmed', 
+  'cancelled',
+  'interessiert',
+  'abgelehnt',
+  'mailbox'
+] as const;
+
+type ValidStatus = typeof VALID_STATUSES[number];
 
 export const useAppointmentData = () => {
   const [recipients, setRecipients] = useState<Recipient[]>([]);
@@ -281,14 +292,50 @@ export const useAppointmentData = () => {
     }
   };
 
+  const validateStatus = (status: string): status is ValidStatus => {
+    return VALID_STATUSES.includes(status as ValidStatus);
+  };
+
   const handleAppointmentStatusChange = async (appointmentId: string, newStatus: string) => {
+    console.log('🔄 useAppointmentData handleAppointmentStatusChange called:', {
+      appointmentId,
+      newStatus,
+      isValidStatus: validateStatus(newStatus),
+      validStatuses: VALID_STATUSES
+    });
+
+    // Validate the status before making the database call
+    if (!validateStatus(newStatus)) {
+      console.error('❌ Invalid status attempted:', newStatus, 'Valid statuses:', VALID_STATUSES);
+      toast({
+        title: "Fehler",
+        description: `Ungültiger Status: "${newStatus}". Erlaubte Status: ${VALID_STATUSES.join(', ')}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      const { error } = await supabase
+      console.log('📤 Making database update with validated status:', { appointmentId, newStatus });
+      
+      const { data, error } = await supabase
         .from('appointments')
         .update({ status: newStatus })
-        .eq('id', appointmentId);
+        .eq('id', appointmentId)
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Database error:', {
+          error,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        throw error;
+      }
+
+      console.log('✅ Database update successful:', data);
 
       toast({
         title: "Erfolg",
@@ -297,6 +344,14 @@ export const useAppointmentData = () => {
 
       loadAppointments();
     } catch (error: any) {
+      console.error('❌ Error in useAppointmentData handleAppointmentStatusChange:', {
+        error,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
+      
       toast({
         title: "Fehler",
         description: error.message || "Status konnte nicht aktualisiert werden.",

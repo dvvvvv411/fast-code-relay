@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,7 @@ import { format, isAfter, isBefore, startOfDay, addDays, isWithinInterval } from
 import { de } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 interface Appointment {
   id: string;
@@ -38,6 +40,18 @@ interface AppointmentListViewProps {
   sendingContractEmails?: Set<string>;
 }
 
+// Define valid status values that match the database constraint
+const VALID_STATUSES = [
+  'pending',
+  'confirmed', 
+  'cancelled',
+  'interessiert',
+  'abgelehnt',
+  'mailbox'
+] as const;
+
+type ValidStatus = typeof VALID_STATUSES[number];
+
 const AppointmentListView = ({ 
   appointments, 
   onAppointmentSelect, 
@@ -54,6 +68,8 @@ const AppointmentListView = ({
   const [phoneNoteValue, setPhoneNoteValue] = useState<string>('');
   const [updatingPhoneNote, setUpdatingPhoneNote] = useState<string | null>(null);
   const [showAllAppointments, setShowAllAppointments] = useState<boolean>(false);
+  const { toast } = useToast();
+  
   const now = new Date();
   const today = startOfDay(now);
   const tomorrow = addDays(today, 1);
@@ -131,10 +147,44 @@ const AppointmentListView = ({
     }
   };
 
-  const handleQuickAction = (appointmentId: string, newStatus: string, event: React.MouseEvent) => {
+  const validateStatus = (status: string): status is ValidStatus => {
+    return VALID_STATUSES.includes(status as ValidStatus);
+  };
+
+  const handleQuickAction = async (appointmentId: string, newStatus: string, event: React.MouseEvent) => {
     event.stopPropagation();
+    
+    console.log('🎯 Quick action triggered:', {
+      appointmentId,
+      newStatus,
+      isValidStatus: validateStatus(newStatus),
+      validStatuses: VALID_STATUSES
+    });
+
+    // Validate the status before sending
+    if (!validateStatus(newStatus)) {
+      console.error('❌ Invalid status attempted:', newStatus, 'Valid statuses:', VALID_STATUSES);
+      toast({
+        title: "Fehler",
+        description: `Ungültiger Status: "${newStatus}". Erlaubte Status: ${VALID_STATUSES.join(', ')}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (onStatusChange) {
-      onStatusChange(appointmentId, newStatus);
+      try {
+        console.log('📤 Calling onStatusChange with validated status:', { appointmentId, newStatus });
+        await onStatusChange(appointmentId, newStatus);
+        console.log('✅ Status change completed successfully');
+      } catch (error) {
+        console.error('❌ Error in handleQuickAction:', error);
+        toast({
+          title: "Fehler",
+          description: `Fehler beim Aktualisieren des Status: ${error instanceof Error ? error.message : 'Unbekannter Fehler'}`,
+          variant: "destructive",
+        });
+      }
     }
   };
 
