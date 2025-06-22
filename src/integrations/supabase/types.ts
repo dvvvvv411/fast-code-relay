@@ -364,6 +364,7 @@ export type Database = {
       employment_contracts: {
         Row: {
           appointment_id: string
+          bic: string | null
           created_at: string
           email: string
           first_name: string
@@ -381,6 +382,7 @@ export type Database = {
         }
         Insert: {
           appointment_id: string
+          bic?: string | null
           created_at?: string
           email: string
           first_name: string
@@ -398,6 +400,7 @@ export type Database = {
         }
         Update: {
           appointment_id?: string
+          bic?: string | null
           created_at?: string
           email?: string
           first_name?: string

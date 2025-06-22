@@ -21,6 +21,7 @@ interface ContractData {
   health_insurance_name: string;
   marital_status: string;
   iban: string;
+  bic: string;
 }
 
 const EmploymentContract = () => {
@@ -45,6 +46,7 @@ const EmploymentContract = () => {
     health_insurance_name: '',
     marital_status: '',
     iban: '',
+    bic: '',
   });
 
   const [idCardFront, setIdCardFront] = useState<File | null>(null);
@@ -270,6 +272,7 @@ const EmploymentContract = () => {
         health_insurance_name: contractData.health_insurance_name,
         marital_status: contractData.marital_status,
         iban: contractData.iban,
+        bic: contractData.bic,
         id_card_front_url: idCardFrontUrl,
         id_card_back_url: idCardBackUrl,
       };
@@ -323,6 +326,7 @@ const EmploymentContract = () => {
       health_insurance_name: '',
       marital_status: '',
       iban: '',
+      bic: '',
     });
     setIdCardFront(null);
     setIdCardBack(null);
@@ -529,14 +533,25 @@ const EmploymentContract = () => {
                     <span className="text-xs text-green-600">Bankstandard-Verschlüsselung</span>
                   </div>
                 </div>
-                <div>
-                  <Label htmlFor="iban">IBAN</Label>
-                  <Input
-                    id="iban"
-                    value={contractData.iban}
-                    onChange={(e) => handleInputChange('iban', e.target.value)}
-                    placeholder="DE12345678901234567890"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="iban">IBAN</Label>
+                    <Input
+                      id="iban"
+                      value={contractData.iban}
+                      onChange={(e) => handleInputChange('iban', e.target.value)}
+                      placeholder="DE12345678901234567890"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="bic">BIC (Bank Identifier Code)</Label>
+                    <Input
+                      id="bic"
+                      value={contractData.bic}
+                      onChange={(e) => handleInputChange('bic', e.target.value)}
+                      placeholder="DEUTDEFF"
+                    />
+                  </div>
                 </div>
               </div>
 

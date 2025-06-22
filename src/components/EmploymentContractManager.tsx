@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +23,7 @@ interface EmploymentContract {
   health_insurance_name: string;
   marital_status: string | null;
   iban: string;
+  bic: string | null;
   id_card_front_url: string | null;
   id_card_back_url: string | null;
   submitted_at: string;
@@ -233,6 +235,12 @@ const EmploymentContractManager = () => {
                     <span className="font-medium">IBAN:</span>
                     <span className="ml-2">{selectedContract.iban}</span>
                   </div>
+                  {selectedContract.bic && (
+                    <div>
+                      <span className="font-medium">BIC:</span>
+                      <span className="ml-2">{selectedContract.bic}</span>
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <div>
