@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -6,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileText, Eye, RefreshCw, Calendar, User, Mail, Phone } from 'lucide-react';
+import { FileText, Eye, RefreshCw, Calendar, User, Mail, Phone, CreditCard, Image, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
@@ -147,6 +146,50 @@ const EmploymentContractManager = () => {
     return contract.status === statusFilter;
   });
 
+  const IdCardImagePreview = ({ imageUrl, title }: { imageUrl: string | null; title: string }) => {
+    const [imageError, setImageError] = useState(false);
+    const [imageLoading, setImageLoading] = useState(true);
+
+    if (!imageUrl) {
+      return (
+        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+          <Image className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+          <p className="text-sm text-gray-500">Nicht hochgeladen</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="border rounded-lg p-4">
+        <h4 className="font-medium text-sm mb-3 text-center">{title}</h4>
+        {imageError ? (
+          <div className="border-2 border-dashed border-red-300 rounded-lg p-6 text-center">
+            <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-2" />
+            <p className="text-sm text-red-500">Fehler beim Laden des Bildes</p>
+          </div>
+        ) : (
+          <div className="relative">
+            {imageLoading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded">
+                <RefreshCw className="h-6 w-6 animate-spin text-gray-400" />
+              </div>
+            )}
+            <img
+              src={imageUrl}
+              alt={title}
+              className="w-full h-48 object-contain rounded border"
+              onLoad={() => setImageLoading(false)}
+              onError={() => {
+                setImageError(true);
+                setImageLoading(false);
+              }}
+            />
+          </div>
+        )}
+      </div>
+    );
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -285,7 +328,7 @@ const EmploymentContractManager = () => {
 
       {/* Contract Details Dialog */}
       <Dialog open={!!selectedContract} onOpenChange={() => setSelectedContract(null)}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
@@ -336,6 +379,28 @@ const EmploymentContractManager = () => {
                   {selectedContract.bic && (
                     <div><strong>BIC:</strong> {selectedContract.bic}</div>
                   )}
+                </CardContent>
+              </Card>
+
+              {/* ID Card Images */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <CreditCard className="h-4 w-4" />
+                    Personalausweis
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <IdCardImagePreview 
+                      imageUrl={selectedContract.id_card_front_url} 
+                      title="Vorderseite" 
+                    />
+                    <IdCardImagePreview 
+                      imageUrl={selectedContract.id_card_back_url} 
+                      title="Rückseite" 
+                    />
+                  </div>
                 </CardContent>
               </Card>
 
