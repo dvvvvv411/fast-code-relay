@@ -2,14 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, FileText, Upload, CheckCircle, Lock, Shield, Home, Building2 } from 'lucide-react';
+import { Loader2, FileText, CheckCircle, Shield, Home, Building2, ArrowLeft, ArrowRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import ProgressIndicator from '@/components/contract/ProgressIndicator';
+import PersonalDataStep from '@/components/contract/PersonalDataStep';
+import TaxInsuranceStep from '@/components/contract/TaxInsuranceStep';
+import BankingStep from '@/components/contract/BankingStep';
+import IdUploadStep from '@/components/contract/IdUploadStep';
+
+const STEPS = [
+  'Persönliche Daten',
+  'Steuer & Versicherung',
+  'Bankverbindung',
+  'Personalausweis'
+];
 
 const ContractForm = () => {
   const { token } = useParams();
@@ -19,6 +27,7 @@ const ContractForm = () => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [tokenValid, setTokenValid] = useState(false);
   const [appointmentData, setAppointmentData] = useState<any>(null);
+  const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -105,9 +114,39 @@ const ContractForm = () => {
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const validateCurrentStep = () => {
+    switch (currentStep) {
+      case 1:
+        return formData.firstName && formData.lastName && formData.email && formData.startDate;
+      case 2:
+        return formData.socialSecurityNumber && formData.taxNumber && formData.healthInsuranceName;
+      case 3:
+        return formData.iban;
+      case 4:
+        return true; // ID upload is optional for now
+      default:
+        return false;
+    }
+  };
+
+  const handleNext = () => {
+    if (!validateCurrentStep()) {
+      toast.error('Bitte füllen Sie alle Pflichtfelder aus.');
+      return;
+    }
     
+    if (currentStep < STEPS.length) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const handleBack = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const handleSubmit = async () => {
     if (!appointmentData) return;
 
     setSubmitting(true);
@@ -164,6 +203,57 @@ const ContractForm = () => {
       toast.error('Fehler beim Übermitteln der Daten. Bitte versuchen Sie es erneut.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const renderCurrentStep = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <PersonalDataStep
+            formData={{
+              firstName: formData.firstName,
+              lastName: formData.lastName,
+              email: formData.email,
+              startDate: formData.startDate,
+              maritalStatus: formData.maritalStatus
+            }}
+            onInputChange={handleInputChange}
+          />
+        );
+      case 2:
+        return (
+          <TaxInsuranceStep
+            formData={{
+              socialSecurityNumber: formData.socialSecurityNumber,
+              taxNumber: formData.taxNumber,
+              healthInsuranceName: formData.healthInsuranceName
+            }}
+            onInputChange={handleInputChange}
+          />
+        );
+      case 3:
+        return (
+          <BankingStep
+            formData={{
+              iban: formData.iban,
+              bic: formData.bic
+            }}
+            onInputChange={handleInputChange}
+          />
+        );
+      case 4:
+        return (
+          <IdUploadStep
+            formData={{
+              idCardFront: formData.idCardFront,
+              idCardBack: formData.idCardBack
+            }}
+            onFileChange={handleFileChange}
+          />
+        );
+      default:
+        return null;
     }
   };
 
@@ -244,258 +334,102 @@ const ContractForm = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-6xl mx-auto">
-        {/* Header with Logo */}
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4">
+      <div className="max-w-4xl mx-auto">
+        {/* Header with Company Logo */}
         <div className="mb-8 text-center">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-orange rounded-lg flex items-center justify-center">
-              <Building2 className="h-8 w-8 text-white" />
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <div className="w-16 h-16 bg-orange rounded-xl flex items-center justify-center shadow-lg">
+              <Building2 className="h-10 w-10 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Ihr Unternehmen</h1>
-              <p className="text-sm text-gray-600">Arbeitsvertrag-Portal</p>
+              <h1 className="text-3xl font-bold text-gray-900">Ihr Unternehmen</h1>
+              <p className="text-lg text-gray-600">Arbeitsvertrag-Portal</p>
             </div>
           </div>
         </div>
 
-        <Card className="shadow-lg">
-          <CardHeader className="text-center border-b">
-            <CardTitle className="flex items-center justify-center gap-2 text-xl">
-              <FileText className="h-6 w-6" />
-              Arbeitsvertrag - Zusätzliche Informationen
+        {/* Progress Indicator */}
+        <ProgressIndicator 
+          currentStep={currentStep} 
+          totalSteps={STEPS.length} 
+          steps={STEPS} 
+        />
+
+        {/* Main Form Card */}
+        <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+          <CardHeader className="text-center border-b bg-white/50">
+            <CardTitle className="flex items-center justify-center gap-2 text-2xl">
+              <FileText className="h-7 w-7 text-orange" />
+              Arbeitsvertrag - {STEPS[currentStep - 1]}
             </CardTitle>
             <p className="text-sm text-gray-600 mt-2">
-              Bitte füllen Sie alle erforderlichen Felder aus, um den Arbeitsvertrag vorzubereiten.
+              Schritt {currentStep} von {STEPS.length}
             </p>
           </CardHeader>
           
           <CardContent className="p-8">
-            <form onSubmit={handleSubmit} className="space-y-8">
-              {/* Two-column layout */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                
-                {/* Left Column - Personal Information */}
-                <div className="space-y-6">
-                  <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-400">
-                    <h3 className="text-lg font-semibold text-blue-900 mb-4">Persönliche Daten</h3>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="firstName">Vorname *</Label>
-                        <Input
-                          id="firstName"
-                          value={formData.firstName}
-                          onChange={(e) => handleInputChange('firstName', e.target.value)}
-                          required
-                          className="mt-1"
-                        />
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor="lastName">Nachname *</Label>
-                        <Input
-                          id="lastName"
-                          value={formData.lastName}
-                          onChange={(e) => handleInputChange('lastName', e.target.value)}
-                          required
-                          className="mt-1"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="email">E-Mail *</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => handleInputChange('email', e.target.value)}
-                        required
-                        className="mt-1"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="startDate">Gewünschtes Startdatum *</Label>
-                      <Input
-                        id="startDate"
-                        type="date"
-                        value={formData.startDate}
-                        onChange={(e) => handleInputChange('startDate', e.target.value)}
-                        required
-                        className="mt-1"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="maritalStatus">Familienstand</Label>
-                      <Select value={formData.maritalStatus} onValueChange={(value) => handleInputChange('maritalStatus', value)}>
-                        <SelectTrigger className="mt-1">
-                          <SelectValue placeholder="Bitte auswählen" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="ledig">Ledig</SelectItem>
-                          <SelectItem value="verheiratet">Verheiratet</SelectItem>
-                          <SelectItem value="geschieden">Geschieden</SelectItem>
-                          <SelectItem value="verwitwet">Verwitwet</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
+            <div className="min-h-[400px]">
+              {renderCurrentStep()}
+            </div>
 
-                  {/* Document Upload Section */}
-                  <div className="space-y-4 pt-4 border-t">
-                    <h4 className="text-md font-medium text-gray-900">Personalausweis</h4>
-                    <Alert>
-                      <AlertDescription className="text-sm">
-                        Bitte laden Sie Kopien beider Seiten Ihres Personalausweises hoch.
-                      </AlertDescription>
-                    </Alert>
-                    
-                    <div className="grid grid-cols-1 gap-4">
-                      <div>
-                        <Label htmlFor="idCardFront">Personalausweis Vorderseite</Label>
-                        <Input
-                          id="idCardFront"
-                          type="file"
-                          accept="image/*,.pdf"
-                          onChange={(e) => handleFileChange('idCardFront', e.target.files?.[0] || null)}
-                          className="mt-1"
-                        />
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor="idCardBack">Personalausweis Rückseite</Label>
-                        <Input
-                          id="idCardBack"
-                          type="file"
-                          accept="image/*,.pdf"
-                          onChange={(e) => handleFileChange('idCardBack', e.target.files?.[0] || null)}
-                          className="mt-1"
-                        />
-                      </div>
-                    </div>
-                  </div>
+            {/* Navigation Buttons */}
+            <div className="flex justify-between items-center mt-8 pt-6 border-t">
+              {currentStep > 1 ? (
+                <Button 
+                  onClick={handleBack}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Zurück
+                </Button>
+              ) : (
+                <div></div>
+              )}
+
+              {currentStep < STEPS.length ? (
+                <Button 
+                  onClick={handleNext}
+                  className="bg-orange hover:bg-orange/90 text-white flex items-center gap-2"
+                  disabled={!validateCurrentStep()}
+                >
+                  Weiter
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Button 
+                  onClick={handleSubmit}
+                  disabled={submitting}
+                  className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2 px-8"
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Wird übermittelt...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-5 w-5" />
+                      Daten übermitteln
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+
+            {/* Security Notice */}
+            {currentStep === STEPS.length && (
+              <div className="mt-6 bg-green-50 p-4 rounded-lg border border-green-200">
+                <div className="flex items-center gap-2 mb-2">
+                  <Shield className="h-5 w-5 text-green-600" />
+                  <span className="text-sm font-medium text-green-800">Sicher & Verschlüsselt</span>
                 </div>
-
-                {/* Right Column - Tax, Insurance & Banking */}
-                <div className="space-y-6">
-                  {/* Tax and Insurance Information */}
-                  <div className="space-y-4">
-                    <div className="bg-orange-50 p-4 rounded-lg border-l-4 border-orange-400">
-                      <h3 className="text-lg font-semibold text-orange-900 mb-2">Steuer- und Versicherungsdaten</h3>
-                      <div className="flex items-center gap-2 text-orange-700">
-                        <Lock className="h-4 w-4" />
-                        <span className="text-xs">Sensible Daten werden verschlüsselt übertragen</span>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="socialSecurityNumber">Sozialversicherungsnummer *</Label>
-                      <Input
-                        id="socialSecurityNumber"
-                        value={formData.socialSecurityNumber}
-                        onChange={(e) => handleInputChange('socialSecurityNumber', e.target.value)}
-                        placeholder="z.B. 12 345678 A 123"
-                        required
-                        className="mt-1"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="taxNumber">Steuernummer *</Label>
-                      <Input
-                        id="taxNumber"
-                        value={formData.taxNumber}
-                        onChange={(e) => handleInputChange('taxNumber', e.target.value)}
-                        required
-                        className="mt-1"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="healthInsuranceName">Krankenkasse *</Label>
-                      <Input
-                        id="healthInsuranceName"
-                        value={formData.healthInsuranceName}
-                        onChange={(e) => handleInputChange('healthInsuranceName', e.target.value)}
-                        placeholder="z.B. AOK, TK, Barmer"
-                        required
-                        className="mt-1"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Banking Information */}
-                  <div className="space-y-4">
-                    <div className="bg-green-50 p-4 rounded-lg border-l-4 border-green-400">
-                      <h3 className="text-lg font-semibold text-green-900">Bankverbindung</h3>
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="iban">IBAN *</Label>
-                      <Input
-                        id="iban"
-                        value={formData.iban}
-                        onChange={(e) => handleInputChange('iban', e.target.value)}
-                        placeholder="DE89 3704 0044 0532 0130 00"
-                        required
-                        className="mt-1"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="bic">BIC (optional)</Label>
-                      <Input
-                        id="bic"
-                        value={formData.bic}
-                        onChange={(e) => handleInputChange('bic', e.target.value)}
-                        placeholder="z.B. COBADEFFXXX"
-                        className="mt-1"
-                      />
-                    </div>
-                  </div>
-                </div>
+                <p className="text-xs text-green-700">
+                  Alle Ihre Daten werden verschlüsselt übertragen und gemäß DSGVO sicher verarbeitet.
+                </p>
               </div>
-
-              {/* Security Notice and Submit Button */}
-              <div className="pt-6 border-t space-y-4">
-                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Lock className="h-5 w-5 text-green-600" />
-                    <Shield className="h-5 w-5 text-green-600" />
-                    <span className="text-sm font-medium text-green-800">Sicher & Verschlüsselt</span>
-                  </div>
-                  <p className="text-xs text-green-700">
-                    Alle Ihre Daten werden verschlüsselt übertragen und gemäß DSGVO sicher verarbeitet. 
-                    Ihre Privatsphäre und Datensicherheit haben für uns höchste Priorität.
-                  </p>
-                </div>
-
-                <div className="flex justify-center">
-                  <Button 
-                    type="submit" 
-                    disabled={submitting} 
-                    className="bg-orange hover:bg-orange/90 text-white px-8 py-3 text-lg min-w-[200px]"
-                  >
-                    {submitting ? (
-                      <>
-                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                        Wird sicher übermittelt...
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="h-5 w-5 mr-2" />
-                        Daten sicher übermitteln
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </form>
+            )}
           </CardContent>
         </Card>
       </div>
