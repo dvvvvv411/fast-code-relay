@@ -1,101 +1,316 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { List, Grid3X3, CalendarIcon, RefreshCw } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useAppointmentData } from '@/hooks/useAppointmentData';
-import AppointmentCalendarView from './appointment/AppointmentCalendarView';
+import { Calendar, Eye, Plus, Mail, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import AppointmentListView from './appointment/AppointmentListView';
 import AppointmentDetailView from './appointment/AppointmentDetailView';
+import AppointmentEmailPreviewDialog from './appointment/AppointmentEmailPreviewDialog';
+import ContractEmailPreviewDialog from './appointment/ContractEmailPreviewDialog';
+import MissedAppointmentEmailTemplate from './appointment/MissedAppointmentEmailTemplate';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
+
+interface Appointment {
+  id: string;
+  appointment_date: string;
+  appointment_time: string;
+  status: string;
+  created_at: string;
+  confirmed_at: string | null;
+  recipient?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone_note?: string;
+  };
+}
 
 const AppointmentOverview = () => {
-  const [overviewMode, setOverviewMode] = useState<'calendar' | 'list'>('list');
-  const [selectedAppointment, setSelectedAppointment] = useState<any>(null);
-  
-  const {
-    appointments,
-    isLoading,
-    isRefreshing,
-    handleRefresh,
-    handleAppointmentStatusChange,
-    handlePhoneNoteUpdate,
-    handleSendMissedAppointmentEmail
-  } = useAppointmentData();
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [showEmailPreview, setShowEmailPreview] = useState(false);
+  const [showContractPreview, setShowContractPreview] = useState(false);
+  const [showMissedEmailPreview, setShowMissedEmailPreview] = useState(false);
+  const [selectedRecipient, setSelectedRecipient] = useState<any>(null);
+  const [contractToken, setContractToken] = useState<string | null>(null);
+  const [sendingEmail, setSendingEmail] = useState(false);
 
-  if (isLoading) {
+  useEffect(() => {
+    fetchAppointments();
+  }, []);
+
+  const fetchAppointments = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('appointments')
+        .select(`
+          *,
+          appointment_recipients (
+            id,
+            first_name,
+            last_name,
+            email,
+            phone_note
+          )
+        `)
+        .order('appointment_date', { ascending: false })
+        .order('appointment_time', { ascending: false });
+
+      if (error) throw error;
+
+      const formattedAppointments = data.map(appointment => ({
+        ...appointment,
+        recipient: appointment.appointment_recipients
+      }));
+
+      setAppointments(formattedAppointments);
+    } catch (error) {
+      console.error('Error fetching appointments:', error);
+      toast.error('Fehler beim Laden der Termine');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchAppointments();
+    setRefreshing(false);
+  };
+
+  const handleStatusChange = async (appointmentId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .update({ status: newStatus })
+        .eq('id', appointmentId);
+
+      if (error) throw error;
+
+      toast.success('Status erfolgreich aktualisiert');
+      await fetchAppointments();
+    } catch (error) {
+      console.error('Error updating appointment status:', error);
+      toast.error('Fehler beim Aktualisieren des Status');
+    }
+  };
+
+  const handlePhoneNoteUpdate = async (recipientId: string, phoneNote: string) => {
+    try {
+      const { error } = await supabase
+        .from('appointment_recipients')
+        .update({ phone_note: phoneNote })
+        .eq('id', recipientId);
+
+      if (error) throw error;
+
+      toast.success('Telefonnummer erfolgreich aktualisiert');
+      await fetchAppointments();
+    } catch (error) {
+      console.error('Error updating phone note:', error);
+      toast.error('Fehler beim Aktualisieren der Telefonnummer');
+    }
+  };
+
+  const handleMissedEmailSend = async (appointment: Appointment) => {
+    if (!appointment.recipient) return;
+
+    setSelectedAppointment(appointment);
+    setSelectedRecipient(appointment.recipient);
+    setShowMissedEmailPreview(true);
+  };
+
+  const handleContractInfoSend = async (appointment: Appointment) => {
+    if (!appointment.recipient) return;
+
+    try {
+      // Generate a secure token for the contract form
+      const { data: tokenData, error: tokenError } = await supabase
+        .rpc('generate_secure_token');
+
+      if (tokenError) throw tokenError;
+
+      // Insert the token into contract_request_tokens table
+      const { error: insertError } = await supabase
+        .from('contract_request_tokens')
+        .insert({
+          appointment_id: appointment.id,
+          token: tokenData,
+          email_sent: false
+        });
+
+      if (insertError) throw insertError;
+
+      setSelectedAppointment(appointment);
+      setSelectedRecipient(appointment.recipient);
+      setContractToken(tokenData);
+      setShowContractPreview(true);
+    } catch (error) {
+      console.error('Error preparing contract email:', error);
+      toast.error('Fehler beim Vorbereiten der Arbeitsvertrag-E-Mail');
+    }
+  };
+
+  const sendMissedAppointmentEmail = async () => {
+    if (!selectedAppointment || !selectedRecipient) return;
+
+    setSendingEmail(true);
+    try {
+      const { error } = await supabase.functions.invoke('send-missed-appointment-email', {
+        body: {
+          appointment: selectedAppointment,
+          recipient: selectedRecipient
+        }
+      });
+
+      if (error) throw error;
+
+      toast.success('E-Mail für verpassten Termin erfolgreich gesendet');
+      setShowMissedEmailPreview(false);
+    } catch (error) {
+      console.error('Error sending missed appointment email:', error);
+      toast.error('Fehler beim Senden der E-Mail');
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
+  const sendContractEmail = async () => {
+    if (!selectedAppointment || !selectedRecipient || !contractToken) return;
+
+    setSendingEmail(true);
+    try {
+      const { error } = await supabase.functions.invoke('send-contract-email', {
+        body: {
+          appointment: selectedAppointment,
+          recipient: selectedRecipient,
+          contractToken: contractToken
+        }
+      });
+
+      if (error) throw error;
+
+      // Mark token as email sent
+      await supabase
+        .from('contract_request_tokens')
+        .update({ email_sent: true })
+        .eq('token', contractToken);
+
+      toast.success('Arbeitsvertrag-E-Mail erfolgreich gesendet');
+      setShowContractPreview(false);
+    } catch (error) {
+      console.error('Error sending contract email:', error);
+      toast.error('Fehler beim Senden der Arbeitsvertrag-E-Mail');
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
+  if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange mx-auto"></div>
-          <p className="mt-2 text-gray-500">Lade Terminübersicht...</p>
-        </div>
+        <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
   }
 
-  // If viewing appointment details
   if (selectedAppointment) {
     return (
-      <AppointmentDetailView
-        appointment={selectedAppointment}
-        onBack={() => setSelectedAppointment(null)}
-        onStatusChange={handleAppointmentStatusChange}
-      />
+      <>
+        <AppointmentDetailView 
+          appointment={selectedAppointment} 
+          onBack={() => setSelectedAppointment(null)}
+          onStatusChange={handleStatusChange}
+        />
+        
+        <AppointmentEmailPreviewDialog
+          isOpen={showEmailPreview}
+          onClose={() => setShowEmailPreview(false)}
+          recipient={selectedRecipient}
+        />
+
+        <ContractEmailPreviewDialog
+          isOpen={showContractPreview}
+          onClose={() => setShowContractPreview(false)}
+          recipient={selectedRecipient}
+          contractToken={contractToken}
+        />
+
+        <Dialog open={showMissedEmailPreview} onOpenChange={setShowMissedEmailPreview}>
+          <DialogContent className="max-w-4xl max-h-[80vh]">
+            <DialogHeader>
+              <DialogTitle>E-Mail Vorschau - Verpasster Termin</DialogTitle>
+            </DialogHeader>
+            <ScrollArea className="h-[60vh] w-full">
+              <div className="p-4">
+                {selectedAppointment && selectedRecipient && (
+                  <MissedAppointmentEmailTemplate
+                    recipientFirstName={selectedRecipient.first_name}
+                    recipientLastName={selectedRecipient.last_name}
+                    appointmentDate={selectedAppointment.appointment_date}
+                    appointmentTime={selectedAppointment.appointment_time}
+                    recipient={selectedRecipient}
+                  />
+                )}
+              </div>
+            </ScrollArea>
+            <div className="flex justify-end gap-2 p-4 border-t">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowMissedEmailPreview(false)}
+                disabled={sendingEmail}
+              >
+                Abbrechen
+              </Button>
+              <Button 
+                onClick={sendMissedAppointmentEmail}
+                disabled={sendingEmail}
+                className="bg-orange hover:bg-orange/90"
+              >
+                {sendingEmail ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Wird gesendet...
+                  </>
+                ) : (
+                  <>
+                    <Mail className="h-4 w-4 mr-2" />
+                    E-Mail senden
+                  </>
+                )}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Header with refresh button */}
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Terminübersicht</h2>
-        <div className="flex space-x-2">
-          <Button
-            variant="outline"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
-            {isRefreshing ? "Wird aktualisiert..." : "Aktualisieren"}
-          </Button>
-          <Button
-            variant={overviewMode === 'list' ? "default" : "outline"}
-            onClick={() => setOverviewMode('list')}
-            className={overviewMode === 'list' ? "bg-orange hover:bg-orange/90" : ""}
-          >
-            <List className="h-4 w-4 mr-2" />
-            Liste
-          </Button>
-          <Button
-            variant={overviewMode === 'calendar' ? "default" : "outline"}
-            onClick={() => setOverviewMode('calendar')}
-            className={overviewMode === 'calendar' ? "bg-orange hover:bg-orange/90" : ""}
-          >
-            <CalendarIcon className="h-4 w-4 mr-2" />
-            Kalender
-          </Button>
+        <div className="flex items-center gap-2">
+          <Calendar className="h-6 w-6" />
+          <h2 className="text-2xl font-bold">Termine Übersicht</h2>
         </div>
       </div>
 
-      {/* Overview Content */}
-      {overviewMode === 'calendar' ? (
-        <AppointmentCalendarView
-          appointments={appointments}
-          onAppointmentSelect={setSelectedAppointment}
-        />
-      ) : (
-        <AppointmentListView
-          appointments={appointments}
-          onAppointmentSelect={setSelectedAppointment}
-          onStatusChange={handleAppointmentStatusChange}
-          onPhoneNoteUpdate={handlePhoneNoteUpdate}
-          onRefresh={handleRefresh}
-          isRefreshing={isRefreshing}
-          onMissedEmailSend={handleSendMissedAppointmentEmail}
-        />
-      )}
+      <AppointmentListView
+        appointments={appointments}
+        onAppointmentSelect={setSelectedAppointment}
+        onStatusChange={handleStatusChange}
+        onPhoneNoteUpdate={handlePhoneNoteUpdate}
+        onRefresh={handleRefresh}
+        isRefreshing={refreshing}
+        onMissedEmailSend={handleMissedEmailSend}
+        onContractInfoSend={handleContractInfoSend}
+      />
     </div>
   );
 };

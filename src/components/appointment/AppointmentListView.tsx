@@ -1,11 +1,10 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Clock, User, Mail, Calendar, Eye, Star, Heart, X, Voicemail, Filter, RefreshCw, Phone, Check, Loader2, CalendarDays } from 'lucide-react';
+import { Clock, User, Mail, Calendar, Eye, Star, Heart, X, Voicemail, Filter, RefreshCw, Phone, Check, Loader2, CalendarDays, FileText } from 'lucide-react';
 import { format, isAfter, isBefore, startOfDay, addDays, isWithinInterval } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -35,6 +34,7 @@ interface AppointmentListViewProps {
   onRefresh?: () => void;
   isRefreshing?: boolean;
   onMissedEmailSend?: (appointment: Appointment) => void;
+  onContractInfoSend?: (appointment: Appointment) => void;
 }
 
 const AppointmentListView = ({ 
@@ -44,7 +44,8 @@ const AppointmentListView = ({
   onPhoneNoteUpdate, 
   onRefresh,
   isRefreshing = false,
-  onMissedEmailSend
+  onMissedEmailSend,
+  onContractInfoSend
 }: AppointmentListViewProps) => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [editingPhoneNote, setEditingPhoneNote] = useState<string | null>(null);
@@ -186,6 +187,13 @@ const AppointmentListView = ({
     event.stopPropagation();
     if (onMissedEmailSend) {
       onMissedEmailSend(appointment);
+    }
+  };
+
+  const handleContractInfoClick = (appointment: Appointment, event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (onContractInfoSend) {
+      onContractInfoSend(appointment);
     }
   };
 
@@ -452,6 +460,17 @@ const AppointmentListView = ({
                           title="E-Mail für verpassten Termin senden"
                         >
                           <Mail className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {(appointment.status === 'confirmed' || appointment.status === 'interessiert') && onContractInfoSend && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => handleContractInfoClick(appointment, e)}
+                          className="hover:bg-blue/10 hover:text-blue-600"
+                          title="Arbeitsvertrag Infos senden"
+                        >
+                          <FileText className="h-4 w-4" />
                         </Button>
                       )}
                     </div>
