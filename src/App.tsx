@@ -26,9 +26,9 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <AuthProvider>
-          <SMSProvider>
-            <BrowserRouter>
+        <BrowserRouter>
+          <AuthProvider>
+            <SMSProvider>
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/admin" element={<Admin />} />
@@ -42,9 +42,9 @@ const App = () => (
                 <Route path="/arbeitsvertrag-erfolg" element={<ContractSuccess />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
-            </BrowserRouter>
-          </SMSProvider>
-        </AuthProvider>
+            </SMSProvider>
+          </AuthProvider>
+        </BrowserRouter>
       </TooltipProvider>
     </HelmetProvider>
   </QueryClientProvider>
