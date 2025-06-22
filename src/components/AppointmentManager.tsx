@@ -1,11 +1,13 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import AppointmentListView from './appointment/AppointmentListView';
 import AppointmentDetailView from './appointment/AppointmentDetailView';
-import { CalendarDays } from 'lucide-react';
+import EmailManager from './EmailManager';
+import { CalendarDays, Mail } from 'lucide-react';
 
 interface Appointment {
   id: string;
@@ -28,6 +30,7 @@ const AppointmentManager = () => {
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState('appointments');
   const { toast } = useToast();
 
   const fetchAppointments = async () => {
@@ -234,16 +237,45 @@ const AppointmentManager = () => {
   }
 
   return (
-    <AppointmentListView
-      appointments={appointments}
-      onAppointmentSelect={setSelectedAppointment}
-      onStatusChange={handleStatusChange}
-      onPhoneNoteUpdate={handlePhoneNoteUpdate}
-      onRefresh={handleRefresh}
-      isRefreshing={isRefreshing}
-      onMissedEmailSend={handleMissedEmailSend}
-      onContractRequestSend={handleContractRequestSend}
-    />
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <CalendarDays className="h-5 w-5" />
+          Terminverwaltung
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="appointments" className="flex items-center gap-2">
+              <CalendarDays className="h-4 w-4" />
+              Termine
+            </TabsTrigger>
+            <TabsTrigger value="emails" className="flex items-center gap-2">
+              <Mail className="h-4 w-4" />
+              Empfänger versenden
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="appointments" className="space-y-4">
+            <AppointmentListView
+              appointments={appointments}
+              onAppointmentSelect={setSelectedAppointment}
+              onStatusChange={handleStatusChange}
+              onPhoneNoteUpdate={handlePhoneNoteUpdate}
+              onRefresh={handleRefresh}
+              isRefreshing={isRefreshing}
+              onMissedEmailSend={handleMissedEmailSend}
+              onContractRequestSend={handleContractRequestSend}
+            />
+          </TabsContent>
+          
+          <TabsContent value="emails" className="space-y-4">
+            <EmailManager />
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
   );
 };
 
