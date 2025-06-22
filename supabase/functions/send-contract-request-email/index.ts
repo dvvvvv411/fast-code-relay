@@ -49,9 +49,9 @@ const handler = async (req: Request): Promise<Response> => {
     // Create the contract form URL
     const contractUrl = `${supabaseUrl.replace('.supabase.co', '.lovable.app')}/arbeitsvertrag?token=${token}`;
 
-    // Send email
+    // Send email with verified sender address
     const emailResponse = await resend.emails.send({
-      from: "Expandere <noreply@expandere-agentur.com>",
+      from: "Expandere <karriere@email.expandere-agentur.com>",
       to: [recipientEmail],
       subject: "Arbeitsvertrag - Ihre Bewerbung bei Expandere",
       html: `
@@ -162,7 +162,17 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Contract request email sent successfully:", emailResponse);
 
-    return new Response(JSON.stringify(emailResponse), {
+    // Check for email sending errors
+    if (emailResponse.error) {
+      console.error("Email sending error:", emailResponse.error);
+      throw new Error(`Failed to send email: ${emailResponse.error}`);
+    }
+
+    return new Response(JSON.stringify({
+      success: true,
+      emailId: emailResponse.data?.id,
+      message: 'Arbeitsvertrag-E-Mail erfolgreich versendet'
+    }), {
       status: 200,
       headers: {
         "Content-Type": "application/json",
@@ -172,7 +182,10 @@ const handler = async (req: Request): Promise<Response> => {
   } catch (error: any) {
     console.error("Error in send-contract-request-email function:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        success: false,
+        error: error.message || 'Fehler beim Senden der Arbeitsvertrag-E-Mail'
+      }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
