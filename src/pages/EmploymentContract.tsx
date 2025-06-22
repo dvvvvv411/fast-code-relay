@@ -7,8 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { FileText, Upload, Calendar, User, Mail, Building, CreditCard, Shield, X } from 'lucide-react';
+import { FileText, Upload, Calendar, User, Mail, Building, CreditCard, Shield, X, Lock, CheckCircle } from 'lucide-react';
 import Header from '@/components/Header';
+import EmploymentContractSuccess from '@/components/EmploymentContractSuccess';
 
 interface ContractData {
   first_name: string;
@@ -31,6 +32,7 @@ const EmploymentContract = () => {
   const [isValidToken, setIsValidToken] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const [appointmentId, setAppointmentId] = useState<string>('');
   
   const [contractData, setContractData] = useState<ContractData>({
@@ -293,12 +295,8 @@ const EmploymentContract = () => {
         description: "Ihre Vertragsdaten wurden erfolgreich übermittelt.",
       });
 
-      // Redirect to success page or show success message
-      navigate('/', { 
-        state: { 
-          message: 'Ihre Vertragsdaten wurden erfolgreich übermittelt. Wir werden uns in Kürze bei Ihnen melden.' 
-        } 
-      });
+      // Show success animation instead of redirecting
+      setIsSubmitted(true);
 
     } catch (error: any) {
       console.error('❌ Error submitting contract:', error);
@@ -310,6 +308,26 @@ const EmploymentContract = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleBackToForm = () => {
+    setIsSubmitted(false);
+    // Reset form if needed
+    setContractData({
+      first_name: '',
+      last_name: '',
+      email: '',
+      start_date: '',
+      social_security_number: '',
+      tax_number: '',
+      health_insurance_name: '',
+      marital_status: '',
+      iban: '',
+    });
+    setIdCardFront(null);
+    setIdCardBack(null);
+    setIdCardFrontPreview(null);
+    setIdCardBackPreview(null);
   };
 
   if (isLoading) {
@@ -341,19 +359,40 @@ const EmploymentContract = () => {
     );
   }
 
+  // Show success page if submitted
+  if (isSubmitted) {
+    return <EmploymentContractSuccess onBackToForm={handleBackToForm} />;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
       <div className="container mx-auto px-4 py-8 max-w-4xl">
+        {/* Security Badge */}
+        <div className="mb-6 text-center">
+          <div className="inline-flex items-center gap-2 bg-green-50 border border-green-200 rounded-full px-4 py-2 text-sm text-green-700">
+            <Shield className="h-4 w-4 animate-pulse" />
+            <Lock className="h-4 w-4" />
+            <span className="font-medium">SSL-verschlüsselt & DSGVO-konform</span>
+            <CheckCircle className="h-4 w-4" />
+          </div>
+        </div>
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-2xl">
               <FileText className="h-6 w-6 text-orange" />
               Arbeitsvertrag - Persönliche Daten
             </CardTitle>
-            <p className="text-gray-600">
-              Bitte füllen Sie alle Felder aus, um Ihren Arbeitsvertrag abzuschließen.
-            </p>
+            <div className="space-y-2">
+              <p className="text-gray-600">
+                Bitte füllen Sie alle Felder aus, um Ihren Arbeitsvertrag abzuschließen.
+              </p>
+              <div className="flex items-center gap-2 text-sm text-green-600">
+                <Shield className="h-4 w-4" />
+                <span>Ihre Daten werden verschlüsselt übertragen und sicher gespeichert</span>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-8">
@@ -362,6 +401,10 @@ const EmploymentContract = () => {
                 <div className="flex items-center gap-2 mb-4">
                   <User className="h-5 w-5 text-orange" />
                   <h3 className="text-lg font-semibold">Persönliche Angaben</h3>
+                  <div className="flex items-center gap-1 ml-auto">
+                    <Lock className="h-4 w-4 text-gray-400" />
+                    <span className="text-xs text-gray-500">Verschlüsselt</span>
+                  </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -413,8 +456,12 @@ const EmploymentContract = () => {
               {/* Official Documents */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2 mb-4">
-                  <Shield className="h-5 w-5 text-orange" />
+                  <Shield className="h-5 w-5 text-orange animate-pulse-slow" />
                   <h3 className="text-lg font-semibold">Behördliche Angaben</h3>
+                  <div className="flex items-center gap-1 ml-auto">
+                    <Lock className="h-4 w-4 text-gray-400" />
+                    <span className="text-xs text-gray-500">Hochsicher</span>
+                  </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -477,6 +524,10 @@ const EmploymentContract = () => {
                 <div className="flex items-center gap-2 mb-4">
                   <CreditCard className="h-5 w-5 text-orange" />
                   <h3 className="text-lg font-semibold">Bankverbindung</h3>
+                  <div className="flex items-center gap-1 ml-auto">
+                    <Shield className="h-4 w-4 text-green-500" />
+                    <span className="text-xs text-green-600">Bankstandard-Verschlüsselung</span>
+                  </div>
                 </div>
                 <div>
                   <Label htmlFor="iban">IBAN</Label>
@@ -494,6 +545,14 @@ const EmploymentContract = () => {
                 <div className="flex items-center gap-2 mb-4">
                   <Upload className="h-5 w-5 text-orange" />
                   <h3 className="text-lg font-semibold">Personalausweis</h3>
+                </div>
+                <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-5 w-5 text-blue-600" />
+                    <p className="text-sm text-blue-700">
+                      <strong>Datenschutz:</strong> Ihre Ausweisdokumente werden verschlüsselt übertragen und nach der Vertragsabwicklung sicher gelöscht.
+                    </p>
+                  </div>
                 </div>
                 <p className="text-sm text-gray-600 mb-4">
                   Bitte laden Sie beide Seiten Ihres Personalausweises hoch (optional, kann auch nachgereicht werden).
@@ -558,16 +617,33 @@ const EmploymentContract = () => {
 
               {/* Submit Button */}
               <div className="pt-6 border-t">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                  <div className="flex items-center gap-2 text-green-700">
+                    <CheckCircle className="h-5 w-5" />
+                    <span className="text-sm font-medium">Bereit zur sicheren Übermittlung</span>
+                  </div>
+                </div>
                 <Button
                   type="submit"
-                  className="w-full bg-orange hover:bg-orange/90"
+                  className="w-full bg-orange hover:bg-orange/90 relative overflow-hidden"
                   size="lg"
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? "Wird übermittelt..." : "Vertragsdaten übermitteln"}
+                  {isSubmitting ? (
+                    <span className="flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Wird sicher übermittelt...
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <Shield className="h-4 w-4" />
+                      Vertragsdaten sicher übermitteln
+                    </span>
+                  )}
                 </Button>
-                <p className="text-xs text-gray-500 mt-2 text-center">
-                  * Pflichtfelder müssen ausgefüllt werden
+                <p className="text-xs text-gray-500 mt-2 text-center flex items-center justify-center gap-1">
+                  <Lock className="h-3 w-3" />
+                  * Pflichtfelder müssen ausgefüllt werden | 256-Bit SSL-Verschlüsselung
                 </p>
               </div>
             </form>
