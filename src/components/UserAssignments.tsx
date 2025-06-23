@@ -6,21 +6,16 @@ import { Button } from '@/components/ui/button';
 import { Eye, Clock, CheckCircle, Star, User } from 'lucide-react';
 import { useUserAssignments } from '@/hooks/useUserAssignments';
 import { useAuth } from '@/context/AuthContext';
-import AssignmentModal from '@/components/AssignmentModal';
+import { useNavigate } from 'react-router-dom';
 
 const UserAssignments = () => {
   const { user } = useAuth();
-  const { data: assignments = [], isLoading, error, refetch } = useUserAssignments(user?.id);
-  const [selectedAssignmentUrl, setSelectedAssignmentUrl] = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { data: assignments = [], isLoading, error } = useUserAssignments(user?.id);
+  const navigate = useNavigate();
 
   const handleViewAssignment = (assignmentUrl: string) => {
-    setSelectedAssignmentUrl(assignmentUrl);
-    setIsModalOpen(true);
-  };
-
-  const handleEvaluationComplete = () => {
-    refetch(); // Refresh the assignments list when evaluation is completed
+    // Navigate to the assignment detail page
+    navigate(`/assignment-detail/${encodeURIComponent(assignmentUrl)}`);
   };
 
   if (isLoading) {
@@ -66,99 +61,90 @@ const UserAssignments = () => {
   }
 
   return (
-    <>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h3 className="text-xl font-semibold">Ihre zugewiesenen Aufträge</h3>
-          <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-            {assignments.length} {assignments.length === 1 ? 'Auftrag' : 'Aufträge'}
-          </Badge>
-        </div>
-        
-        <div className="grid gap-4">
-          {assignments.map((assignment) => (
-            <Card key={assignment.id} className="hover:shadow-md transition-shadow">
-              <CardHeader>
-                <CardTitle className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <h4 className="text-lg text-gray-900">{assignment.auftrag.title}</h4>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-sm text-gray-600">
-                        {assignment.auftrag.anbieter}
-                      </span>
-                      <span className="text-xs text-gray-400">•</span>
-                      <span className="text-sm font-mono text-gray-500">
-                        {assignment.auftrag.auftragsnummer}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-2 ml-4">
-                    {assignment.is_completed ? (
-                      <Badge variant="secondary" className="bg-green-100 text-green-800">
-                        <CheckCircle className="h-3 w-3 mr-1" />
-                        Abgeschlossen
-                      </Badge>
-                    ) : (
-                      <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-                        <Clock className="h-3 w-3 mr-1" />
-                        In Bearbeitung
-                      </Badge>
-                    )}
-                    {assignment.is_evaluated && (
-                      <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                        <Star className="h-3 w-3 mr-1" />
-                        Bewertet
-                      </Badge>
-                    )}
-                  </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <p className="text-sm text-gray-700">
-                      <strong>Projektziel:</strong> {assignment.auftrag.projektziel.substring(0, 200)}
-                      {assignment.auftrag.projektziel.length > 200 && '...'}
-                    </p>
-                  </div>
-                  
-                  <div className="flex justify-between items-center text-xs text-gray-500">
-                    <span>
-                      Zugewiesen am: {new Date(assignment.created_at).toLocaleDateString('de-DE', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })}
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h3 className="text-xl font-semibold">Ihre zugewiesenen Aufträge</h3>
+        <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+          {assignments.length} {assignments.length === 1 ? 'Auftrag' : 'Aufträge'}
+        </Badge>
+      </div>
+      
+      <div className="grid gap-4">
+        {assignments.map((assignment) => (
+          <Card key={assignment.id} className="hover:shadow-md transition-shadow">
+            <CardHeader>
+              <CardTitle className="flex justify-between items-start">
+                <div className="flex-1">
+                  <h4 className="text-lg text-gray-900">{assignment.auftrag.title}</h4>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-sm text-gray-600">
+                      {assignment.auftrag.anbieter}
                     </span>
-                    <span>
-                      Worker: {assignment.worker_first_name} {assignment.worker_last_name}
+                    <span className="text-xs text-gray-400">•</span>
+                    <span className="text-sm font-mono text-gray-500">
+                      {assignment.auftrag.auftragsnummer}
                     </span>
-                  </div>
-                  
-                  <div className="flex justify-end pt-2 border-t">
-                    <Button
-                      size="sm"
-                      onClick={() => handleViewAssignment(assignment.assignment_url)}
-                      className="bg-orange hover:bg-orange-dark text-white"
-                    >
-                      <Eye className="h-4 w-4 mr-2" />
-                      Auftrag anzeigen
-                    </Button>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                <div className="flex flex-col gap-2 ml-4">
+                  {assignment.is_completed ? (
+                    <Badge variant="secondary" className="bg-green-100 text-green-800">
+                      <CheckCircle className="h-3 w-3 mr-1" />
+                      Abgeschlossen
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+                      <Clock className="h-3 w-3 mr-1" />
+                      In Bearbeitung
+                    </Badge>
+                  )}
+                  {assignment.is_evaluated && (
+                    <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                      <Star className="h-3 w-3 mr-1" />
+                      Bewertet
+                    </Badge>
+                  )}
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <p className="text-sm text-gray-700">
+                    <strong>Projektziel:</strong> {assignment.auftrag.projektziel.substring(0, 200)}
+                    {assignment.auftrag.projektziel.length > 200 && '...'}
+                  </p>
+                </div>
+                
+                <div className="flex justify-between items-center text-xs text-gray-500">
+                  <span>
+                    Zugewiesen am: {new Date(assignment.created_at).toLocaleDateString('de-DE', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </span>
+                  <span>
+                    Worker: {assignment.worker_first_name} {assignment.worker_last_name}
+                  </span>
+                </div>
+                
+                <div className="flex justify-end pt-2 border-t">
+                  <Button
+                    size="sm"
+                    onClick={() => handleViewAssignment(assignment.assignment_url)}
+                    className="bg-orange hover:bg-orange-dark text-white"
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    Auftrag anzeigen
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
-
-      <AssignmentModal
-        assignmentUrl={selectedAssignmentUrl}
-        open={isModalOpen}
-        onOpenChange={setIsModalOpen}
-        onEvaluationComplete={handleEvaluationComplete}
-      />
-    </>
+    </div>
   );
 };
 

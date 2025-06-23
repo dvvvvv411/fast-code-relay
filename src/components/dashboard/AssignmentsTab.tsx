@@ -1,11 +1,11 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { CheckCircle, Clock, Target, TrendingUp } from 'lucide-react';
 import { useUserAssignments } from '@/hooks/useUserAssignments';
 import { useAuth } from '@/context/AuthContext';
 import UserAssignments from '@/components/UserAssignments';
+import { Badge } from '@/components/ui/badge';
 
 const AssignmentsTab = () => {
   const { user } = useAuth();

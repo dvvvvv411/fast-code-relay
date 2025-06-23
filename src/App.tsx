@@ -4,49 +4,47 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { HelmetProvider } from "react-helmet-async";
-import { SMSProvider } from "./context/SMSContext";
-import { AuthProvider } from "./context/AuthContext";
+import { AuthProvider } from "@/context/AuthContext";
+import { SMSProvider } from "@/context/SMSContext";
 import Index from "./pages/Index";
-import Admin from "./pages/Admin";
 import Auth from "./pages/Auth";
-import UserDashboard from "./pages/UserDashboard";
-import Auftrag from "./pages/Auftrag";
 import Assignment from "./pages/Assignment";
-import AppointmentBooking from "./pages/AppointmentBooking";
+import Auftrag from "./pages/Auftrag";
+import Admin from "./pages/Admin";
 import ContractForm from "./pages/ContractForm";
 import ContractSuccess from "./pages/ContractSuccess";
+import AppointmentBooking from "./pages/AppointmentBooking";
+import UserDashboard from "./pages/UserDashboard";
+import AssignmentDetail from "./pages/AssignmentDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <HelmetProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AuthProvider>
-            <SMSProvider>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/admin" element={<Admin />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/dashboard" element={<UserDashboard />} />
-                <Route path="/auftrag" element={<Auftrag />} />
-                <Route path="/auftrag/:id" element={<Auftrag />} />
-                <Route path="/assignment/:assignmentUrl" element={<Assignment />} />
-                <Route path="/termin-buchen/:token" element={<AppointmentBooking />} />
-                <Route path="/arbeitsvertrag/:token" element={<ContractForm />} />
-                <Route path="/arbeitsvertrag-erfolg" element={<ContractSuccess />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </SMSProvider>
-          </AuthProvider>
-        </BrowserRouter>
-      </TooltipProvider>
-    </HelmetProvider>
+    <AuthProvider>
+      <SMSProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/assignment/:assignmentUrl" element={<Assignment />} />
+              <Route path="/auftrag/:auftragId" element={<Auftrag />} />
+              <Route path="/admin" element={<Admin />} />
+              <Route path="/contract-form" element={<ContractForm />} />
+              <Route path="/contract-success" element={<ContractSuccess />} />
+              <Route path="/appointment-booking" element={<AppointmentBooking />} />
+              <Route path="/dashboard" element={<UserDashboard />} />
+              <Route path="/assignment-detail/:assignmentUrl" element={<AssignmentDetail />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </SMSProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 
