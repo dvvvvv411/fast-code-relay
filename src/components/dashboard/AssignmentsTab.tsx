@@ -32,11 +32,11 @@ const AssignmentsTab = () => {
           <div className="flex items-center gap-3">
             <UserCheck className="h-6 w-6 text-blue-600" />
             <div>
-              <h3 className="font-semibold text-blue-800">Aufträge - Alle vs. Registrierte</h3>
+              <h3 className="font-semibold text-blue-800">Status-Updates für registrierte Benutzer</h3>
               <p className="text-sm text-blue-700">
-                {registeredAssignments.length} von {totalAssignments} Aufträgen sind an registrierte Mitarbeiter vergeben.
+                Registrierte Mitarbeiter können jetzt Bewertungen einreichen, die automatisch den Status auf "In Überprüfung" setzen.
                 {underReviewAssignments > 0 && (
-                  <> {underReviewAssignments} Bewertungen sind in Überprüfung.</>
+                  <> {underReviewAssignments} Bewertungen sind derzeit in Überprüfung.</>
                 )}
               </p>
             </div>
