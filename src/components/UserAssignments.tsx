@@ -104,6 +104,12 @@ const UserAssignments = () => {
                       Bewertet
                     </Badge>
                   )}
+                  {assignment.assigned_user_id && (
+                    <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                      <User className="h-3 w-3 mr-1" />
+                      Registriert
+                    </Badge>
+                  )}
                 </div>
               </CardTitle>
             </CardHeader>

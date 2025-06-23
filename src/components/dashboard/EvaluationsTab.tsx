@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Star, MessageSquare, Calendar, Trophy } from 'lucide-react';
+import { Star, MessageSquare, Calendar, Trophy, UserCheck } from 'lucide-react';
 import { useUserAssignments } from '@/hooks/useUserAssignments';
 import { useAuth } from '@/context/AuthContext';
 
@@ -10,12 +10,15 @@ const EvaluationsTab = () => {
   const { user } = useAuth();
   const { data: assignments = [], isLoading } = useUserAssignments(user?.id);
 
-  // Filter evaluated assignments
-  const evaluatedAssignments = assignments.filter(assignment => assignment.is_evaluated);
+  // Filter evaluated assignments for users with profiles
+  const evaluatedAssignments = assignments.filter(assignment => 
+    assignment.is_evaluated && assignment.assigned_user_id
+  );
   
-  // Calculate stats
+  // Calculate stats only for assignments with user profiles
+  const profileAssignments = assignments.filter(assignment => assignment.assigned_user_id);
   const totalEvaluations = evaluatedAssignments.length;
-  const completedAssignments = assignments.filter(assignment => assignment.is_completed).length;
+  const completedAssignments = profileAssignments.filter(assignment => assignment.is_completed).length;
   const averageRating = 4.2; // This would be calculated from actual evaluation data
 
   if (isLoading) {
@@ -33,6 +36,21 @@ const EvaluationsTab = () => {
 
   return (
     <div className="space-y-6">
+      {/* Info Banner */}
+      <Card className="bg-blue-50 border-blue-200">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-3">
+            <UserCheck className="h-6 w-6 text-blue-600" />
+            <div>
+              <h3 className="font-semibold text-blue-800">Nur registrierte Mitarbeiter</h3>
+              <p className="text-sm text-blue-700">
+                Diese Ansicht zeigt nur Bewertungen von Mitarbeitern mit Benutzerprofilen.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
@@ -41,6 +59,7 @@ const EvaluationsTab = () => {
               <div>
                 <p className="text-sm text-gray-600">Bewertungen</p>
                 <p className="text-2xl font-bold text-orange">{totalEvaluations}</p>
+                <p className="text-xs text-gray-500">Registrierte Mitarbeiter</p>
               </div>
               <Star className="h-8 w-8 text-orange opacity-80" />
             </div>
@@ -53,6 +72,7 @@ const EvaluationsTab = () => {
               <div>
                 <p className="text-sm text-gray-600">Abgeschlossen</p>
                 <p className="text-2xl font-bold text-green-600">{completedAssignments}</p>
+                <p className="text-xs text-gray-500">Mit Profil</p>
               </div>
               <Trophy className="h-8 w-8 text-green-600 opacity-80" />
             </div>
@@ -68,6 +88,7 @@ const EvaluationsTab = () => {
                   <p className="text-2xl font-bold text-yellow-600">{averageRating}</p>
                   <Star className="h-5 w-5 text-yellow-500 fill-current" />
                 </div>
+                <p className="text-xs text-gray-500">Registrierte nur</p>
               </div>
               <div className="flex gap-1">
                 {[1, 2, 3, 4, 5].map((star) => (
@@ -91,7 +112,7 @@ const EvaluationsTab = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5 text-orange" />
-            Meine Bewertungen
+            Bewertungen (Registrierte Mitarbeiter)
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -99,10 +120,10 @@ const EvaluationsTab = () => {
             <div className="text-center py-8">
               <Star className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-500 text-lg mb-2">
-                Noch keine Bewertungen
+                Noch keine Bewertungen von registrierten Mitarbeitern
               </p>
               <p className="text-sm text-gray-400">
-                Schließen Sie Aufträge ab, um Bewertungen zu erhalten.
+                Bewertungen werden nur von Mitarbeitern mit Benutzerprofilen angezeigt.
               </p>
             </div>
           ) : (
@@ -112,7 +133,13 @@ const EvaluationsTab = () => {
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex-1">
                       <h4 className="font-semibold text-gray-900">{assignment.auftrag.title}</h4>
-                      <p className="text-sm text-gray-600">{assignment.auftrag.anbieter}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-sm text-gray-600">{assignment.auftrag.anbieter}</p>
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                          <UserCheck className="h-3 w-3 mr-1" />
+                          Registriert
+                        </Badge>
+                      </div>
                     </div>
                     <div className="flex flex-col items-end gap-2">
                       <Badge variant="secondary" className="bg-blue-100 text-blue-800">
@@ -142,6 +169,10 @@ const EvaluationsTab = () => {
                         month: 'long',
                         day: 'numeric'
                       })}
+                    </span>
+                    <span>•</span>
+                    <span>
+                      Mitarbeiter: {assignment.worker_first_name} {assignment.worker_last_name}
                     </span>
                   </div>
                 </div>

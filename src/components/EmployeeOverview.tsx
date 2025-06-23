@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Users, Star, FileText, Eye, Calendar, User, UserMinus, Filter, Activity, Send, CheckCircle } from 'lucide-react';
+import { Users, Star, FileText, Eye, Calendar, User, UserMinus, Filter, Activity, Send, CheckCircle, UserCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -20,6 +20,8 @@ interface EmployeeData {
   latest_assignment_date: string;
   assignments: Assignment[];
   is_departed: boolean;
+  has_profile: boolean;
+  assigned_user_id?: string;
 }
 
 interface Assignment {
@@ -34,6 +36,7 @@ interface Assignment {
   evaluation_count?: number;
   is_actually_completed?: boolean;
   is_departed?: boolean;
+  assigned_user_id?: string;
 }
 
 interface ActivityLog {
@@ -56,6 +59,7 @@ const EmployeeOverview = () => {
   const [sortBy, setSortBy] = useState<'name' | 'assignments' | 'rating' | 'completion'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'departed'>('active');
+  const [profileFilter, setProfileFilter] = useState<'all' | 'with_profile' | 'without_profile'>('all');
   const [activityFilter, setActivityFilter] = useState<'all' | 'assignment_sent' | 'evaluation_submitted'>('all');
   const { toast } = useToast();
 
@@ -66,7 +70,7 @@ const EmployeeOverview = () => {
 
   const fetchEmployeeData = async () => {
     try {
-      // Fetch all assignments with related auftrag data
+      // Fetch all assignments with related auftrag data and profile information
       const { data: assignmentsData, error: assignmentsError } = await supabase
         .from('auftrag_assignments')
         .select(`
@@ -76,6 +80,7 @@ const EmployeeOverview = () => {
           is_completed,
           is_evaluated,
           is_departed,
+          assigned_user_id,
           created_at,
           updated_at,
           auftraege!inner(title, auftragsnummer)
@@ -83,6 +88,13 @@ const EmployeeOverview = () => {
         .order('created_at', { ascending: false });
 
       if (assignmentsError) throw assignmentsError;
+
+      // Fetch all profiles to check which employees have profiles
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name');
+
+      if (profilesError) throw profilesError;
 
       // Fetch evaluation data
       const { data: evaluationsData, error: evaluationsError } = await supabase
@@ -99,6 +111,12 @@ const EmployeeOverview = () => {
 
       assignmentsData?.forEach((assignment: any) => {
         const employeeKey = `${assignment.worker_first_name}_${assignment.worker_last_name}`;
+        
+        // Check if this employee has a profile
+        const hasProfile = profilesData?.some(profile => 
+          profile.first_name?.toLowerCase() === assignment.worker_first_name?.toLowerCase() &&
+          profile.last_name?.toLowerCase() === assignment.worker_last_name?.toLowerCase()
+        ) || Boolean(assignment.assigned_user_id);
         
         // Calculate evaluation data for this assignment
         const assignmentEvaluations = evaluationsData?.filter(evaluation => evaluation.assignment_id === assignment.id) || [];
@@ -120,7 +138,8 @@ const EmployeeOverview = () => {
           average_rating: averageRating,
           evaluation_count: assignmentEvaluations.length,
           is_actually_completed: isActuallyCompleted,
-          is_departed: assignment.is_departed
+          is_departed: assignment.is_departed,
+          assigned_user_id: assignment.assigned_user_id
         };
 
         if (employeeMap.has(employeeKey)) {
@@ -133,6 +152,12 @@ const EmployeeOverview = () => {
           // Update employee departed status if any assignment is departed
           if (assignment.is_departed) {
             employee.is_departed = true;
+          }
+          
+          // Update profile status if any assignment has a user_id
+          if (assignment.assigned_user_id || hasProfile) {
+            employee.has_profile = true;
+            employee.assigned_user_id = assignment.assigned_user_id;
           }
           
           // Update latest assignment date
@@ -149,7 +174,9 @@ const EmployeeOverview = () => {
             average_rating: 0,
             latest_assignment_date: assignment.created_at,
             assignments: [assignmentData],
-            is_departed: assignment.is_departed || false
+            is_departed: assignment.is_departed || false,
+            has_profile: hasProfile,
+            assigned_user_id: assignment.assigned_user_id
           });
         }
       });
@@ -181,6 +208,7 @@ const EmployeeOverview = () => {
   const fetchActivityLogs = async () => {
     setIsActivityLoading(true);
     try {
+      // Fetch activity logs and filter for employees with profiles
       const { data: activityData, error: activityError } = await supabase
         .from('employee_activity_logs')
         .select('*')
@@ -189,7 +217,22 @@ const EmployeeOverview = () => {
 
       if (activityError) throw activityError;
 
-      setActivityLogs(activityData || []);
+      // Get profiles to filter activity logs
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('first_name, last_name');
+
+      if (profilesError) throw profilesError;
+
+      // Filter activity logs for employees with profiles
+      const filteredActivityData = activityData?.filter(log => {
+        return profilesData?.some(profile => 
+          profile.first_name?.toLowerCase() === log.employee_first_name?.toLowerCase() &&
+          profile.last_name?.toLowerCase() === log.employee_last_name?.toLowerCase()
+        );
+      }) || [];
+
+      setActivityLogs(filteredActivityData);
     } catch (error) {
       console.error('Error fetching activity logs:', error);
       toast({
@@ -236,14 +279,33 @@ const EmployeeOverview = () => {
 
   const getFilteredEmployees = () => {
     return employees.filter(employee => {
+      // Status filter
+      let statusMatch = true;
       switch (statusFilter) {
         case 'active':
-          return !employee.is_departed;
+          statusMatch = !employee.is_departed;
+          break;
         case 'departed':
-          return employee.is_departed;
+          statusMatch = employee.is_departed;
+          break;
         default:
-          return true;
+          statusMatch = true;
       }
+
+      // Profile filter
+      let profileMatch = true;
+      switch (profileFilter) {
+        case 'with_profile':
+          profileMatch = employee.has_profile;
+          break;
+        case 'without_profile':
+          profileMatch = !employee.has_profile;
+          break;
+        default:
+          profileMatch = true;
+      }
+
+      return statusMatch && profileMatch;
     });
   };
 
@@ -361,6 +423,8 @@ const EmployeeOverview = () => {
   const filteredEmployees = getFilteredEmployees();
   const activeEmployees = employees.filter(emp => !emp.is_departed);
   const departedEmployees = employees.filter(emp => emp.is_departed);
+  const employeesWithProfiles = employees.filter(emp => emp.has_profile);
+  const employeesWithoutProfiles = employees.filter(emp => !emp.has_profile);
   const filteredActivityLogs = getFilteredActivityLogs();
 
   return (
@@ -377,6 +441,16 @@ const EmployeeOverview = () => {
               <SelectItem value="active">Aktive ({activeEmployees.length})</SelectItem>
               <SelectItem value="departed">Ausgeschieden ({departedEmployees.length})</SelectItem>
               <SelectItem value="all">Alle ({employees.length})</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={profileFilter} onValueChange={(value: typeof profileFilter) => setProfileFilter(value)}>
+            <SelectTrigger className="w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Alle Profile</SelectItem>
+              <SelectItem value="with_profile">Mit Profil ({employeesWithProfiles.length})</SelectItem>
+              <SelectItem value="without_profile">Ohne Profil ({employeesWithoutProfiles.length})</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -399,7 +473,19 @@ const EmployeeOverview = () => {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
-              <FileText className="h-8 w-8 text-green-500" />
+              <UserCheck className="h-8 w-8 text-green-500" />
+              <div>
+                <p className="text-2xl font-bold">{employeesWithProfiles.length}</p>
+                <p className="text-sm text-gray-600">Mit Profil</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
+              <FileText className="h-8 w-8 text-orange-500" />
               <div>
                 <p className="text-2xl font-bold">
                   {filteredEmployees.reduce((sum, emp) => sum + emp.total_assignments, 0)}
@@ -426,20 +512,6 @@ const EmployeeOverview = () => {
             </div>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3">
-              <Calendar className="h-8 w-8 text-purple-500" />
-              <div>
-                <p className="text-2xl font-bold">
-                  {filteredEmployees.reduce((sum, emp) => sum + emp.completed_assignments, 0)}
-                </p>
-                <p className="text-sm text-gray-600">Abgeschlossen</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Activity Log Section */}
@@ -448,7 +520,7 @@ const EmployeeOverview = () => {
           <div className="flex justify-between items-center">
             <CardTitle className="flex items-center gap-2">
               <Activity className="h-5 w-5 text-orange-500" />
-              Aktivitätsprotokoll
+              Aktivitätsprotokoll (Nur registrierte Mitarbeiter)
             </CardTitle>
             <div className="flex items-center gap-3">
               <Filter className="h-4 w-4 text-gray-500" />
@@ -483,7 +555,7 @@ const EmployeeOverview = () => {
           ) : filteredActivityLogs.length === 0 ? (
             <div className="text-center py-8">
               <Activity className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500">Keine Aktivitäten gefunden.</p>
+              <p className="text-gray-500">Keine Aktivitäten von registrierten Mitarbeitern gefunden.</p>
             </div>
           ) : (
             <div className="space-y-3 max-h-96 overflow-y-auto">
@@ -497,6 +569,10 @@ const EmployeeOverview = () => {
                       </span>
                       <Badge variant="outline" className="text-xs">
                         {log.activity_type === 'assignment_sent' ? 'Zuweisung' : 'Bewertung'}
+                      </Badge>
+                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
+                        <UserCheck className="h-3 w-3 mr-1" />
+                        Registriert
                       </Badge>
                     </div>
                     <p className="text-sm text-gray-700 mb-1">
@@ -527,6 +603,10 @@ const EmployeeOverview = () => {
                   ? 'Keine ausgeschiedenen Mitarbeiter gefunden.'
                   : statusFilter === 'active'
                   ? 'Keine aktiven Mitarbeiter gefunden.'
+                  : profileFilter === 'with_profile'
+                  ? 'Keine Mitarbeiter mit Profil gefunden.'
+                  : profileFilter === 'without_profile'
+                  ? 'Keine Mitarbeiter ohne Profil gefunden.'
                   : 'Keine Mitarbeiter gefunden.'
                 }
               </p>
@@ -560,6 +640,7 @@ const EmployeeOverview = () => {
                     Bewertung {sortBy === 'rating' && (sortOrder === 'asc' ? '↑' : '↓')}
                   </TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Profil</TableHead>
                   <TableHead>Letzte Zuweisung</TableHead>
                   <TableHead>Aktionen</TableHead>
                 </TableRow>
@@ -603,6 +684,24 @@ const EmployeeOverview = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>
+                      <Badge 
+                        variant={employee.has_profile ? "default" : "outline"}
+                        className={employee.has_profile ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}
+                      >
+                        {employee.has_profile ? (
+                          <>
+                            <UserCheck className="h-3 w-3 mr-1" />
+                            Registriert
+                          </>
+                        ) : (
+                          <>
+                            <User className="h-3 w-3 mr-1" />
+                            Nicht registriert
+                          </>
+                        )}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
                       <span className="text-sm text-gray-600">
                         {new Date(employee.latest_assignment_date).toLocaleDateString('de-DE')}
                       </span>
@@ -622,8 +721,14 @@ const EmployeeOverview = () => {
                           </DialogTrigger>
                           <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
                             <DialogHeader>
-                              <DialogTitle>
+                              <DialogTitle className="flex items-center gap-2">
                                 {employee.worker_first_name} {employee.worker_last_name} - Auftragsdetails
+                                {employee.has_profile && (
+                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                    <UserCheck className="h-3 w-3 mr-1" />
+                                    Registriert
+                                  </Badge>
+                                )}
                               </DialogTitle>
                             </DialogHeader>
                             
@@ -697,6 +802,12 @@ const EmployeeOverview = () => {
                                               </Badge>
                                               {assignment.is_evaluated && (
                                                 <Badge variant="secondary">Bewertet</Badge>
+                                              )}
+                                              {assignment.assigned_user_id && (
+                                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                                  <UserCheck className="h-3 w-3 mr-1" />
+                                                  Registriert
+                                                </Badge>
                                               )}
                                             </div>
                                           </TableCell>
