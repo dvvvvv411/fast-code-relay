@@ -10,6 +10,7 @@ export interface UserAssignment {
   assignment_url: string;
   is_completed: boolean;
   is_evaluated: boolean;
+  assigned_user_id: string | null;
   created_at: string;
   auftrag: {
     id: string;
@@ -38,6 +39,7 @@ export const useUserAssignments = (userId?: string) => {
           assignment_url,
           is_completed,
           is_evaluated,
+          assigned_user_id,
           created_at,
           auftraege!inner (
             id,
@@ -66,6 +68,7 @@ export const useUserAssignments = (userId?: string) => {
         assignment_url: item.assignment_url,
         is_completed: item.is_completed,
         is_evaluated: item.is_evaluated,
+        assigned_user_id: item.assigned_user_id,
         created_at: item.created_at,
         auftrag: {
           id: item.auftraege.id,
