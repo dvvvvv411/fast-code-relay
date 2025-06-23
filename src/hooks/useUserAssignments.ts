@@ -11,6 +11,9 @@ export interface UserAssignment {
   is_completed: boolean;
   is_evaluated: boolean;
   assigned_user_id: string | null;
+  status: string;
+  evaluation_approved_at: string | null;
+  evaluation_approved_by: string | null;
   created_at: string;
   auftrag: {
     id: string;
@@ -40,6 +43,9 @@ export const useUserAssignments = (userId?: string) => {
           is_completed,
           is_evaluated,
           assigned_user_id,
+          status,
+          evaluation_approved_at,
+          evaluation_approved_by,
           created_at,
           auftraege!inner (
             id,
@@ -69,6 +75,9 @@ export const useUserAssignments = (userId?: string) => {
         is_completed: item.is_completed,
         is_evaluated: item.is_evaluated,
         assigned_user_id: item.assigned_user_id,
+        status: item.status,
+        evaluation_approved_at: item.evaluation_approved_at,
+        evaluation_approved_by: item.evaluation_approved_by,
         created_at: item.created_at,
         auftrag: {
           id: item.auftraege.id,

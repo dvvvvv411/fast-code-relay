@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { CheckCircle, Clock, Target, TrendingUp, UserCheck } from 'lucide-react';
+import { CheckCircle, Clock, Target, TrendingUp, UserCheck, AlertCircle } from 'lucide-react';
 import { useUserAssignments } from '@/hooks/useUserAssignments';
 import { useAuth } from '@/context/AuthContext';
 import UserAssignments from '@/components/UserAssignments';
@@ -13,13 +13,15 @@ const AssignmentsTab = () => {
 
   // Calculate stats for all assignments
   const totalAssignments = assignments.length;
-  const completedAssignments = assignments.filter(assignment => assignment.is_completed).length;
-  const pendingAssignments = assignments.filter(assignment => !assignment.is_completed).length;
+  const completedAssignments = assignments.filter(assignment => assignment.status === 'completed').length;
+  const underReviewAssignments = assignments.filter(assignment => assignment.status === 'under_review').length;
+  const pendingAssignments = assignments.filter(assignment => assignment.status === 'pending').length;
   const completionRate = totalAssignments > 0 ? Math.round((completedAssignments / totalAssignments) * 100) : 0;
   
   // Calculate stats for registered users only
   const registeredAssignments = assignments.filter(assignment => assignment.assigned_user_id);
-  const registeredCompleted = registeredAssignments.filter(assignment => assignment.is_completed).length;
+  const registeredCompleted = registeredAssignments.filter(assignment => assignment.status === 'completed').length;
+  const registeredUnderReview = registeredAssignments.filter(assignment => assignment.status === 'under_review').length;
   const registeredCompletionRate = registeredAssignments.length > 0 ? Math.round((registeredCompleted / registeredAssignments.length) * 100) : 0;
 
   return (
@@ -33,6 +35,9 @@ const AssignmentsTab = () => {
               <h3 className="font-semibold text-blue-800">Aufträge - Alle vs. Registrierte</h3>
               <p className="text-sm text-blue-700">
                 {registeredAssignments.length} von {totalAssignments} Aufträgen sind an registrierte Mitarbeiter vergeben.
+                {underReviewAssignments > 0 && (
+                  <> {underReviewAssignments} Bewertungen sind in Überprüfung.</>
+                )}
               </p>
             </div>
           </div>
@@ -71,11 +76,11 @@ const AssignmentsTab = () => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Offen</p>
-                <p className="text-2xl font-bold text-orange">{pendingAssignments}</p>
-                <p className="text-xs text-gray-500">{registeredAssignments.length - registeredCompleted} reg. offen</p>
+                <p className="text-sm text-gray-600">In Überprüfung</p>
+                <p className="text-2xl font-bold text-blue-600">{underReviewAssignments}</p>
+                <p className="text-xs text-gray-500">{registeredUnderReview} registriert</p>
               </div>
-              <Clock className="h-8 w-8 text-orange opacity-80" />
+              <AlertCircle className="h-8 w-8 text-blue-600 opacity-80" />
             </div>
           </CardContent>
         </Card>

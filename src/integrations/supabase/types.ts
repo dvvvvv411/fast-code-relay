@@ -201,12 +201,15 @@ export type Database = {
           assignment_url: string
           auftrag_id: string
           created_at: string
+          evaluation_approved_at: string | null
+          evaluation_approved_by: string | null
           id: string
           ident_code: string | null
           ident_link: string | null
           is_completed: boolean
           is_departed: boolean | null
           is_evaluated: boolean
+          status: string
           updated_at: string
           worker_first_name: string
           worker_last_name: string
@@ -219,12 +222,15 @@ export type Database = {
           assignment_url: string
           auftrag_id: string
           created_at?: string
+          evaluation_approved_at?: string | null
+          evaluation_approved_by?: string | null
           id?: string
           ident_code?: string | null
           ident_link?: string | null
           is_completed?: boolean
           is_departed?: boolean | null
           is_evaluated?: boolean
+          status?: string
           updated_at?: string
           worker_first_name: string
           worker_last_name: string
@@ -237,12 +243,15 @@ export type Database = {
           assignment_url?: string
           auftrag_id?: string
           created_at?: string
+          evaluation_approved_at?: string | null
+          evaluation_approved_by?: string | null
           id?: string
           ident_code?: string | null
           ident_link?: string | null
           is_completed?: boolean
           is_departed?: boolean | null
           is_evaluated?: boolean
+          status?: string
           updated_at?: string
           worker_first_name?: string
           worker_last_name?: string

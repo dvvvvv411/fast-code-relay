@@ -16,6 +16,7 @@ import ContractSuccess from "./pages/ContractSuccess";
 import AppointmentBooking from "./pages/AppointmentBooking";
 import UserDashboard from "./pages/UserDashboard";
 import AssignmentDetail from "./pages/AssignmentDetail";
+import EvaluationSuccess from "./pages/EvaluationSuccess";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,7 @@ const App = () => (
               <Route path="/appointment-booking" element={<AppointmentBooking />} />
               <Route path="/dashboard" element={<UserDashboard />} />
               <Route path="/assignment-detail/:assignmentUrl" element={<AssignmentDetail />} />
+              <Route path="/evaluation-success/:assignmentUrl?" element={<EvaluationSuccess />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </SMSProvider>

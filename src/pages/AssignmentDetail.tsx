@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -375,6 +374,7 @@ const AssignmentDetail = () => {
               <div>
                 <EvaluationForm
                   assignmentId={assignmentData.id}
+                  assignmentUrl={assignmentData.assignment_url}
                   questions={evaluationQuestions}
                   onEvaluationComplete={handleEvaluationComplete}
                 />

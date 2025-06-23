@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Eye, Clock, CheckCircle, Star, User } from 'lucide-react';
+import { Eye, Clock, CheckCircle, Star, User, AlertCircle } from 'lucide-react';
 import { useUserAssignments } from '@/hooks/useUserAssignments';
 import { useAuth } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -16,6 +16,42 @@ const UserAssignments = () => {
   const handleViewAssignment = (assignmentUrl: string) => {
     // Navigate to the assignment detail page
     navigate(`/assignment-detail/${encodeURIComponent(assignmentUrl)}`);
+  };
+
+  const getStatusBadge = (assignment: any) => {
+    if (assignment.status === 'completed') {
+      return (
+        <Badge variant="secondary" className="bg-green-100 text-green-800">
+          <CheckCircle className="h-3 w-3 mr-1" />
+          Abgeschlossen
+        </Badge>
+      );
+    }
+    
+    if (assignment.status === 'under_review') {
+      return (
+        <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+          <AlertCircle className="h-3 w-3 mr-1" />
+          In Überprüfung
+        </Badge>
+      );
+    }
+    
+    if (assignment.is_evaluated) {
+      return (
+        <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+          <Star className="h-3 w-3 mr-1" />
+          Bewertet
+        </Badge>
+      );
+    }
+    
+    return (
+      <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+        <Clock className="h-3 w-3 mr-1" />
+        In Bearbeitung
+      </Badge>
+    );
   };
 
   if (isLoading) {
@@ -87,23 +123,7 @@ const UserAssignments = () => {
                   </div>
                 </div>
                 <div className="flex flex-col gap-2 ml-4">
-                  {assignment.is_completed ? (
-                    <Badge variant="secondary" className="bg-green-100 text-green-800">
-                      <CheckCircle className="h-3 w-3 mr-1" />
-                      Abgeschlossen
-                    </Badge>
-                  ) : (
-                    <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-                      <Clock className="h-3 w-3 mr-1" />
-                      In Bearbeitung
-                    </Badge>
-                  )}
-                  {assignment.is_evaluated && (
-                    <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                      <Star className="h-3 w-3 mr-1" />
-                      Bewertet
-                    </Badge>
-                  )}
+                  {getStatusBadge(assignment)}
                   {assignment.assigned_user_id && (
                     <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
                       <User className="h-3 w-3 mr-1" />
@@ -134,6 +154,16 @@ const UserAssignments = () => {
                     Worker: {assignment.worker_first_name} {assignment.worker_last_name}
                   </span>
                 </div>
+
+                {assignment.evaluation_approved_at && (
+                  <div className="text-xs text-green-600">
+                    Genehmigt am: {new Date(assignment.evaluation_approved_at).toLocaleDateString('de-DE', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </div>
+                )}
                 
                 <div className="flex justify-end pt-2 border-t">
                   <Button
