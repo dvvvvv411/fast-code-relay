@@ -374,7 +374,6 @@ const AssignmentDetail = () => {
               <div>
                 <EvaluationForm
                   assignmentId={assignmentData.id}
-                  assignmentUrl={assignmentData.assignment_url}
                   questions={evaluationQuestions}
                   onEvaluationComplete={handleEvaluationComplete}
                 />
