@@ -460,12 +460,12 @@ const AssignmentDetail = () => {
             {/* Bewertung abgeschlossen */}
             {assignmentData.is_evaluated && (
               <Card className="border-green-200 bg-green-50">
-                <CardContent className="p-8 text-center">
+                <CardContent className="p-8 flex items-center justify-center min-h-[200px]">
                   <div className="flex flex-col items-center gap-4">
                     <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
                       <Check className="h-8 w-8 text-green-600" />
                     </div>
-                    <div>
+                    <div className="text-center">
                       <h3 className="text-xl font-semibold text-green-800 mb-2">
                         Vielen Dank für Ihre Bewertung!
                       </h3>
