@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -147,8 +146,8 @@ const PersonalDataTab = () => {
               </div>
             </div>
 
-            {/* Editable Fields - Right Side */}
-            <div className="space-y-6">
+            {/* Editable Fields - Right Side - Now vertically centered */}
+            <div className="flex flex-col justify-center space-y-6">
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-semibold text-gray-900">Bankdaten bearbeiten</h3>
                 {!isEditing && (
