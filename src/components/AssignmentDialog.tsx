@@ -1,9 +1,10 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { UserPlus, Copy, CheckCircle } from 'lucide-react';
@@ -17,6 +18,13 @@ interface AssignmentDialogProps {
   onAssignmentCreated: () => void;
 }
 
+interface PhoneNumber {
+  id: string;
+  phone: string;
+  access_code: string;
+  is_used: boolean;
+}
+
 const AssignmentDialog = ({ isOpen, onClose, auftragId, auftragTitle, onAssignmentCreated }: AssignmentDialogProps) => {
   const [formData, setFormData] = useState({
     worker_first_name: '',
@@ -26,11 +34,39 @@ const AssignmentDialog = ({ isOpen, onClose, auftragId, auftragTitle, onAssignme
     access_email: '',
     access_password: '',
     access_phone: '',
-    assigned_user_id: undefined as string | undefined
+    assigned_user_id: undefined as string | undefined,
+    phone_number_id: undefined as string | undefined
   });
+  const [phoneNumbers, setPhoneNumbers] = useState<PhoneNumber[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [assignmentUrl, setAssignmentUrl] = useState<string | null>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchPhoneNumbers();
+    }
+  }, [isOpen]);
+
+  const fetchPhoneNumbers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('phone_numbers')
+        .select('id, phone, access_code, is_used')
+        .eq('is_used', false)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      setPhoneNumbers(data || []);
+    } catch (error) {
+      console.error('Error fetching phone numbers:', error);
+      toast({
+        title: "Fehler",
+        description: "Telefonnummern konnten nicht geladen werden.",
+        variant: "destructive"
+      });
+    }
+  };
 
   const resetForm = () => {
     setFormData({
@@ -41,7 +77,8 @@ const AssignmentDialog = ({ isOpen, onClose, auftragId, auftragTitle, onAssignme
       access_email: '',
       access_password: '',
       access_phone: '',
-      assigned_user_id: undefined
+      assigned_user_id: undefined,
+      phone_number_id: undefined
     });
     setAssignmentUrl(null);
   };
@@ -112,6 +149,26 @@ const AssignmentDialog = ({ isOpen, onClose, auftragId, auftragTitle, onAssignme
         throw error;
       }
 
+      // If a phone number was selected, create a request entry
+      if (formData.phone_number_id) {
+        const { error: requestError } = await supabase
+          .from('requests')
+          .insert({
+            phone_number_id: formData.phone_number_id,
+            status: 'pending'
+          });
+
+        if (requestError) {
+          console.error('Request creation error:', requestError);
+          // Don't throw here, assignment was successful
+          toast({
+            title: "Warnung",
+            description: "Auftrag wurde zugewiesen, aber SMS-Request konnte nicht erstellt werden.",
+            variant: "destructive"
+          });
+        }
+      }
+
       const workerName = `${formData.worker_first_name} ${formData.worker_last_name}`;
       
       toast({
@@ -151,6 +208,8 @@ const AssignmentDialog = ({ isOpen, onClose, auftragId, auftragTitle, onAssignme
       copyLinkToClipboard(assignmentUrl, workerName);
     }
   };
+
+  const selectedPhoneNumber = phoneNumbers.find(p => p.id === formData.phone_number_id);
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -199,6 +258,45 @@ const AssignmentDialog = ({ isOpen, onClose, auftragId, auftragTitle, onAssignme
                 placeholder="Mustermann"
               />
             </div>
+          </div>
+
+          <div>
+            <Label>Telefonnummer auswählen (Optional)</Label>
+            <Select
+              value={formData.phone_number_id}
+              onValueChange={(value) => setFormData({ ...formData, phone_number_id: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Telefonnummer auswählen..." />
+              </SelectTrigger>
+              <SelectContent className="bg-white shadow-lg border border-gray-200 z-50">
+                {phoneNumbers.map((phoneNumber) => (
+                  <SelectItem key={phoneNumber.id} value={phoneNumber.id}>
+                    <div className="flex items-center justify-between w-full">
+                      <span>{phoneNumber.phone}</span>
+                      <span className="text-xs text-gray-500 ml-2">
+                        Code: {phoneNumber.access_code}
+                      </span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {phoneNumbers.length === 0 && (
+              <p className="text-xs text-gray-500 mt-1">
+                Keine verfügbaren Telefonnummern gefunden.
+              </p>
+            )}
+            {selectedPhoneNumber && (
+              <div className="mt-2 p-2 bg-blue-50 rounded border">
+                <p className="text-sm text-blue-800">
+                  <strong>Ausgewählt:</strong> {selectedPhoneNumber.phone}
+                </p>
+                <p className="text-xs text-blue-600">
+                  Zugangscode: {selectedPhoneNumber.access_code}
+                </p>
+              </div>
+            )}
           </div>
 
           <div>
