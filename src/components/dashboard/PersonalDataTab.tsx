@@ -108,46 +108,44 @@ const PersonalDataTab = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 min-h-[400px]">
             {/* Bank Card - Left Side */}
-            <div className="flex justify-center">
-              <div className="relative">
-                <div className="w-80 h-48 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl shadow-xl transform hover:scale-105 transition-transform duration-300 p-6 text-white animate-fade-in">
-                  <div className="flex justify-between items-start mb-8">
-                    <div>
-                      <p className="text-xs opacity-80">GEHALTSKONTO</p>
-                      <p className="text-sm font-medium">{personalInfo.firstName} {personalInfo.lastName}</p>
-                    </div>
-                    <CreditCard className="h-8 w-8 opacity-80" />
+            <div className="flex items-center justify-center h-full">
+              <div className="w-full max-w-sm h-60 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl shadow-xl transform hover:scale-105 transition-transform duration-300 p-6 text-white animate-fade-in">
+                <div className="flex justify-between items-start mb-8">
+                  <div>
+                    <p className="text-xs opacity-80">GEHALTSKONTO</p>
+                    <p className="text-sm font-medium">{personalInfo.firstName} {personalInfo.lastName}</p>
+                  </div>
+                  <CreditCard className="h-8 w-8 opacity-80" />
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-xs opacity-80">IBAN</p>
+                    <p className="text-sm font-mono tracking-wider">
+                      {bankData.iban}
+                    </p>
                   </div>
                   
-                  <div className="space-y-4">
+                  <div className="flex justify-between">
                     <div>
-                      <p className="text-xs opacity-80">IBAN</p>
-                      <p className="text-sm font-mono tracking-wider">
-                        {bankData.iban}
+                      <p className="text-xs opacity-80">BIC</p>
+                      <p className="text-sm font-mono">
+                        {bankData.bic}
                       </p>
                     </div>
-                    
-                    <div className="flex justify-between">
-                      <div>
-                        <p className="text-xs opacity-80">BIC</p>
-                        <p className="text-sm font-mono">
-                          {bankData.bic}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs opacity-80">BANK</p>
-                        <p className="text-sm">{bankData.bankName}</p>
-                      </div>
+                    <div className="text-right">
+                      <p className="text-xs opacity-80">BANK</p>
+                      <p className="text-sm">{bankData.bankName}</p>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Editable Fields - Right Side - Now vertically centered */}
-            <div className="flex flex-col justify-center space-y-6">
+            {/* Editable Fields - Right Side */}
+            <div className="flex flex-col justify-center h-full space-y-6">
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-semibold text-gray-900">Bankdaten bearbeiten</h3>
                 {!isEditing && (
