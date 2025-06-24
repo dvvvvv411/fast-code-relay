@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -6,8 +5,6 @@ import PhoneNumberManager from './PhoneNumberManager';
 import AuftraegeManager from './AuftraegeManager';
 import AllRequestsList from './AllRequestsList';
 import SupportTickets from './SupportTickets';
-import EmailManager from './EmailManager';
-import FeedbackManager from './FeedbackManager';
 import LiveChatAdmin from './LiveChatAdmin';
 import EmployeeOverview from './EmployeeOverview';
 import AdminNavbar from './AdminNavbar';
@@ -39,8 +36,6 @@ const AdminPanel = () => {
         return <SupportTickets />;
       case 'livechat':
         return <LiveChatAdmin />;
-      case 'mails':
-        return <EmailManager />;
       case 'appointment-overview':
         return <AppointmentOverview />;
       case 'appointment-recipients':

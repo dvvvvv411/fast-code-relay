@@ -15,6 +15,7 @@ import EvaluationQuestionsBuilder from './EvaluationQuestionsBuilder';
 import AssignmentDialog from './AssignmentDialog';
 import AssignmentListDialog from './AssignmentListDialog';
 import UserSelect from './UserSelect';
+import AssignmentEmailPreviewDialog from './AssignmentEmailPreviewDialog';
 
 interface Auftrag {
   id: string;
@@ -50,6 +51,14 @@ const AuftraegeManager = () => {
   const [userAssignDialogOpen, setUserAssignDialogOpen] = useState(false);
   const [selectedAuftragForUserAssign, setSelectedAuftragForUserAssign] = useState<Auftrag | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<string | undefined>();
+  const [emailPreviewOpen, setEmailPreviewOpen] = useState(false);
+  const [selectedAssignmentForEmail, setSelectedAssignmentForEmail] = useState<any>(null);
+  const [emailFormData, setEmailFormData] = useState({
+    recipientFirstName: '',
+    recipientLastName: '',
+    assignmentId: '',
+    phoneNumberId: ''
+  });
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -365,6 +374,28 @@ const AuftraegeManager = () => {
     }
   };
 
+  const handleEmailPreview = async (auftrag: Auftrag) => {
+    // For demo purposes, we'll create a mock assignment
+    const mockAssignment = {
+      assignment_url: 'DEMO123',
+      auftraege: {
+        title: auftrag.title,
+        anbieter: auftrag.anbieter,
+        auftragsnummer: auftrag.auftragsnummer,
+        projektziel: auftrag.projektziel
+      }
+    };
+
+    setSelectedAssignmentForEmail(mockAssignment);
+    setEmailFormData({
+      recipientFirstName: 'Max',
+      recipientLastName: 'Mustermann',
+      assignmentId: 'demo-id',
+      phoneNumberId: 'demo-phone-id'
+    });
+    setEmailPreviewOpen(true);
+  };
+
   if (isLoading) {
     return <div className="flex justify-center p-8">Lade Aufträge...</div>;
   }
@@ -529,6 +560,15 @@ const AuftraegeManager = () => {
                     <Button
                       variant="outline"
                       size="sm"
+                      onClick={() => handleEmailPreview(auftrag)}
+                      className="bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100"
+                    >
+                      <Eye className="h-4 w-4 mr-1" />
+                      E-Mail Vorschau
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => handleUserAssign(auftrag)}
                       className="bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
                     >
@@ -684,6 +724,21 @@ const AuftraegeManager = () => {
           auftragTitle={selectedAuftragForList.title}
         />
       )}
+
+      {/* Email Preview Dialog */}
+      <AssignmentEmailPreviewDialog
+        isOpen={emailPreviewOpen}
+        onClose={() => {
+          setEmailPreviewOpen(false);
+          setSelectedAssignmentForEmail(null);
+        }}
+        formData={emailFormData}
+        assignment={selectedAssignmentForEmail}
+        phoneNumber={{
+          phone: '+49 123 456789',
+          access_code: 'DEMO123'
+        }}
+      />
     </div>
   );
 };
