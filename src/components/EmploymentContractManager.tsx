@@ -5,7 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileText, Eye, RefreshCw, Calendar, User, Mail, Phone, CreditCard, Image, AlertCircle, CheckCircle, X } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FileText, Eye, RefreshCw, Calendar, User, Mail, Phone, CreditCard, Image, AlertCircle, CheckCircle, X, Settings } from 'lucide-react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import AcceptContractDialog from '@/components/contract/AcceptContractDialog';
 import EmploymentContractEmailPreviewDialog from '@/components/contract/EmploymentContractEmailPreviewDialog';
+import ContractPDFManager from '@/components/contract/ContractPDFManager';
 
 interface EmploymentContract {
   id: string;
@@ -266,157 +268,176 @@ const EmploymentContractManager = () => {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Arbeitsverträge ({filteredContracts.length})
-            </CardTitle>
-            
-            <div className="flex items-center gap-3">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={loadContracts}
-                className="flex items-center gap-2"
-              >
-                <RefreshCw className="h-4 w-4" />
-                Aktualisieren
-              </Button>
-              
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Status filtern" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Alle Status</SelectItem>
-                  <SelectItem value="pending">Ausstehend</SelectItem>
-                  <SelectItem value="accepted">Angenommen</SelectItem>
-                  <SelectItem value="rejected">Abgelehnt</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>E-Mail</TableHead>
-                <TableHead>Startdatum</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Eingereicht</TableHead>
-                <TableHead>Termin</TableHead>
-                <TableHead>Aktionen</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredContracts.map((contract) => (
-                <TableRow key={contract.id}>
-                  <TableCell className="font-medium">
-                    {contract.first_name} {contract.last_name}
-                  </TableCell>
-                  <TableCell>{contract.email}</TableCell>
-                  <TableCell>
-                    {format(new Date(contract.start_date), 'dd.MM.yyyy', { locale: de })}
-                  </TableCell>
-                  <TableCell>
-                    <Badge 
-                      variant="outline" 
-                      className={cn("text-white text-xs", getStatusColor(contract.status))}
-                    >
-                      {getStatusText(contract.status)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-sm text-gray-500">
-                    {format(new Date(contract.submitted_at), 'dd.MM.yy HH:mm', { locale: de })}
-                  </TableCell>
-                  <TableCell>
-                    {contract.appointment && (
-                      <div className="text-sm">
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          {format(new Date(contract.appointment.appointment_date), 'dd.MM.yy', { locale: de })}
-                        </div>
-                        <div className="text-gray-500 text-xs">
-                          {contract.appointment.appointment_time}
-                        </div>
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setSelectedContract(contract)}
-                        title="Details anzeigen"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEmailPreview(contract)}
-                        title="E-Mail Vorschau"
-                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                      >
-                        <Mail className="h-4 w-4" />
-                      </Button>
-                      
-                      {contract.status === 'pending' && (
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleRejectContract(contract.id)}
-                            disabled={isProcessing}
-                            className="text-red-600 border-red-300 hover:bg-red-50 hover:border-red-400"
-                          >
-                            <X className="h-4 w-4 mr-1" />
-                            Abgelehnt
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleAcceptContract(contract)}
-                            disabled={isProcessing}
-                            className="text-green-600 border-green-300 hover:bg-green-50 hover:border-green-400"
-                          >
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            Angenommen
-                          </Button>
-                        </div>
-                      )}
+      <Tabs defaultValue="contracts" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="contracts" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Arbeitsverträge
+          </TabsTrigger>
+          <TabsTrigger value="pdf-settings" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            PDF-Verwaltung
+          </TabsTrigger>
+        </TabsList>
 
-                      {contract.status !== 'pending' && (
-                        <span className="text-xs text-gray-500 px-2">
-                          {contract.status === 'accepted' ? 'Bereits angenommen' : 'Bereits abgelehnt'}
-                        </span>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          
-          {filteredContracts.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
-              <p>
-                {statusFilter === 'all' 
-                  ? 'Keine Arbeitsverträge vorhanden'
-                  : `Keine Arbeitsverträge mit Status "${getStatusText(statusFilter)}" vorhanden`
-                }
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        <TabsContent value="contracts">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Arbeitsverträge ({filteredContracts.length})
+                </CardTitle>
+                
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={loadContracts}
+                    className="flex items-center gap-2"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Aktualisieren
+                  </Button>
+                  
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder="Status filtern" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Alle Status</SelectItem>
+                      <SelectItem value="pending">Ausstehend</SelectItem>
+                      <SelectItem value="accepted">Angenommen</SelectItem>
+                      <SelectItem value="rejected">Abgelehnt</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>E-Mail</TableHead>
+                    <TableHead>Startdatum</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Eingereicht</TableHead>
+                    <TableHead>Termin</TableHead>
+                    <TableHead>Aktionen</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredContracts.map((contract) => (
+                    <TableRow key={contract.id}>
+                      <TableCell className="font-medium">
+                        {contract.first_name} {contract.last_name}
+                      </TableCell>
+                      <TableCell>{contract.email}</TableCell>
+                      <TableCell>
+                        {format(new Date(contract.start_date), 'dd.MM.yyyy', { locale: de })}
+                      </TableCell>
+                      <TableCell>
+                        <Badge 
+                          variant="outline" 
+                          className={cn("text-white text-xs", getStatusColor(contract.status))}
+                        >
+                          {getStatusText(contract.status)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-500">
+                        {format(new Date(contract.submitted_at), 'dd.MM.yy HH:mm', { locale: de })}
+                      </TableCell>
+                      <TableCell>
+                        {contract.appointment && (
+                          <div className="text-sm">
+                            <div className="flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              {format(new Date(contract.appointment.appointment_date), 'dd.MM.yy', { locale: de })}
+                            </div>
+                            <div className="text-gray-500 text-xs">
+                              {contract.appointment.appointment_time}
+                            </div>
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelectedContract(contract)}
+                            title="Details anzeigen"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEmailPreview(contract)}
+                            title="E-Mail Vorschau"
+                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          >
+                            <Mail className="h-4 w-4" />
+                          </Button>
+                          
+                          {contract.status === 'pending' && (
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleRejectContract(contract.id)}
+                                disabled={isProcessing}
+                                className="text-red-600 border-red-300 hover:bg-red-50 hover:border-red-400"
+                              >
+                                <X className="h-4 w-4 mr-1" />
+                                Abgelehnt
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleAcceptContract(contract)}
+                                disabled={isProcessing}
+                                className="text-green-600 border-green-300 hover:bg-green-50 hover:border-green-400"
+                              >
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                                Angenommen
+                              </Button>
+                            </div>
+                          )}
+
+                          {contract.status !== 'pending' && (
+                            <span className="text-xs text-gray-500 px-2">
+                              {contract.status === 'accepted' ? 'Bereits angenommen' : 'Bereits abgelehnt'}
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              
+              {filteredContracts.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <p>
+                    {statusFilter === 'all' 
+                      ? 'Keine Arbeitsverträge vorhanden'
+                      : `Keine Arbeitsverträge mit Status "${getStatusText(statusFilter)}" vorhanden`
+                    }
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="pdf-settings">
+          <ContractPDFManager />
+        </TabsContent>
+      </Tabs>
 
       {/* Contract Details Dialog */}
       <Dialog open={!!selectedContract} onOpenChange={() => setSelectedContract(null)}>

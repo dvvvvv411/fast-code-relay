@@ -11,8 +11,10 @@ import PersonalDataStep from '@/components/contract/PersonalDataStep';
 import TaxInsuranceStep from '@/components/contract/TaxInsuranceStep';
 import BankingStep from '@/components/contract/BankingStep';
 import IdUploadStep from '@/components/contract/IdUploadStep';
+import ContractPDFPreview from '@/components/contract/ContractPDFPreview';
 
 const STEPS = [
+  'PDF-Vorschau',
   'Persönliche Daten',
   'Steuer & Versicherung',
   'Bankverbindung',
@@ -153,12 +155,14 @@ const ContractForm = () => {
   const validateCurrentStep = () => {
     switch (currentStep) {
       case 1:
-        return formData.firstName && formData.lastName && formData.email && formData.startDate;
+        return true; // PDF preview step - no validation needed
       case 2:
-        return formData.socialSecurityNumber && formData.taxNumber && formData.healthInsuranceName;
+        return formData.firstName && formData.lastName && formData.email && formData.startDate;
       case 3:
-        return formData.iban && formData.bankName;
+        return formData.socialSecurityNumber && formData.taxNumber && formData.healthInsuranceName;
       case 4:
+        return formData.iban && formData.bankName;
+      case 5:
         return true; // ID upload is optional for now
       default:
         return false;
@@ -272,6 +276,8 @@ const ContractForm = () => {
   const renderCurrentStep = () => {
     switch (currentStep) {
       case 1:
+        return <ContractPDFPreview />;
+      case 2:
         return (
           <PersonalDataStep
             formData={{
@@ -285,7 +291,7 @@ const ContractForm = () => {
             onInputChange={handleInputChange}
           />
         );
-      case 2:
+      case 3:
         return (
           <TaxInsuranceStep
             formData={{
@@ -296,7 +302,7 @@ const ContractForm = () => {
             onInputChange={handleInputChange}
           />
         );
-      case 3:
+      case 4:
         return (
           <BankingStep
             formData={{
@@ -307,7 +313,7 @@ const ContractForm = () => {
             onInputChange={handleInputChange}
           />
         );
-      case 4:
+      case 5:
         return (
           <IdUploadStep
             formData={{
