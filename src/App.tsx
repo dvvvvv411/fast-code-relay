@@ -40,6 +40,7 @@ const App = () => (
               <Route path="/contract-success" element={<ContractSuccess />} />
               <Route path="/arbeitsvertrag-erfolg" element={<ContractSuccess />} />
               <Route path="/appointment-booking" element={<AppointmentBooking />} />
+              <Route path="/termin-buchen/:token" element={<AppointmentBooking />} />
               <Route path="/dashboard" element={<UserDashboard />} />
               <Route path="/assignment-detail/:assignmentUrl" element={<AssignmentDetail />} />
               <Route path="/evaluation-success/:assignmentUrl?" element={<EvaluationSuccess />} />
