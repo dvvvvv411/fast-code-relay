@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,7 +11,6 @@ import {
   Briefcase, 
   MessageSquare, 
   Headphones, 
-  Mail, 
   Calendar, 
   Star,
   ChevronDown,
@@ -41,7 +39,6 @@ const AdminNavbar = ({ activeTab, onTabChange }: AdminNavbarProps) => {
   const auftraegeMenuItems = [
     { id: 'uebersicht', label: 'Übersicht', icon: Users },
     { id: 'auftraege', label: 'Aufträge', icon: Briefcase },
-    { id: 'mails', label: 'Mails', icon: Mail },
     { id: 'feedback', label: 'Bewertungen', icon: Star },
   ];
 
