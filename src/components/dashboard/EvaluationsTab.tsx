@@ -44,7 +44,6 @@ const EvaluationsTab = () => {
               <div>
                 <p className="text-sm text-gray-600">Bewertungen</p>
                 <p className="text-2xl font-bold text-orange">{totalEvaluations}</p>
-                <p className="text-xs text-gray-500">Registrierte Mitarbeiter</p>
               </div>
               <Star className="h-8 w-8 text-orange opacity-80" />
             </div>
@@ -57,7 +56,6 @@ const EvaluationsTab = () => {
               <div>
                 <p className="text-sm text-gray-600">Abgeschlossen</p>
                 <p className="text-2xl font-bold text-green-600">{completedAssignments}</p>
-                <p className="text-xs text-gray-500">Mit Profil</p>
               </div>
               <Trophy className="h-8 w-8 text-green-600 opacity-80" />
             </div>
@@ -73,7 +71,6 @@ const EvaluationsTab = () => {
                   <p className="text-2xl font-bold text-yellow-600">{averageRating}</p>
                   <Star className="h-5 w-5 text-yellow-500 fill-current" />
                 </div>
-                <p className="text-xs text-gray-500">Registrierte nur</p>
               </div>
               <div className="flex gap-1">
                 {[1, 2, 3, 4, 5].map((star) => (
