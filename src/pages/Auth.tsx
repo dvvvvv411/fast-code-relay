@@ -41,9 +41,9 @@ const Auth = () => {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
       <div className="flex-grow flex items-center justify-center px-4 py-12">
-        <Card className="w-full max-w-6xl overflow-hidden shadow-2xl animate-scale-in">
+        <Card className="w-full max-w-4xl overflow-hidden shadow-2xl animate-scale-in rounded-2xl">
           <CardContent className="p-0">
-            <div className="flex min-h-[600px]">
+            <div className="flex min-h-[500px]">
               {/* Left Section - Animation */}
               <div className="w-full lg:w-1/2 relative overflow-hidden">
                 {/* Gradient Background */}
@@ -62,7 +62,7 @@ const Auth = () => {
                   <div className="animate-fade-in">
                     <h2 className="text-4xl font-bold mb-6">Willkommen zurück</h2>
                     <p className="text-xl mb-8 opacity-90">
-                      Melden Sie sich an, um auf Ihr Administrator-Dashboard zuzugreifen
+                      Melden Sie sich an, um auf Ihr Mitarbeiter-Dashboard zuzugreifen
                     </p>
                     
                     {/* Login Icon Animation */}
@@ -84,7 +84,7 @@ const Auth = () => {
               <div className="w-full lg:w-1/2 flex items-center justify-center p-12 bg-white">
                 <div className="w-full max-w-md">
                   <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">Administrator-Zugang</h1>
+                    <h1 className="text-3xl font-bold text-gray-900 mb-2">Mitarbeiter-Zugang</h1>
                     <p className="text-gray-600">
                       Melden Sie sich an, um den Admin-Bereich zu nutzen
                     </p>
