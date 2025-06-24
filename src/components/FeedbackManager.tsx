@@ -1,11 +1,13 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Star, MessageSquare, User, Calendar, FileText, Eye } from 'lucide-react';
+import { Star, MessageSquare, User, Calendar, FileText, Eye, CheckCircle, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
 
 interface FeedbackData {
   id: string;
@@ -30,6 +32,7 @@ interface GroupedFeedback {
   average_rating: number;
   total_questions: number;
   completed_at: string;
+  assignment_status: string;
   evaluations: FeedbackData[];
 }
 
@@ -65,6 +68,7 @@ const FeedbackManager = () => {
             worker_first_name,
             worker_last_name,
             updated_at,
+            status,
             auftraege!inner(title, auftragsnummer)
           )
         `)
@@ -84,7 +88,8 @@ const FeedbackManager = () => {
         worker_last_name: item.auftrag_assignments.worker_last_name,
         auftrag_title: item.auftrag_assignments.auftraege.title,
         auftrag_auftragsnummer: item.auftrag_assignments.auftraege.auftragsnummer,
-        completed_at: item.auftrag_assignments.updated_at
+        completed_at: item.auftrag_assignments.updated_at,
+        assignment_status: item.auftrag_assignments.status
       })) || [];
 
       setFeedbacks(transformedData);
@@ -116,6 +121,7 @@ const FeedbackManager = () => {
           average_rating: 0,
           total_questions: 0,
           completed_at: feedback.completed_at || feedback.created_at,
+          assignment_status: feedback.assignment_status,
           evaluations: [feedback]
         });
       }
@@ -135,6 +141,35 @@ const FeedbackManager = () => {
     setGroupedFeedbacks(grouped);
   };
 
+  const handleMarkAsCompleted = async (assignmentId: string) => {
+    try {
+      const { error } = await supabase
+        .from('auftrag_assignments')
+        .update({ 
+          status: 'completed',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', assignmentId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Erfolg",
+        description: "Auftrag wurde als abgeschlossen markiert.",
+      });
+
+      // Refresh the data
+      fetchFeedbacks();
+    } catch (error) {
+      console.error('Error marking assignment as completed:', error);
+      toast({
+        title: "Fehler",
+        description: "Auftrag konnte nicht als abgeschlossen markiert werden.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const renderStars = (rating: number) => {
     return (
       <div className="flex gap-1">
@@ -152,6 +187,31 @@ const FeedbackManager = () => {
     );
   };
 
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'under_review':
+        return (
+          <Badge variant="secondary" className="flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            Wird überprüft
+          </Badge>
+        );
+      case 'completed':
+        return (
+          <Badge variant="default" className="flex items-center gap-1 bg-green-500 hover:bg-green-600">
+            <CheckCircle className="h-3 w-3" />
+            Abgeschlossen
+          </Badge>
+        );
+      default:
+        return (
+          <Badge variant="outline">
+            {status}
+          </Badge>
+        );
+    }
+  };
+
   const getAverageRating = () => {
     if (groupedFeedbacks.length === 0) return 0;
     const total = groupedFeedbacks.reduce((sum, group) => sum + group.average_rating, 0);
@@ -160,6 +220,10 @@ const FeedbackManager = () => {
 
   const getTotalEvaluations = () => {
     return groupedFeedbacks.reduce((sum, group) => sum + group.total_questions, 0);
+  };
+
+  const getUnderReviewCount = () => {
+    return groupedFeedbacks.filter(group => group.assignment_status === 'under_review').length;
   };
 
   if (isLoading) {
@@ -185,7 +249,7 @@ const FeedbackManager = () => {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-3">
@@ -205,6 +269,18 @@ const FeedbackManager = () => {
               <div>
                 <p className="text-2xl font-bold">{getTotalEvaluations()}</p>
                 <p className="text-sm text-gray-600">Gesamt Bewertungen</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3">
+              <Clock className="h-8 w-8 text-orange-500" />
+              <div>
+                <p className="text-2xl font-bold">{getUnderReviewCount()}</p>
+                <p className="text-sm text-gray-600">Wird überprüft</p>
               </div>
             </div>
           </CardContent>
@@ -251,6 +327,7 @@ const FeedbackManager = () => {
                           {group.auftrag_title} ({group.auftrag_auftragsnummer})
                         </span>
                       </div>
+                      {getStatusBadge(group.assignment_status)}
                     </div>
                     
                     <div className="flex items-center gap-4 mb-3">
@@ -273,49 +350,80 @@ const FeedbackManager = () => {
                     </div>
                   </div>
                   
-                  <Dialog>
-                    <DialogTrigger asChild>
+                  <div className="flex items-center gap-2">
+                    {group.assignment_status === 'under_review' && (
                       <Button 
-                        variant="outline" 
+                        variant="default" 
                         size="sm" 
-                        className="flex items-center gap-2"
-                        onClick={() => setSelectedAssignment(group)}
+                        className="flex items-center gap-2 bg-green-500 hover:bg-green-600"
+                        onClick={() => handleMarkAsCompleted(group.assignment_id)}
                       >
-                        <Eye className="h-4 w-4" />
-                        Details
+                        <CheckCircle className="h-4 w-4" />
+                        Als abgeschlossen markieren
                       </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                      <DialogHeader>
-                        <DialogTitle>
-                          Bewertungsdetails - {group.worker_first_name} {group.worker_last_name}
-                        </DialogTitle>
-                        <p className="text-sm text-gray-600">
-                          {group.auftrag_title} ({group.auftrag_auftragsnummer})
-                        </p>
-                      </DialogHeader>
-                      
-                      <div className="space-y-4 mt-6">
-                        {group.evaluations.map((evaluation) => (
-                          <Card key={evaluation.id}>
-                            <CardHeader className="pb-3">
-                              <div className="flex justify-between items-start">
-                                <CardTitle className="text-lg">{evaluation.question_text}</CardTitle>
-                                {renderStars(evaluation.star_rating)}
-                              </div>
-                            </CardHeader>
-                            {evaluation.text_feedback && (
-                              <CardContent className="pt-0">
-                                <div className="bg-gray-50 p-4 rounded-lg">
-                                  <p className="text-gray-700">{evaluation.text_feedback}</p>
+                    )}
+                    
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex items-center gap-2"
+                          onClick={() => setSelectedAssignment(group)}
+                        >
+                          <Eye className="h-4 w-4" />
+                          Details
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle className="flex items-center gap-3">
+                            Bewertungsdetails - {group.worker_first_name} {group.worker_last_name}
+                            {getStatusBadge(group.assignment_status)}
+                          </DialogTitle>
+                          <p className="text-sm text-gray-600">
+                            {group.auftrag_title} ({group.auftrag_auftragsnummer})
+                          </p>
+                        </DialogHeader>
+                        
+                        <div className="space-y-4 mt-6">
+                          {group.evaluations.map((evaluation) => (
+                            <Card key={evaluation.id}>
+                              <CardHeader className="pb-3">
+                                <div className="flex justify-between items-start">
+                                  <CardTitle className="text-lg">{evaluation.question_text}</CardTitle>
+                                  {renderStars(evaluation.star_rating)}
                                 </div>
-                              </CardContent>
-                            )}
-                          </Card>
-                        ))}
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+                              </CardHeader>
+                              {evaluation.text_feedback && (
+                                <CardContent className="pt-0">
+                                  <div className="bg-gray-50 p-4 rounded-lg">
+                                    <p className="text-gray-700">{evaluation.text_feedback}</p>
+                                  </div>
+                                </CardContent>
+                              )}
+                            </Card>
+                          ))}
+                        </div>
+                        
+                        {group.assignment_status === 'under_review' && (
+                          <div className="mt-6 pt-4 border-t">
+                            <Button 
+                              className="w-full bg-green-500 hover:bg-green-600"
+                              onClick={() => {
+                                handleMarkAsCompleted(group.assignment_id);
+                                // Close dialog after marking as completed
+                                setSelectedAssignment(null);
+                              }}
+                            >
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                              Auftrag als abgeschlossen markieren
+                            </Button>
+                          </div>
+                        )}
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                 </div>
               </CardContent>
             </Card>
