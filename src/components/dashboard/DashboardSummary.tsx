@@ -4,11 +4,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { User, Star, Target, TrendingUp, Calendar, Award } from 'lucide-react';
 import { useUserAssignments } from '@/hooks/useUserAssignments';
+import { useUserActivityStreak } from '@/hooks/useUserActivityStreak';
 import { useAuth } from '@/context/AuthContext';
 
 const DashboardSummary = () => {
   const { user } = useAuth();
   const { data: assignments = [], isLoading } = useUserAssignments(user?.id);
+  
+  // Get user's name for streak calculation
+  const firstName = user?.user_metadata?.first_name;
+  const lastName = user?.user_metadata?.last_name;
+  const { data: activityStreak = 0, isLoading: streakLoading } = useUserActivityStreak(firstName, lastName);
 
   // Calculate stats
   const totalAssignments = assignments.length;
@@ -114,7 +120,9 @@ const DashboardSummary = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Streak</p>
-                <p className="text-2xl font-bold text-orange">7</p>
+                <p className="text-2xl font-bold text-orange">
+                  {streakLoading ? '...' : activityStreak}
+                </p>
                 <p className="text-xs text-gray-500">Tage aktiv</p>
               </div>
               <TrendingUp className="h-8 w-8 text-orange opacity-80" />
