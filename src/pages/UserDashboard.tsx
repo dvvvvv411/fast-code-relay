@@ -81,7 +81,7 @@ const UserDashboard = () => {
               <div className="bg-orange text-white p-2 rounded-lg">
                 <BarChart3 className="h-6 w-6" />
               </div>
-              Kontrollzentrum
+              Ihr Dashboard
             </h1>
             <p className="text-gray-600 mt-2">
               Verwalten Sie Ihre Tests, sehen Sie Ihre Fortschritte und optimieren Sie Ihre Performance
