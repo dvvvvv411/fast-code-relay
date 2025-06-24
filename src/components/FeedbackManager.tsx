@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Star, MessageSquare, User, Calendar, FileText, Eye, CheckCircle, Clock } from 'lucide-react';
@@ -21,6 +20,7 @@ interface FeedbackData {
   auftrag_title: string;
   auftrag_auftragsnummer: string;
   completed_at: string;
+  assignment_status: string;
 }
 
 interface GroupedFeedback {
