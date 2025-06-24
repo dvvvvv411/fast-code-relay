@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -7,6 +8,7 @@ import { toast } from '@/hooks/use-toast';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Mail, Lock } from 'lucide-react';
+
 const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -14,6 +16,7 @@ const Auth = () => {
   const {
     signInAndRedirect
   } = useAuth();
+  
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -32,7 +35,9 @@ const Auth = () => {
     }
     setIsSubmitting(false);
   };
-  return <div className="min-h-screen bg-gray-50 flex flex-col">
+  
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
       <div className="flex-grow flex items-center justify-center px-4 py-12">
         <Card className="w-full max-w-4xl overflow-hidden shadow-2xl animate-scale-in rounded-2xl">
@@ -88,10 +93,18 @@ const Auth = () => {
                         E-Mail
                       </label>
                       <div className="relative">
-                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 z-10">
                           <Mail className="h-5 w-5 text-gray-400" />
                         </div>
-                        <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="name@example.com" className="pl-10 h-12 transition-all duration-200 focus:scale-[1.02] border-gray-300 focus:border-orange focus:ring-orange" required />
+                        <Input 
+                          id="email" 
+                          type="email" 
+                          value={email} 
+                          onChange={e => setEmail(e.target.value)} 
+                          placeholder="name@example.com" 
+                          className="pl-10 h-12 transition-all duration-200 focus:scale-[1.02] border-gray-300 focus:border-orange focus:ring-orange" 
+                          required 
+                        />
                       </div>
                     </div>
                     
@@ -100,14 +113,26 @@ const Auth = () => {
                         Passwort
                       </label>
                       <div className="relative">
-                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 z-10">
                           <Lock className="h-5 w-5 text-gray-400" />
                         </div>
-                        <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" className="pl-10 h-12 transition-all duration-200 focus:scale-[1.02] border-gray-300 focus:border-orange focus:ring-orange" required />
+                        <Input 
+                          id="password" 
+                          type="password" 
+                          value={password} 
+                          onChange={e => setPassword(e.target.value)} 
+                          placeholder="••••••••" 
+                          className="pl-10 h-12 transition-all duration-200 focus:scale-[1.02] border-gray-300 focus:border-orange focus:ring-orange" 
+                          required 
+                        />
                       </div>
                     </div>
                     
-                    <Button type="submit" className="w-full h-12 bg-orange hover:bg-orange-dark transition-all duration-200 hover:scale-[1.02] hover:shadow-lg text-white font-medium text-base" disabled={isSubmitting}>
+                    <Button 
+                      type="submit" 
+                      className="w-full h-12 bg-orange hover:bg-orange-dark transition-all duration-200 hover:scale-[1.02] hover:shadow-lg text-white font-medium text-base" 
+                      disabled={isSubmitting}
+                    >
                       {isSubmitting ? 'Wird angemeldet...' : 'Anmelden'}
                     </Button>
                   </form>
@@ -118,6 +143,8 @@ const Auth = () => {
         </Card>
       </div>
       <Footer />
-    </div>;
+    </div>
+  );
 };
+
 export default Auth;
