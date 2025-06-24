@@ -1,5 +1,5 @@
 
-import { createContext, useContext, ReactNode } from 'react';
+import { createContext, useContext, ReactNode, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useNavigate } from 'react-router-dom';
@@ -33,18 +33,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const auth = useSupabaseAuth();
   const navigate = useNavigate();
   
+  // Handle redirect after authentication state is fully determined
+  useEffect(() => {
+    // Only redirect when we have a user and loading is complete
+    if (auth.user && !auth.isLoading) {
+      console.log('🚀 Auth redirect check - User:', auth.user.email, 'IsAdmin:', auth.isAdmin, 'IsLoading:', auth.isLoading);
+      
+      // Small delay to ensure all state updates are complete
+      const timer = setTimeout(() => {
+        if (auth.isAdmin) {
+          console.log('👑 Redirecting admin to /admin');
+          navigate('/admin');
+        } else {
+          console.log('👤 Redirecting user to /dashboard');
+          navigate('/dashboard');
+        }
+      }, 50);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [auth.user, auth.isAdmin, auth.isLoading, navigate]);
+  
   const signInAndRedirect = async (email: string, password: string) => {
+    console.log('🔐 Starting signInAndRedirect for:', email);
     const result = await auth.signIn(email, password);
     
     if (result.success) {
-      // Wait a moment for the auth state to update and isAdmin to be determined
-      setTimeout(() => {
-        if (auth.isAdmin) {
-          navigate('/admin');
-        } else {
-          navigate('/dashboard');
-        }
-      }, 100);
+      console.log('✅ Sign in successful, redirect will be handled by useEffect');
+    } else {
+      console.log('❌ Sign in failed:', result.error);
     }
     
     return result;

@@ -13,6 +13,16 @@ const Admin = () => {
   const { user, isLoading, isAdmin, signOut } = useAuth();
   const { requests } = useSMS();
   
+  // Enhanced logging for debugging admin access
+  useEffect(() => {
+    console.log('🔍 Admin page - Auth state:', {
+      user: user?.email || 'none',
+      isLoading,
+      isAdmin,
+      timestamp: new Date().toISOString()
+    });
+  }, [user, isLoading, isAdmin]);
+  
   // Log requests data whenever it changes to debug the status updates
   useEffect(() => {
     console.log('🔄 Admin page - Requests updated:', Object.values(requests).length, 'total requests');
@@ -22,10 +32,13 @@ const Admin = () => {
   }, [requests]);
   
   const handleSignOut = async () => {
+    console.log('🚪 Admin signing out');
     await signOut();
   };
   
+  // Show loading while authentication state is being determined
   if (isLoading) {
+    console.log('⏳ Admin page - Still loading auth state');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -36,12 +49,15 @@ const Admin = () => {
     );
   }
   
+  // Redirect to auth if no user
   if (!user) {
+    console.log('🚫 Admin page - No user, redirecting to auth');
     return <Navigate to="/auth" replace />;
   }
 
-  // Check if user is admin
+  // Enhanced admin check with additional security logging
   if (!isAdmin) {
+    console.log('🚫 Admin page access denied for user:', user.email);
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center max-w-md mx-auto p-6">
@@ -66,6 +82,8 @@ const Admin = () => {
       </div>
     );
   }
+  
+  console.log('✅ Admin page - Access granted for:', user.email);
   
   return (
     <div className="min-h-screen bg-gray-50">

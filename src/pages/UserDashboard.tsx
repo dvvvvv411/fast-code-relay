@@ -10,15 +10,29 @@ import DashboardSummary from '@/components/dashboard/DashboardSummary';
 import PersonalDataTab from '@/components/dashboard/PersonalDataTab';
 import EvaluationsTab from '@/components/dashboard/EvaluationsTab';
 import AssignmentsTab from '@/components/dashboard/AssignmentsTab';
+import { useEffect } from 'react';
 
 const UserDashboard = () => {
   const { user, isLoading, isAdmin, signOut } = useAuth();
   
+  // Enhanced logging for debugging user dashboard access
+  useEffect(() => {
+    console.log('🏠 Dashboard - Auth state:', {
+      user: user?.email || 'none',
+      isLoading,
+      isAdmin,
+      timestamp: new Date().toISOString()
+    });
+  }, [user, isLoading, isAdmin]);
+  
   const handleSignOut = async () => {
+    console.log('🚪 User signing out from dashboard');
     await signOut();
   };
   
+  // Show loading while authentication state is being determined
   if (isLoading) {
+    console.log('⏳ Dashboard - Still loading auth state');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -29,14 +43,19 @@ const UserDashboard = () => {
     );
   }
   
+  // Redirect to auth if no user
   if (!user) {
+    console.log('🚫 Dashboard - No user, redirecting to auth');
     return <Navigate to="/auth" replace />;
   }
 
   // Redirect admins to admin panel
   if (isAdmin) {
+    console.log('👑 Dashboard - Admin user, redirecting to admin panel');
     return <Navigate to="/admin" replace />;
   }
+  
+  console.log('✅ Dashboard - Access granted for regular user:', user.email);
   
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">

@@ -15,6 +15,7 @@ export const useSupabaseAuth = () => {
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
+        console.log('🔄 Auth state change:', event, newSession?.user?.email);
         setSession(newSession);
         setUser(newSession?.user ?? null);
         
@@ -23,6 +24,7 @@ export const useSupabaseAuth = () => {
           checkIfAdmin(newSession.user.id);
         } else {
           setIsAdmin(false);
+          setIsLoading(false);
         }
       }
     );
@@ -30,23 +32,26 @@ export const useSupabaseAuth = () => {
     // Then check for existing session
     const initializeAuth = async () => {
       try {
+        console.log('🔍 Initializing auth...');
         setIsLoading(true);
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         
+        console.log('📋 Current session:', currentSession?.user?.email || 'none');
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
         if (currentSession?.user) {
           await checkIfAdmin(currentSession.user.id);
+        } else {
+          setIsLoading(false);
         }
       } catch (error) {
-        console.error('Error initializing auth:', error);
+        console.error('❌ Error initializing auth:', error);
         toast({
           title: "Authentifizierungsfehler",
           description: "Es gab ein Problem mit der Anmeldung.",
           variant: "destructive",
         });
-      } finally {
         setIsLoading(false);
       }
     };
@@ -61,29 +66,38 @@ export const useSupabaseAuth = () => {
   const checkIfAdmin = async (userId: string) => {
     try {
       console.log('🔍 Checking admin status for user:', userId);
+      setIsLoading(true);
+      
       const { data, error } = await supabase.rpc('is_admin', { user_id: userId });
       
       if (error) {
         console.error('❌ Error checking admin status:', error);
         setIsAdmin(false);
+        setIsLoading(false);
         return;
       }
       
-      console.log('✅ Admin check result:', data);
-      setIsAdmin(Boolean(data));
+      const adminStatus = Boolean(data);
+      console.log('✅ Admin check result for', userId, ':', adminStatus);
+      setIsAdmin(adminStatus);
+      setIsLoading(false);
     } catch (error) {
-      console.error('Error checking admin status:', error);
+      console.error('❌ Exception checking admin status:', error);
       setIsAdmin(false);
+      setIsLoading(false);
     }
   };
 
   const signIn = async (email: string, password: string) => {
     try {
+      console.log('🔐 Starting sign in for:', email);
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
+      
+      console.log('✅ Sign in successful for:', email);
       return { success: true };
     } catch (error: any) {
-      console.error('Error signing in:', error);
+      console.error('❌ Error signing in:', error);
       return { 
         success: false, 
         error: error.message || 'Ein Fehler ist bei der Anmeldung aufgetreten.'
