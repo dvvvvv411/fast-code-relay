@@ -69,6 +69,7 @@ const AssignmentDetail = () => {
 
   useEffect(() => {
     if (assignmentUrl) {
+      console.log('🔍 Assignment URL from params:', assignmentUrl);
       fetchAssignmentData();
     }
   }, [assignmentUrl]);
@@ -76,18 +77,33 @@ const AssignmentDetail = () => {
   const fetchAssignmentData = async () => {
     if (!assignmentUrl) return;
     
+    console.log('📡 Starting to fetch assignment data for URL:', assignmentUrl);
     setIsLoading(true);
     try {
+      const decodedUrl = decodeURIComponent(assignmentUrl);
+      console.log('🔓 Decoded URL:', decodedUrl);
+
       const { data: assignmentData, error: assignmentError } = await supabase
         .from('auftrag_assignments')
         .select(`
           *,
           auftraege(*)
         `)
-        .eq('assignment_url', decodeURIComponent(assignmentUrl))
+        .eq('assignment_url', decodedUrl)
         .single();
 
+      console.log('📋 Raw assignment data from database:', assignmentData);
+      console.log('❌ Assignment query error:', assignmentError);
+
       if (assignmentError) throw assignmentError;
+      
+      // Log specific access data fields
+      console.log('🔑 Access data debug:');
+      console.log('  - ident_code:', assignmentData.ident_code);
+      console.log('  - ident_link:', assignmentData.ident_link);
+      console.log('  - access_email:', assignmentData.access_email);
+      console.log('  - access_password:', assignmentData.access_password);
+      console.log('  - access_phone:', assignmentData.access_phone);
       
       const typedAssignmentData: AssignmentData = {
         ...assignmentData,
@@ -99,6 +115,7 @@ const AssignmentDetail = () => {
         }
       };
       
+      console.log('✅ Processed assignment data:', typedAssignmentData);
       setAssignmentData(typedAssignmentData);
 
       const { data: questionsData, error: questionsError } = await supabase
@@ -111,7 +128,7 @@ const AssignmentDetail = () => {
       
       setEvaluationQuestions(questionsData || []);
     } catch (error) {
-      console.error('Error fetching assignment:', error);
+      console.error('💥 Error fetching assignment:', error);
     } finally {
       setIsLoading(false);
     }
@@ -163,7 +180,24 @@ const AssignmentDetail = () => {
   }
 
   const data = assignmentData.auftraege;
-  const hasAccessData = assignmentData && (assignmentData.ident_code || assignmentData.ident_link || assignmentData.access_email || assignmentData.access_password || assignmentData.access_phone);
+  
+  // Enhanced debugging for hasAccessData condition
+  const hasAccessData = assignmentData && (
+    assignmentData.ident_code || 
+    assignmentData.ident_link || 
+    assignmentData.access_email || 
+    assignmentData.access_password || 
+    assignmentData.access_phone
+  );
+  
+  console.log('🔍 hasAccessData evaluation:');
+  console.log('  - assignmentData exists:', !!assignmentData);
+  console.log('  - ident_code truthy:', !!assignmentData.ident_code);
+  console.log('  - ident_link truthy:', !!assignmentData.ident_link);
+  console.log('  - access_email truthy:', !!assignmentData.access_email);
+  console.log('  - access_password truthy:', !!assignmentData.access_password);
+  console.log('  - access_phone truthy:', !!assignmentData.access_phone);
+  console.log('  - FINAL hasAccessData result:', hasAccessData);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -209,6 +243,26 @@ const AssignmentDetail = () => {
                     <h3 className="font-semibold mb-2">Anbieter:</h3>
                     <p className="text-gray-700">{data.anbieter}</p>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Debug Access Data Section - Always show for debugging */}
+            <Card className="border-red-200 bg-red-50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-red-700">
+                  <Key className="h-5 w-5" />
+                  DEBUG: Access Data Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm space-y-2 text-red-700">
+                  <p><strong>hasAccessData:</strong> {hasAccessData ? 'TRUE' : 'FALSE'}</p>
+                  <p><strong>ident_code:</strong> "{assignmentData.ident_code}" (type: {typeof assignmentData.ident_code})</p>
+                  <p><strong>ident_link:</strong> "{assignmentData.ident_link}" (type: {typeof assignmentData.ident_link})</p>
+                  <p><strong>access_email:</strong> "{assignmentData.access_email}" (type: {typeof assignmentData.access_email})</p>
+                  <p><strong>access_password:</strong> "{assignmentData.access_password}" (type: {typeof assignmentData.access_password})</p>
+                  <p><strong>access_phone:</strong> "{assignmentData.access_phone}" (type: {typeof assignmentData.access_phone})</p>
                 </div>
               </CardContent>
             </Card>
