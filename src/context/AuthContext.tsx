@@ -33,24 +33,65 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const auth = useSupabaseAuth();
   const navigate = useNavigate();
   
+  const waitForAdminStatus = async (maxWaitTime = 3000): Promise<boolean> => {
+    const startTime = Date.now();
+    const pollInterval = 100;
+    
+    return new Promise((resolve) => {
+      const checkAdminStatus = () => {
+        const elapsed = Date.now() - startTime;
+        
+        console.log(`🔍 Polling admin status - Elapsed: ${elapsed}ms, Loading: ${auth.isLoading}, Admin: ${auth.isAdmin}, User: ${auth.user?.email}`);
+        
+        // If we're no longer loading, we have our final status
+        if (!auth.isLoading && auth.user) {
+          console.log(`✅ Admin status resolved - Admin: ${auth.isAdmin} for ${auth.user.email}`);
+          resolve(auth.isAdmin);
+          return;
+        }
+        
+        // If we've exceeded max wait time, resolve with current status
+        if (elapsed >= maxWaitTime) {
+          console.log(`⏰ Admin status check timeout - Using current status: ${auth.isAdmin}`);
+          resolve(auth.isAdmin);
+          return;
+        }
+        
+        // Continue polling
+        setTimeout(checkAdminStatus, pollInterval);
+      };
+      
+      checkAdminStatus();
+    });
+  };
+  
   const signInAndRedirect = async (email: string, password: string) => {
     console.log('🔐 Starting signInAndRedirect for:', email);
     const result = await auth.signIn(email, password);
     
     if (result.success) {
-      console.log('✅ Sign in successful, checking admin status for redirect');
-      console.log('🔍 Auth status - User:', auth.user?.email, 'IsAdmin:', auth.isAdmin, 'IsLoading:', auth.isLoading);
+      console.log('✅ Sign in successful, waiting for admin status to resolve');
+      console.log('🔍 Initial auth status - User:', auth.user?.email, 'IsAdmin:', auth.isAdmin, 'IsLoading:', auth.isLoading);
       
-      // Wait a moment for auth state to settle, then redirect based on admin status
-      setTimeout(() => {
-        if (auth.isAdmin) {
-          console.log('👑 Redirecting admin to /admin');
+      try {
+        // Wait for admin status to be fully resolved
+        const isAdminUser = await waitForAdminStatus();
+        
+        console.log(`🎯 Final redirect decision - IsAdmin: ${isAdminUser} for user: ${auth.user?.email}`);
+        
+        if (isAdminUser) {
+          console.log('👑 Redirecting admin user to /admin');
           navigate('/admin');
         } else {
-          console.log('👤 Redirecting user to /dashboard');
+          console.log('👤 Redirecting regular user to /dashboard');
           navigate('/dashboard');
         }
-      }, 100);
+      } catch (error) {
+        console.error('❌ Error waiting for admin status:', error);
+        // Fallback to dashboard if there's an error
+        console.log('🔄 Fallback: redirecting to /dashboard');
+        navigate('/dashboard');
+      }
     } else {
       console.log('❌ Sign in failed:', result.error);
     }

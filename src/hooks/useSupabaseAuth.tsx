@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,17 +13,23 @@ export const useSupabaseAuth = () => {
   useEffect(() => {
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, newSession) => {
+      async (event, newSession) => {
         console.log('🔄 Auth state change:', event, newSession?.user?.email);
         setSession(newSession);
         setUser(newSession?.user ?? null);
         
-        // Check if user is admin on auth change
-        if (newSession?.user) {
-          checkIfAdmin(newSession.user.id);
-        } else {
+        // Reset admin status immediately when session changes
+        if (!newSession?.user) {
+          console.log('🚫 No user - setting admin to false');
           setIsAdmin(false);
           setIsLoading(false);
+        } else {
+          console.log('👤 User found - checking admin status');
+          setIsLoading(true);
+          // Use setTimeout to avoid potential deadlock with onAuthStateChange
+          setTimeout(() => {
+            checkIfAdmin(newSession.user.id);
+          }, 0);
         }
       }
     );
@@ -66,7 +71,6 @@ export const useSupabaseAuth = () => {
   const checkIfAdmin = async (userId: string) => {
     try {
       console.log('🔍 Checking admin status for user ID:', userId);
-      setIsLoading(true);
       
       // First check if the RPC function exists and is callable
       const { data, error } = await supabase.rpc('is_admin', { user_id: userId });
@@ -101,6 +105,7 @@ export const useSupabaseAuth = () => {
         console.log('📋 Direct user_roles query result:', rolesData);
       }
       
+      console.log(`🎯 Setting admin status to: ${adminStatus} for user: ${userId}`);
       setIsAdmin(adminStatus);
       setIsLoading(false);
     } catch (error) {
