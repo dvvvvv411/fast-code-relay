@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,10 +12,9 @@ import PersonalDataStep from '@/components/contract/PersonalDataStep';
 import TaxInsuranceStep from '@/components/contract/TaxInsuranceStep';
 import BankingStep from '@/components/contract/BankingStep';
 import IdUploadStep from '@/components/contract/IdUploadStep';
-import ContractPDFPreview from '@/components/contract/ContractPDFPreview';
+import ContractPDFDialog from '@/components/contract/ContractPDFDialog';
 
 const STEPS = [
-  'PDF-Vorschau',
   'Persönliche Daten',
   'Steuer & Versicherung',
   'Bankverbindung',
@@ -155,14 +155,12 @@ const ContractForm = () => {
   const validateCurrentStep = () => {
     switch (currentStep) {
       case 1:
-        return true; // PDF preview step - no validation needed
-      case 2:
         return formData.firstName && formData.lastName && formData.email && formData.startDate;
-      case 3:
+      case 2:
         return formData.socialSecurityNumber && formData.taxNumber && formData.healthInsuranceName;
-      case 4:
+      case 3:
         return formData.iban && formData.bankName;
-      case 5:
+      case 4:
         return true; // ID upload is optional for now
       default:
         return false;
@@ -276,8 +274,6 @@ const ContractForm = () => {
   const renderCurrentStep = () => {
     switch (currentStep) {
       case 1:
-        return <ContractPDFPreview />;
-      case 2:
         return (
           <PersonalDataStep
             formData={{
@@ -291,7 +287,7 @@ const ContractForm = () => {
             onInputChange={handleInputChange}
           />
         );
-      case 3:
+      case 2:
         return (
           <TaxInsuranceStep
             formData={{
@@ -302,7 +298,7 @@ const ContractForm = () => {
             onInputChange={handleInputChange}
           />
         );
-      case 4:
+      case 3:
         return (
           <BankingStep
             formData={{
@@ -313,7 +309,7 @@ const ContractForm = () => {
             onInputChange={handleInputChange}
           />
         );
-      case 5:
+      case 4:
         return (
           <IdUploadStep
             formData={{
@@ -422,6 +418,11 @@ const ContractForm = () => {
           totalSteps={STEPS.length} 
           steps={STEPS} 
         />
+
+        {/* PDF Preview Button */}
+        <div className="max-w-4xl mx-auto mb-6">
+          <ContractPDFDialog />
+        </div>
 
         {/* Main Form Card */}
         <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
