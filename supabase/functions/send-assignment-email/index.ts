@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.8';
@@ -250,9 +251,8 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Assignment fetched successfully, phone number:", phoneNumber ? "included" : "not included");
 
-    // Generate random prefix for email address
-    const randomPrefix = Math.random().toString(36).substring(2, 12);
-    const fromEmail = `${randomPrefix}@email.expandere-agentur.com`;
+    // Fixed sender email address
+    const senderEmail = 'karriere@email.expandere-agentur.com';
 
     // Generate email HTML
     const emailHtml = generateEmailTemplate(
@@ -264,19 +264,21 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email using Resend
     const emailResponse = await resend.emails.send({
-      from: `Expandere <${fromEmail}>`,
+      from: `Expandere <${senderEmail}>`,
       to: [recipientEmail],
       subject: `Neuer Auftrag: ${assignment.auftraege.title}`,
       html: emailHtml,
     });
 
     console.log("Email sent successfully:", emailResponse);
+    console.log("Sender email used:", senderEmail);
 
     return new Response(
       JSON.stringify({
         success: true,
         emailId: emailResponse.data?.id,
         message: "Assignment email sent successfully",
+        senderEmail: senderEmail
       }),
       {
         status: 200,

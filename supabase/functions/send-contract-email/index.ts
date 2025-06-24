@@ -37,6 +37,9 @@ const handler = async (req: Request): Promise<Response> => {
     // Use the correct preview URL
     const contractUrl = `https://preview--fast-code-relay.lovable.app/arbeitsvertrag/${contractToken}`;
 
+    // Fixed sender email address
+    const senderEmail = 'karriere@email.expandere-agentur.com';
+
     const emailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
         <!-- Orange Header -->
@@ -157,15 +160,19 @@ const handler = async (req: Request): Promise<Response> => {
     `;
 
     const emailResponse = await resend.emails.send({
-      from: "Expandere Agentur <noreply@email.expandere-agentur.com>",
+      from: `Expandere <${senderEmail}>`,
       to: [recipient.email],
       subject: "Arbeitsvertrag - Zusätzliche Informationen erforderlich",
       html: emailHtml,
     });
 
     console.log("Contract email sent successfully:", emailResponse);
+    console.log("Sender email used:", senderEmail);
 
-    return new Response(JSON.stringify(emailResponse), {
+    return new Response(JSON.stringify({
+      ...emailResponse,
+      senderEmail: senderEmail
+    }), {
       status: 200,
       headers: {
         "Content-Type": "application/json",
