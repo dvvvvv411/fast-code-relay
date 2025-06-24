@@ -8,9 +8,11 @@ import { User, CreditCard, Mail, Calendar, Phone, Save } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useUserPhoneData } from '@/hooks/useUserPhoneData';
 
 const PersonalDataTab = () => {
   const { user } = useAuth();
+  const { phoneNumber, isLoading: phoneLoading } = useUserPhoneData();
   
   // State for editable bank data
   const [bankData, setBankData] = useState({
@@ -26,7 +28,7 @@ const PersonalDataTab = () => {
     firstName: user?.user_metadata?.first_name || 'Max',
     lastName: user?.user_metadata?.last_name || 'Mustermann',
     email: user?.email || 'max.mustermann@example.com',
-    phone: user?.user_metadata?.phone || '+49 123 456789',
+    phone: phoneNumber || user?.user_metadata?.phone || '+49 123 456789',
     joinDate: '15. Januar 2024'
   };
 
@@ -84,7 +86,7 @@ const PersonalDataTab = () => {
               <label className="text-sm font-medium text-gray-600">Telefonnummer</label>
               <p className="text-lg font-semibold flex items-center gap-2">
                 <Phone className="h-4 w-4 text-gray-500" />
-                {personalInfo.phone}
+                {phoneLoading ? 'Wird geladen...' : personalInfo.phone}
               </p>
             </div>
             <div className="space-y-2 md:col-span-2">
