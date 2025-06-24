@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -130,12 +131,6 @@ const UserAssignments = () => {
                 </div>
                 <div className="flex flex-col gap-2 ml-4">
                   {getStatusBadge(assignment)}
-                  {assignment.assigned_user_id && (
-                    <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
-                      <User className="h-3 w-3 mr-1" />
-                      Registriert
-                    </Badge>
-                  )}
                   {assignment.auftrag.bonus_amount > 0 && (
                     <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                       <Euro className="h-3 w-3 mr-1" />

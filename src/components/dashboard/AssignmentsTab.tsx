@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { CheckCircle, Clock, Target, TrendingUp, UserCheck, AlertCircle } from 'lucide-react';
+import { CheckCircle, Clock, Target, TrendingUp, AlertCircle } from 'lucide-react';
 import { useUserAssignments } from '@/hooks/useUserAssignments';
 import { useAuth } from '@/context/AuthContext';
 import UserAssignments from '@/components/UserAssignments';
