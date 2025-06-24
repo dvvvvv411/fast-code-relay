@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Eye, Clock, CheckCircle, Star, User, AlertCircle } from 'lucide-react';
+import { Eye, Clock, CheckCircle, Star, User, AlertCircle, Euro } from 'lucide-react';
 import { useUserAssignments } from '@/hooks/useUserAssignments';
 import { useAuth } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -52,6 +52,13 @@ const UserAssignments = () => {
         In Bearbeitung
       </Badge>
     );
+  };
+
+  const formatBonus = (amount: number) => {
+    if (amount > 0) {
+      return `${amount.toFixed(2)}€`;
+    }
+    return 'Keine Prämie';
   };
 
   if (isLoading) {
@@ -130,6 +137,12 @@ const UserAssignments = () => {
                       Registriert
                     </Badge>
                   )}
+                  {assignment.auftrag.bonus_amount > 0 && (
+                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                      <Euro className="h-3 w-3 mr-1" />
+                      {formatBonus(assignment.auftrag.bonus_amount)}
+                    </Badge>
+                  )}
                 </div>
               </CardTitle>
             </CardHeader>
@@ -141,6 +154,20 @@ const UserAssignments = () => {
                     {assignment.auftrag.projektziel.length > 200 && '...'}
                   </p>
                 </div>
+                
+                {assignment.auftrag.bonus_amount > 0 && (
+                  <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                    <div className="flex items-center gap-2">
+                      <Euro className="h-4 w-4 text-green-600" />
+                      <span className="text-sm font-medium text-green-800">
+                        Prämienmöglichkeit: {formatBonus(assignment.auftrag.bonus_amount)}
+                      </span>
+                    </div>
+                    <p className="text-xs text-green-600 mt-1">
+                      Diese Prämie erhalten Sie nach erfolgreicher Abwicklung und Bewertung des Auftrags.
+                    </p>
+                  </div>
+                )}
                 
                 <div className="flex justify-between items-center text-xs text-gray-500">
                   <span>

@@ -21,6 +21,7 @@ export interface UserAssignment {
     auftragsnummer: string;
     anbieter: string;
     projektziel: string;
+    bonus_amount: number;
   };
 }
 
@@ -52,7 +53,8 @@ export const useUserAssignments = (userId?: string) => {
             title,
             auftragsnummer,
             anbieter,
-            projektziel
+            projektziel,
+            bonus_amount
           )
         `)
         .eq('assigned_user_id', userId)
@@ -84,7 +86,8 @@ export const useUserAssignments = (userId?: string) => {
           title: item.auftraege.title,
           auftragsnummer: item.auftraege.auftragsnummer,
           anbieter: item.auftraege.anbieter,
-          projektziel: item.auftraege.projektziel
+          projektziel: item.auftraege.projektziel,
+          bonus_amount: item.auftraege.bonus_amount || 0
         }
       }));
 
