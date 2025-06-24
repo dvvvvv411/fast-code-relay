@@ -169,7 +169,8 @@ const BonusesTab = () => {
               Wie funktionieren Prämien?
             </h3>
             <p className="text-green-800 text-sm">
-              Sie erhalten automatisch Prämien, wenn Sie Aufträge erfolgreich abschließen und diese bewertet werden. 
+              Sie erhalten automatisch Prämien, wenn Sie Aufträge erfolgreich abschließen und diese bewertet werden.
+              <br />
               Die Prämie wird basierend auf dem jeweiligen Auftrag vergeben. Ausstehende Prämien werden zu Ihrem Gehalt mit ausgezahlt.
             </p>
           </div>
