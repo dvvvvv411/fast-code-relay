@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 interface UserBankData {
   iban: string;
   bic: string | null;
+  bank_name: string | null;
 }
 
 export const useUserBankData = () => {
@@ -21,7 +22,7 @@ export const useUserBankData = () => {
       // First try to find by user_id
       let { data, error } = await supabase
         .from('employment_contracts')
-        .select('iban, bic')
+        .select('iban, bic, bank_name')
         .eq('user_id', user.id)
         .eq('status', 'accepted')
         .maybeSingle();
@@ -31,7 +32,7 @@ export const useUserBankData = () => {
         console.log('🔍 No contract found by user_id, trying by email:', user.email);
         const result = await supabase
           .from('employment_contracts')
-          .select('iban, bic')
+          .select('iban, bic, bank_name')
           .eq('email', user.email)
           .eq('status', 'accepted')
           .maybeSingle();

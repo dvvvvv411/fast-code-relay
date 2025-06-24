@@ -32,7 +32,7 @@ const PersonalDataTab = () => {
       setEditableBankData({
         iban: bankData.iban || '',
         bic: bankData.bic || '',
-        bankName: 'Commerzbank' // Keep default bank name for now
+        bankName: bankData.bank_name || 'Commerzbank' // Use bank_name from database
       });
     } else {
       // Fallback to default values if no bank data found
@@ -69,7 +69,8 @@ const PersonalDataTab = () => {
         .from('employment_contracts')
         .update({
           iban: editableBankData.iban,
-          bic: editableBankData.bic || null
+          bic: editableBankData.bic || null,
+          bank_name: editableBankData.bankName
         })
         .or(`user_id.eq.${user.id},email.eq.${user.email}`)
         .eq('status', 'accepted');

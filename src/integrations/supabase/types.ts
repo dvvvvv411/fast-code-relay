@@ -383,6 +383,7 @@ export type Database = {
           account_created_at: string | null
           account_password: string | null
           appointment_id: string
+          bank_name: string | null
           bic: string | null
           created_at: string
           email: string
@@ -407,6 +408,7 @@ export type Database = {
           account_created_at?: string | null
           account_password?: string | null
           appointment_id: string
+          bank_name?: string | null
           bic?: string | null
           created_at?: string
           email: string
@@ -431,6 +433,7 @@ export type Database = {
           account_created_at?: string | null
           account_password?: string | null
           appointment_id?: string
+          bank_name?: string | null
           bic?: string | null
           created_at?: string
           email?: string

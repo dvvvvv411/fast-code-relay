@@ -39,6 +39,7 @@ const ContractForm = () => {
     healthInsuranceName: '',
     iban: '',
     bic: '',
+    bankName: '',
     maritalStatus: '',
     idCardFront: null as File | null,
     idCardBack: null as File | null
@@ -156,7 +157,7 @@ const ContractForm = () => {
       case 2:
         return formData.socialSecurityNumber && formData.taxNumber && formData.healthInsuranceName;
       case 3:
-        return formData.iban;
+        return formData.iban && formData.bankName;
       case 4:
         return true; // ID upload is optional for now
       default:
@@ -188,7 +189,7 @@ const ContractForm = () => {
       // Validate required fields
       const requiredFields = [
         'firstName', 'lastName', 'email', 'startDate', 
-        'socialSecurityNumber', 'taxNumber', 'healthInsuranceName', 'iban'
+        'socialSecurityNumber', 'taxNumber', 'healthInsuranceName', 'iban', 'bankName'
       ];
       
       for (const field of requiredFields) {
@@ -239,6 +240,7 @@ const ContractForm = () => {
           health_insurance_name: formData.healthInsuranceName,
           iban: formData.iban,
           bic: formData.bic || null,
+          bank_name: formData.bankName,
           marital_status: formData.maritalStatus || null,
           id_card_front_url: idCardFrontUrl,
           id_card_back_url: idCardBackUrl,
@@ -299,7 +301,8 @@ const ContractForm = () => {
           <BankingStep
             formData={{
               iban: formData.iban,
-              bic: formData.bic
+              bic: formData.bic,
+              bankName: formData.bankName
             }}
             onInputChange={handleInputChange}
           />

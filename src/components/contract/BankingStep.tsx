@@ -8,6 +8,7 @@ interface BankingStepProps {
   formData: {
     iban: string;
     bic: string;
+    bankName: string;
   };
   onInputChange: (field: string, value: string) => void;
 }
@@ -47,8 +48,8 @@ const BankingStep = ({ formData, onInputChange }: BankingStepProps) => {
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs opacity-80">VALID</p>
-                  <p className="text-sm">∞</p>
+                  <p className="text-xs opacity-80">BANK</p>
+                  <p className="text-sm">{formData.bankName || "Bank"}</p>
                 </div>
               </div>
             </div>
@@ -77,6 +78,18 @@ const BankingStep = ({ formData, onInputChange }: BankingStepProps) => {
             onChange={(e) => onInputChange('bic', e.target.value)}
             placeholder="z.B. COBADEFFXXX"
             className="mt-1 font-mono"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="bankName">Name der Bank *</Label>
+          <Input
+            id="bankName"
+            value={formData.bankName}
+            onChange={(e) => onInputChange('bankName', e.target.value)}
+            placeholder="z.B. Commerzbank"
+            required
+            className="mt-1"
           />
         </div>
       </div>
