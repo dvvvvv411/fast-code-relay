@@ -54,9 +54,8 @@ const handler = async (req: Request): Promise<Response> => {
     // Generate booking URL with correct domain
     const bookingUrl = `https://termin.expandere-agentur.net/termin-buchen/${appointment.recipient.unique_token}`;
 
-    // Generate random number for dynamic sender email
-    const randomNumber = Math.floor(Math.random() * 900000) + 100000; // 6-digit random number
-    const dynamicSenderEmail = `noreply${randomNumber}@email.expandere-agentur.com`;
+    // Fixed sender email address
+    const senderEmail = 'karriere@email.expandere-agentur.com';
 
     // Create HTML email content
     const htmlContent = `
@@ -176,22 +175,22 @@ const handler = async (req: Request): Promise<Response> => {
       </div>
     `;
 
-    // Send email using Resend with dynamic sender
+    // Send email using Resend with fixed sender
     const emailResponse = await resend.emails.send({
-      from: `Expandere <${dynamicSenderEmail}>`,
+      from: `Expandere <${senderEmail}>`,
       to: [appointment.recipient.email],
       subject: "Verpasster Termin - Neuen Termin buchen bei Expandere",
       html: htmlContent,
     });
 
     console.log("Missed appointment email sent successfully:", emailResponse);
-    console.log("Dynamic sender email used:", dynamicSenderEmail);
+    console.log("Sender email used:", senderEmail);
 
     return new Response(JSON.stringify({ 
       success: true, 
       emailId: emailResponse.data?.id,
       message: 'E-Mail für verpassten Termin erfolgreich versendet',
-      senderEmail: dynamicSenderEmail
+      senderEmail: senderEmail
     }), {
       status: 200,
       headers: {

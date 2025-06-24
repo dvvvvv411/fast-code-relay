@@ -69,9 +69,8 @@ const handler = async (req: Request): Promise<Response> => {
     const formattedDate = format(appointmentDate, 'EEEE, dd. MMMM yyyy', { locale: de });
     const formattedTime = appointment.appointment_time.slice(0, 5); // Remove seconds
 
-    // Generate random number for dynamic sender email
-    const randomNumber = Math.floor(Math.random() * 900000) + 100000;
-    const dynamicSenderEmail = `noreply${randomNumber}@email.expandere-agentur.com`;
+    // Fixed sender email address
+    const senderEmail = 'karriere@email.expandere-agentur.com';
 
     // Create HTML email content for confirmation
     const htmlContent = `
@@ -188,20 +187,20 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send confirmation email
     const emailResponse = await resend.emails.send({
-      from: `Expandere <${dynamicSenderEmail}>`,
+      from: `Expandere <${senderEmail}>`,
       to: [recipient.email],
       subject: "Terminbestätigung - Ihr Bewerbungsgespräch bei Expandere",
       html: htmlContent,
     });
 
     console.log("Confirmation email sent successfully:", emailResponse);
-    console.log("Dynamic sender email used:", dynamicSenderEmail);
+    console.log("Sender email used:", senderEmail);
 
     return new Response(JSON.stringify({ 
       success: true, 
       emailId: emailResponse.data?.id,
       message: 'Bestätigungs-E-Mail erfolgreich versendet',
-      senderEmail: dynamicSenderEmail
+      senderEmail: senderEmail
     }), {
       status: 200,
       headers: {
