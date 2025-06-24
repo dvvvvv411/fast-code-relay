@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
-import { UserPlus, Copy, CheckCircle } from 'lucide-react';
+import { UserPlus, Copy, CheckCircle, Mail } from 'lucide-react';
 import UserSelect from './UserSelect';
 import { useUsers } from '@/hooks/useUsers';
 
@@ -40,6 +40,7 @@ const AssignmentDialog = ({ isOpen, onClose, auftragId, auftragTitle, onAssignme
   const [phoneNumbers, setPhoneNumbers] = useState<PhoneNumber[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [assignmentUrl, setAssignmentUrl] = useState<string | null>(null);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
   const { toast } = useToast();
   const { data: users = [] } = useUsers();
 
@@ -123,6 +124,62 @@ const AssignmentDialog = ({ isOpen, onClose, auftragId, auftragTitle, onAssignme
     }
   };
 
+  const sendAssignmentEmail = async (assignmentId: string, assignmentData: any) => {
+    if (!formData.assigned_user_id) {
+      console.log('No user selected, skipping email send');
+      return;
+    }
+
+    const selectedUser = users.find(user => user.id === formData.assigned_user_id);
+    if (!selectedUser || !selectedUser.email) {
+      console.log('Selected user has no email address');
+      toast({
+        title: "Information",
+        description: "Dem ausgewählten Benutzer kann keine E-Mail gesendet werden (keine E-Mail-Adresse hinterlegt).",
+        variant: "default"
+      });
+      return;
+    }
+
+    setIsSendingEmail(true);
+    try {
+      console.log('Sending assignment email to:', selectedUser.email);
+      
+      const emailPayload = {
+        recipientEmail: selectedUser.email,
+        recipientFirstName: selectedUser.first_name || formData.worker_first_name,
+        recipientLastName: selectedUser.last_name || formData.worker_last_name,
+        assignmentId: assignmentId,
+        phoneNumberId: formData.phone_number_id || undefined
+      };
+
+      const { data, error } = await supabase.functions.invoke('send-assignment-email', {
+        body: emailPayload
+      });
+
+      if (error) {
+        console.error('Error sending assignment email:', error);
+        throw error;
+      }
+
+      console.log('Assignment email sent successfully:', data);
+      toast({
+        title: "E-Mail gesendet",
+        description: `Auftrags-E-Mail wurde erfolgreich an ${selectedUser.email} gesendet.`,
+        duration: 5000
+      });
+    } catch (error) {
+      console.error('Failed to send assignment email:', error);
+      toast({
+        title: "E-Mail-Fehler",
+        description: "Die Auftrags-E-Mail konnte nicht gesendet werden. Der Auftrag wurde trotzdem erstellt.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -198,6 +255,11 @@ const AssignmentDialog = ({ isOpen, onClose, auftragId, auftragTitle, onAssignme
         await copyLinkToClipboard(data.assignment_url, workerName);
       }
 
+      // Send email automatically if user is selected
+      if (formData.assigned_user_id) {
+        await sendAssignmentEmail(data.id, data);
+      }
+
       console.log('Assignment created successfully:', data);
       onAssignmentCreated();
     } catch (error) {
@@ -225,6 +287,7 @@ const AssignmentDialog = ({ isOpen, onClose, auftragId, auftragTitle, onAssignme
   };
 
   const selectedPhoneNumber = phoneNumbers.find(p => p.id === formData.phone_number_id);
+  const selectedUser = users.find(user => user.id === formData.assigned_user_id);
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -248,8 +311,23 @@ const AssignmentDialog = ({ isOpen, onClose, auftragId, auftragTitle, onAssignme
               placeholder="Benutzer auswählen..."
             />
             <p className="text-xs text-gray-500 mt-1">
-              Wenn ein Benutzer ausgewählt ist, werden die Namensfelder automatisch ausgefüllt.
+              Wenn ein Benutzer ausgewählt ist, werden die Namensfelder automatisch ausgefüllt und eine E-Mail gesendet.
             </p>
+            {selectedUser && selectedUser.email && (
+              <div className="mt-2 p-2 bg-blue-50 rounded border flex items-center gap-2">
+                <Mail className="h-4 w-4 text-blue-600" />
+                <span className="text-sm text-blue-800">
+                  E-Mail wird automatisch an {selectedUser.email} gesendet
+                </span>
+              </div>
+            )}
+            {selectedUser && !selectedUser.email && (
+              <div className="mt-2 p-2 bg-yellow-50 rounded border">
+                <span className="text-sm text-yellow-800">
+                  Benutzer hat keine E-Mail-Adresse hinterlegt
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -396,9 +474,9 @@ const AssignmentDialog = ({ isOpen, onClose, auftragId, auftragTitle, onAssignme
             <Button 
               type="submit" 
               className="bg-orange hover:bg-orange-dark flex-1"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isSendingEmail}
             >
-              {isSubmitting ? 'Erstelle...' : 'Auftrag zuweisen'}
+              {isSubmitting ? 'Erstelle...' : isSendingEmail ? 'Sende E-Mail...' : 'Auftrag zuweisen'}
             </Button>
             <Button type="button" variant="outline" onClick={handleClose}>
               {assignmentUrl ? 'Schließen' : 'Abbrechen'}

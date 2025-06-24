@@ -41,7 +41,8 @@ const generateEmailTemplate = (
   assignment: Assignment,
   phoneNumber?: PhoneNumber
 ) => {
-  const assignmentUrl = `https://auftrag.expandere-agentur.net/assignment/${assignment.assignment_url}`;
+  // Updated to redirect to /auth instead of assignment URL
+  const authUrl = `https://auftrag.expandere-agentur.net/auth`;
 
   return `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
@@ -63,7 +64,7 @@ const generateEmailTemplate = (
         
         <p style="color: #555; line-height: 1.6; font-size: 16px; margin-bottom: 30px;">
           Sie haben einen neuen Auftrag erhalten, den Sie bearbeiten können. 
-          Klicken Sie auf den Button unten, um die Details einzusehen und zu beginnen.
+          Melden Sie sich in Ihrem Account an, um die Details einzusehen und zu beginnen.
         </p>
 
         <!-- Assignment Details -->
@@ -88,13 +89,21 @@ const generateEmailTemplate = (
                 ${assignment.auftraege.auftragsnummer}
               </td>
             </tr>
+            <tr>
+              <td style="padding: 8px 0; font-weight: bold; color: #333;">
+                Anbieter:
+              </td>
+              <td style="padding: 8px 0; color: #555;">
+                ${assignment.auftraege.anbieter}
+              </td>
+            </tr>
           </table>
         </div>
 
         <!-- Call to Action Button -->
         <div style="text-align: center; margin: 40px 0;">
-          <a href="${assignmentUrl}" style="background-color: #ff6b35; color: white; padding: 18px 40px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 16px; box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3); transition: all 0.3s ease;">
-            Auftrag einsehen
+          <a href="${authUrl}" style="background-color: #ff6b35; color: white; padding: 18px 40px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 16px; box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3); transition: all 0.3s ease;">
+            Jetzt anmelden
           </a>
         </div>
 
@@ -106,7 +115,7 @@ const generateEmailTemplate = (
           </h3>
           <p style="color: #555; line-height: 1.6; margin: 0 0 15px 0;">
             Für diesen Auftrag benötigen Sie eine SMS-Verifikation. Die SMS-Aktivierung können Sie 
-            bequem direkt auf der Auftragsseite durchführen. Verwenden Sie dafür folgende Daten:
+            bequem nach der Anmeldung in Ihrem Dashboard durchführen. Verwenden Sie dafür folgende Daten:
           </p>
           <table style="width: 100%; border-collapse: collapse;">
             <tr>
@@ -131,8 +140,9 @@ const generateEmailTemplate = (
           <div style="background-color: #f1f3f4; padding: 20px; border-radius: 6px; margin-top: 20px;">
             <p style="color: #666; font-size: 14px; line-height: 1.5; margin: 0;">
               <strong>Anleitung:</strong><br/>
-              Gehen Sie zur Auftragsseite über den Button oben. Dort finden Sie den SMS-Aktivierungsbereich, 
-              wo Sie die Telefonnummer und den Zugangscode eingeben können, um eine SMS-Verifikation zu erhalten.
+              Melden Sie sich über den Button oben an. In Ihrem Dashboard finden Sie dann Ihre zugewiesenen 
+              Aufträge sowie den SMS-Aktivierungsbereich, wo Sie die Telefonnummer und den Zugangscode 
+              eingeben können, um eine SMS-Verifikation zu erhalten.
             </p>
           </div>
         </div>
