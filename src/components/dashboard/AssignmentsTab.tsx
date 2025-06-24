@@ -26,24 +26,6 @@ const AssignmentsTab = () => {
 
   return (
     <div className="space-y-6">
-      {/* Info Banner */}
-      <Card className="bg-blue-50 border-blue-200">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-3">
-            <UserCheck className="h-6 w-6 text-blue-600" />
-            <div>
-              <h3 className="font-semibold text-blue-800">Status-Updates für registrierte Benutzer</h3>
-              <p className="text-sm text-blue-700">
-                Registrierte Mitarbeiter können jetzt Bewertungen einreichen, die automatisch den Status auf "In Überprüfung" setzen.
-                {underReviewAssignments > 0 && (
-                  <> {underReviewAssignments} Bewertungen sind derzeit in Überprüfung.</>
-                )}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Progress Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
