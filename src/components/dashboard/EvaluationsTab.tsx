@@ -36,21 +36,6 @@ const EvaluationsTab = () => {
 
   return (
     <div className="space-y-6">
-      {/* Info Banner */}
-      <Card className="bg-blue-50 border-blue-200">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-3">
-            <UserCheck className="h-6 w-6 text-blue-600" />
-            <div>
-              <h3 className="font-semibold text-blue-800">Nur registrierte Mitarbeiter</h3>
-              <p className="text-sm text-blue-700">
-                Diese Ansicht zeigt nur Bewertungen von Mitarbeitern mit Benutzerprofilen.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
