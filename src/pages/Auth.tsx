@@ -41,66 +41,107 @@ const Auth = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
-      <div className="flex-grow flex items-center justify-center px-4 py-12">
-        <Card className="w-full max-w-md">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-center">Administrator-Zugang</CardTitle>
-            <CardDescription className="text-center">
-              Melden Sie sich an, um den Admin-Bereich zu nutzen
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSignIn} className="space-y-4">
-              <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium">
-                  E-Mail
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <Mail className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@example.com"
-                    className="pl-10"
-                    required
-                  />
+      <div className="flex-grow flex">
+        {/* Left Column - Animation Section */}
+        <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
+          {/* Gradient Background */}
+          <div className="absolute inset-0 orange-gradient"></div>
+          
+          {/* Animated Geometric Shapes */}
+          <div className="absolute inset-0">
+            <div className="absolute top-20 left-20 w-32 h-32 bg-white/10 rounded-full animate-pulse-slow"></div>
+            <div className="absolute top-40 right-32 w-24 h-24 bg-white/20 rotate-45 animate-pulse delay-1000"></div>
+            <div className="absolute bottom-32 left-32 w-40 h-40 bg-white/5 rounded-lg rotate-12 animate-pulse delay-2000"></div>
+            <div className="absolute bottom-20 right-20 w-16 h-16 bg-white/15 rounded-full animate-bounce"></div>
+          </div>
+          
+          {/* Content Overlay */}
+          <div className="relative z-10 flex flex-col justify-center items-center text-center p-12 text-white">
+            <div className="animate-fade-in">
+              <h2 className="text-4xl font-bold mb-6">Willkommen zurück</h2>
+              <p className="text-xl mb-8 opacity-90">
+                Melden Sie sich an, um auf Ihr Administrator-Dashboard zuzugreifen
+              </p>
+              
+              {/* Login Icon Animation */}
+              <div className="relative">
+                <div className="w-24 h-24 mx-auto mb-6 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm animate-scale-in">
+                  <Lock className="h-12 w-12 text-white" />
                 </div>
+                <div className="absolute -top-2 -right-2 w-6 h-6 bg-white/30 rounded-full animate-ping"></div>
               </div>
               
-              <div className="space-y-2">
-                <label htmlFor="password" className="text-sm font-medium">
-                  Passwort
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <Lock className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="pl-10"
-                    required
-                  />
-                </div>
+              <div className="text-lg opacity-80">
+                Sicherer Zugang zu Ihrem Verwaltungsbereich
               </div>
-              
-              <Button 
-                type="submit" 
-                className="w-full bg-orange hover:bg-orange-dark"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? 'Wird angemeldet...' : 'Anmelden'}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column - Login Form */}
+        <div className="w-full lg:w-1/2 flex items-center justify-center px-4 py-12">
+          <div className="w-full max-w-md">
+            <Card className="form-container animate-scale-in">
+              <CardHeader className="space-y-1 text-center">
+                <CardTitle className="text-2xl font-bold">Administrator-Zugang</CardTitle>
+                <CardDescription>
+                  Melden Sie sich an, um den Admin-Bereich zu nutzen
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSignIn} className="space-y-4">
+                  <div className="space-y-2">
+                    <label htmlFor="email" className="text-sm font-medium">
+                      E-Mail
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                        <Mail className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="name@example.com"
+                        className="pl-10 transition-all duration-200 focus:scale-[1.02]"
+                        required
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label htmlFor="password" className="text-sm font-medium">
+                      Passwort
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                        <Lock className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <Input
+                        id="password"
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="pl-10 transition-all duration-200 focus:scale-[1.02]"
+                        required
+                      />
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-orange hover:bg-orange-dark transition-all duration-200 hover:scale-[1.02] hover:shadow-lg"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? 'Wird angemeldet...' : 'Anmelden'}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
       <Footer />
     </div>
