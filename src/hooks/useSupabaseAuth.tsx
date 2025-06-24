@@ -65,20 +65,42 @@ export const useSupabaseAuth = () => {
 
   const checkIfAdmin = async (userId: string) => {
     try {
-      console.log('🔍 Checking admin status for user:', userId);
+      console.log('🔍 Checking admin status for user ID:', userId);
       setIsLoading(true);
       
+      // First check if the RPC function exists and is callable
       const { data, error } = await supabase.rpc('is_admin', { user_id: userId });
       
       if (error) {
-        console.error('❌ Error checking admin status:', error);
+        console.error('❌ Error calling is_admin RPC:', error);
+        console.error('❌ Error details:', {
+          message: error.message,
+          code: error.code,
+          hint: error.hint,
+          details: error.details
+        });
         setIsAdmin(false);
         setIsLoading(false);
         return;
       }
       
+      console.log('📊 RPC is_admin raw response:', data, 'Type:', typeof data);
+      
       const adminStatus = Boolean(data);
       console.log('✅ Admin check result for', userId, ':', adminStatus);
+      
+      // Additional debugging - let's also check the user_roles table directly
+      const { data: rolesData, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId);
+        
+      if (rolesError) {
+        console.error('❌ Error checking user_roles directly:', rolesError);
+      } else {
+        console.log('📋 Direct user_roles query result:', rolesData);
+      }
+      
       setIsAdmin(adminStatus);
       setIsLoading(false);
     } catch (error) {

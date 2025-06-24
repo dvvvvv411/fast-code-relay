@@ -15,12 +15,20 @@ const Admin = () => {
   
   // Enhanced logging for debugging admin access
   useEffect(() => {
-    console.log('🔍 Admin page - Auth state:', {
+    console.log('🔍 Admin page - Detailed auth state:', {
       user: user?.email || 'none',
+      userId: user?.id || 'none',
       isLoading,
       isAdmin,
       timestamp: new Date().toISOString()
     });
+    
+    // Debug the user object completely
+    if (user) {
+      console.log('👤 Admin page - Full user object:', user);
+      console.log('🔑 Admin page - User metadata:', user.user_metadata);
+      console.log('📧 Admin page - User email verified:', user.email_confirmed_at);
+    }
   }, [user, isLoading, isAdmin]);
   
   // Log requests data whenever it changes to debug the status updates
@@ -57,7 +65,8 @@ const Admin = () => {
 
   // Enhanced admin check with additional security logging
   if (!isAdmin) {
-    console.log('🚫 Admin page access denied for user:', user.email);
+    console.log('🚫 Admin page access denied for user:', user.email, 'User ID:', user.id);
+    console.log('⚠️  Admin check failed - isAdmin value:', isAdmin, 'type:', typeof isAdmin);
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center max-w-md mx-auto p-6">
@@ -74,6 +83,13 @@ const Admin = () => {
               <LogOut className="h-4 w-4" />
               Abmelden
             </Button>
+            <Button 
+              onClick={() => window.location.href = '/dashboard'}
+              variant="outline"
+              className="w-full"
+            >
+              Zum Dashboard
+            </Button>
             <p className="text-sm text-gray-500">
               Als regulärer Benutzer angemeldet: {user.email}
             </p>
@@ -83,22 +99,34 @@ const Admin = () => {
     );
   }
   
-  console.log('✅ Admin page - Access granted for:', user.email);
+  console.log('✅ Admin page - Access granted for:', user.email, 'User ID:', user.id);
   
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Admin-Bereich</h1>
-          <Button 
-            variant="outline"
-            className="flex items-center gap-2"
-            onClick={handleSignOut}
-          >
-            <LogOut className="h-4 w-4" />
-            Abmelden
-          </Button>
+          <div>
+            <h1 className="text-2xl font-bold">Admin-Bereich</h1>
+            <p className="text-sm text-gray-600">Angemeldet als Administrator: {user.email}</p>
+          </div>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline"
+              onClick={() => window.location.href = '/dashboard'}
+              className="flex items-center gap-2"
+            >
+              Zum Dashboard
+            </Button>
+            <Button 
+              variant="outline"
+              className="flex items-center gap-2"
+              onClick={handleSignOut}
+            >
+              <LogOut className="h-4 w-4" />
+              Abmelden
+            </Button>
+          </div>
         </div>
         <AdminPanel />
       </div>

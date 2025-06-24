@@ -49,13 +49,8 @@ const UserDashboard = () => {
     return <Navigate to="/auth" replace />;
   }
 
-  // Redirect admins to admin panel
-  if (isAdmin) {
-    console.log('👑 Dashboard - Admin user, redirecting to admin panel');
-    return <Navigate to="/admin" replace />;
-  }
-  
-  console.log('✅ Dashboard - Access granted for regular user:', user.email);
+  // Allow both regular users AND admins to access the dashboard
+  console.log('✅ Dashboard - Access granted for user:', user.email, '(Admin status:', isAdmin, ')');
   
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -72,6 +67,11 @@ const UserDashboard = () => {
             <p className="text-gray-600 mt-2">
               Verwalten Sie Ihre Tests, sehen Sie Ihre Fortschritte und optimieren Sie Ihre Performance
             </p>
+            {isAdmin && (
+              <p className="text-sm text-orange-600 mt-1 font-medium">
+                👑 Admin-Benutzer - Sie haben auch Zugriff auf den <a href="/admin" className="underline">Admin-Bereich</a>
+              </p>
+            )}
           </div>
           <Button 
             variant="outline"
