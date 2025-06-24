@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -412,10 +413,10 @@ const AssignmentDetail = () => {
 
         {/* Full Width Instructions and Evaluation Section */}
         <div className="mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
             {/* Anweisungen */}
             {data.anweisungen && data.anweisungen.length > 0 && (
-              <Card>
+              <Card className="h-full">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <FileText className="h-5 w-5 text-orange-500" />
@@ -459,8 +460,8 @@ const AssignmentDetail = () => {
 
             {/* Bewertung abgeschlossen */}
             {assignmentData.is_evaluated && (
-              <Card className="border-green-200 bg-green-50">
-                <CardContent className="p-8 flex items-center justify-center min-h-[200px]">
+              <Card className="border-green-200 bg-green-50 h-full">
+                <CardContent className="h-full flex items-center justify-center p-8">
                   <div className="flex flex-col items-center gap-4">
                     <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
                       <Check className="h-8 w-8 text-green-600" />
