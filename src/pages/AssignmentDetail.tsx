@@ -276,7 +276,7 @@ const AssignmentDetail = () => {
                           className="text-blue-600 hover:text-blue-800 underline flex items-center gap-2"
                         >
                           <ExternalLink className="h-4 w-4" />
-                          Zur Identifikation
+                          Zur Website
                         </a>
                       </div>
                     )}
