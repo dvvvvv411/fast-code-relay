@@ -36,7 +36,9 @@ const App = () => (
               <Route path="/auftrag/:auftragId" element={<Auftrag />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/contract-form" element={<ContractForm />} />
+              <Route path="/arbeitsvertrag/:token" element={<ContractForm />} />
               <Route path="/contract-success" element={<ContractSuccess />} />
+              <Route path="/arbeitsvertrag-erfolg" element={<ContractSuccess />} />
               <Route path="/appointment-booking" element={<AppointmentBooking />} />
               <Route path="/dashboard" element={<UserDashboard />} />
               <Route path="/assignment-detail/:assignmentUrl" element={<AssignmentDetail />} />

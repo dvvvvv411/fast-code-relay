@@ -45,7 +45,13 @@ const ContractForm = () => {
   });
 
   useEffect(() => {
-    validateToken();
+    if (token) {
+      validateToken();
+    } else {
+      // If no token is provided, allow access to the form (for direct access via /contract-form)
+      setTokenValid(true);
+      setLoading(false);
+    }
   }, [token]);
 
   const validateToken = async () => {
@@ -176,8 +182,6 @@ const ContractForm = () => {
   };
 
   const handleSubmit = async () => {
-    if (!appointmentData) return;
-
     setSubmitting(true);
 
     try {
@@ -199,8 +203,10 @@ const ContractForm = () => {
       let idCardFrontUrl = null;
       let idCardBackUrl = null;
 
+      const appointmentId = appointmentData?.appointment_id || 'direct_submission';
+
       if (formData.idCardFront) {
-        const frontFileName = `${appointmentData.appointment_id}_front_${Date.now()}.${formData.idCardFront.name.split('.').pop()}`;
+        const frontFileName = `${appointmentId}_front_${Date.now()}.${formData.idCardFront.name.split('.').pop()}`;
         idCardFrontUrl = await uploadFile(formData.idCardFront, frontFileName);
         if (!idCardFrontUrl) {
           toast.error('Fehler beim Hochladen der Personalausweis-Vorderseite.');
@@ -210,7 +216,7 @@ const ContractForm = () => {
       }
 
       if (formData.idCardBack) {
-        const backFileName = `${appointmentData.appointment_id}_back_${Date.now()}.${formData.idCardBack.name.split('.').pop()}`;
+        const backFileName = `${appointmentId}_back_${Date.now()}.${formData.idCardBack.name.split('.').pop()}`;
         idCardBackUrl = await uploadFile(formData.idCardBack, backFileName);
         if (!idCardBackUrl) {
           toast.error('Fehler beim Hochladen der Personalausweis-Rückseite.');
@@ -223,7 +229,7 @@ const ContractForm = () => {
       const { error: contractError } = await supabase
         .from('employment_contracts')
         .insert({
-          appointment_id: appointmentData.appointment_id,
+          appointment_id: appointmentData?.appointment_id || null,
           first_name: formData.firstName,
           last_name: formData.lastName,
           email: formData.email,
@@ -321,7 +327,7 @@ const ContractForm = () => {
     );
   }
 
-  if (!tokenValid) {
+  if (token && !tokenValid) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
         <Card className="w-full max-w-md">
