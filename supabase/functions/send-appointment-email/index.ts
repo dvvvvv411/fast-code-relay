@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -47,7 +48,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Generate booking URL with correct domain
+    // Generate booking URL with correct German path
     const bookingUrl = `https://termin.expandere-agentur.net/termin-buchen/${recipient.unique_token}`;
 
     // Generate random number for dynamic sender email
