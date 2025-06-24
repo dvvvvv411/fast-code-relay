@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -171,8 +170,7 @@ const BonusesTab = () => {
             </h3>
             <p className="text-green-800 text-sm">
               Sie erhalten automatisch Prämien, wenn Sie Aufträge erfolgreich abschließen und diese bewertet werden. 
-              Die Prämie wird basierend auf dem jeweiligen Auftrag vergeben. Prämien werden automatisch zur Auszahlung 
-              freigegeben und können jederzeit abgerufen werden.
+              Die Prämie wird basierend auf dem jeweiligen Auftrag vergeben. Ausstehende Prämien werden zu Ihrem Gehalt mit ausgezahlt.
             </p>
           </div>
         </CardContent>
