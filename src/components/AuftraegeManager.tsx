@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Edit, Plus, Eye, UserPlus, Users } from 'lucide-react';
+import { Trash2, Edit, Plus, Eye, UserPlus, Users, Euro } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import InstructionsBuilder from './InstructionsBuilder';
@@ -28,6 +28,7 @@ interface Auftrag {
   anweisungen: any[];
   kontakt_name: string;
   kontakt_email: string;
+  bonus_amount: number;
   created_at: string;
 }
 
@@ -68,7 +69,8 @@ const AuftraegeManager = () => {
     anweisungen: [],
     evaluation_questions: [] as EvaluationQuestion[],
     kontakt_name: 'Friedrich Hautmann',
-    kontakt_email: 'f.hautmann@sls-advisors.net'
+    kontakt_email: 'f.hautmann@sls-advisors.net',
+    bonus_amount: 0
   });
 
   useEffect(() => {
@@ -88,7 +90,8 @@ const AuftraegeManager = () => {
       // Type cast the anweisungen field to ensure it's an array
       const typedData = (data || []).map(item => ({
         ...item,
-        anweisungen: Array.isArray(item.anweisungen) ? item.anweisungen : []
+        anweisungen: Array.isArray(item.anweisungen) ? item.anweisungen : [],
+        bonus_amount: item.bonus_amount || 0
       }));
       
       setAuftraege(typedData);
@@ -135,7 +138,8 @@ const AuftraegeManager = () => {
       anweisungen: [],
       evaluation_questions: [],
       kontakt_name: 'Friedrich Hautmann',
-      kontakt_email: 'f.hautmann@sls-advisors.net'
+      kontakt_email: 'f.hautmann@sls-advisors.net',
+      bonus_amount: 0
     });
     setEditingAuftrag(null);
   };
@@ -155,7 +159,8 @@ const AuftraegeManager = () => {
         show_download_links: formData.show_download_links,
         anweisungen: formData.anweisungen,
         kontakt_name: formData.kontakt_name,
-        kontakt_email: formData.kontakt_email
+        kontakt_email: formData.kontakt_email,
+        bonus_amount: formData.bonus_amount
       };
       
       let auftragId: string;
@@ -250,7 +255,8 @@ const AuftraegeManager = () => {
         anweisungen: Array.isArray(auftrag.anweisungen) ? auftrag.anweisungen : [],
         evaluation_questions: questionsData || [],
         kontakt_name: auftrag.kontakt_name,
-        kontakt_email: auftrag.kontakt_email
+        kontakt_email: auftrag.kontakt_email,
+        bonus_amount: auftrag.bonus_amount || 0
       });
     } catch (error) {
       console.error('Error fetching evaluation questions:', error);
@@ -265,7 +271,8 @@ const AuftraegeManager = () => {
         anweisungen: Array.isArray(auftrag.anweisungen) ? auftrag.anweisungen : [],
         evaluation_questions: [],
         kontakt_name: auftrag.kontakt_name,
-        kontakt_email: auftrag.kontakt_email
+        kontakt_email: auftrag.kontakt_email,
+        bonus_amount: auftrag.bonus_amount || 0
       });
     }
     
@@ -403,6 +410,22 @@ const AuftraegeManager = () => {
                   rows={4}
                   required
                 />
+              </div>
+
+              <div>
+                <Label htmlFor="bonus_amount">Prämie (€)</Label>
+                <Input
+                  id="bonus_amount"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.bonus_amount}
+                  onChange={(e) => setFormData({ ...formData, bonus_amount: parseFloat(e.target.value) || 0 })}
+                  placeholder="0.00"
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  Prämie die Mitarbeiter bei erfolgreichem Abschluss und Bewertung erhalten
+                </p>
               </div>
 
               <div className="flex items-center space-x-2">
@@ -581,6 +604,15 @@ const AuftraegeManager = () => {
                       {assignments[auftrag.id] || 0}
                     </span>
                   </div>
+                  {auftrag.bonus_amount > 0 && (
+                    <div className="col-span-2 flex items-center gap-2">
+                      <strong className="text-green-600">Prämie:</strong>
+                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                        <Euro className="h-3 w-3 mr-1" />
+                        {auftrag.bonus_amount.toFixed(2)} €
+                      </Badge>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

@@ -1,7 +1,8 @@
+
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader, LogOut, BarChart3, User, Star, Target } from 'lucide-react';
+import { Loader, LogOut, BarChart3, User, Star, Target, Euro } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -9,6 +10,7 @@ import DashboardSummary from '@/components/dashboard/DashboardSummary';
 import PersonalDataTab from '@/components/dashboard/PersonalDataTab';
 import EvaluationsTab from '@/components/dashboard/EvaluationsTab';
 import AssignmentsTab from '@/components/dashboard/AssignmentsTab';
+import BonusesTab from '@/components/dashboard/BonusesTab';
 import { useEffect } from 'react';
 
 const UserDashboard = () => {
@@ -83,7 +85,7 @@ const UserDashboard = () => {
         </div>
 
         <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-2/3 mx-auto bg-white border border-gray-200 rounded-lg p-1">
+          <TabsList className="grid w-full grid-cols-5 lg:w-4/5 mx-auto bg-white border border-gray-200 rounded-lg p-1">
             <TabsTrigger 
               value="dashboard" 
               className="flex items-center gap-2 data-[state=active]:bg-orange data-[state=active]:text-white transition-all"
@@ -106,6 +108,13 @@ const UserDashboard = () => {
               <span className="hidden sm:inline">Bewertungen</span>
             </TabsTrigger>
             <TabsTrigger 
+              value="bonuses" 
+              className="flex items-center gap-2 data-[state=active]:bg-orange data-[state=active]:text-white transition-all"
+            >
+              <Euro className="h-4 w-4" />
+              <span className="hidden sm:inline">Prämien</span>
+            </TabsTrigger>
+            <TabsTrigger 
               value="personal" 
               className="flex items-center gap-2 data-[state=active]:bg-orange data-[state=active]:text-white transition-all"
             >
@@ -124,6 +133,10 @@ const UserDashboard = () => {
 
           <TabsContent value="evaluations" className="space-y-6">
             <EvaluationsTab />
+          </TabsContent>
+
+          <TabsContent value="bonuses" className="space-y-6">
+            <BonusesTab />
           </TabsContent>
 
           <TabsContent value="personal" className="space-y-6">

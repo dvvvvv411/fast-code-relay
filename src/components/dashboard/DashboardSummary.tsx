@@ -2,9 +2,10 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { User, Star, Target, TrendingUp, Calendar, Award } from 'lucide-react';
+import { User, Star, Target, TrendingUp, Calendar, Award, Euro } from 'lucide-react';
 import { useUserAssignments } from '@/hooks/useUserAssignments';
 import { useUserActivityStreak } from '@/hooks/useUserActivityStreak';
+import { useUserBonusStats } from '@/hooks/useUserBonuses';
 import { useAuth } from '@/context/AuthContext';
 
 const DashboardSummary = () => {
@@ -15,6 +16,7 @@ const DashboardSummary = () => {
   const firstName = user?.user_metadata?.first_name;
   const lastName = user?.user_metadata?.last_name;
   const { data: activityStreak = 0, isLoading: streakLoading } = useUserActivityStreak(firstName, lastName);
+  const { data: bonusStats = { totalAmount: 0, paidAmount: 0, pendingAmount: 0, totalCount: 0 } } = useUserBonusStats(user?.id);
 
   // Calculate stats using status field consistently
   const totalAssignments = assignments.length;
@@ -71,7 +73,7 @@ const DashboardSummary = () => {
       </Card>
 
       {/* Quick Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -126,6 +128,19 @@ const DashboardSummary = () => {
                 <p className="text-xs text-gray-500">Tage aktiv</p>
               </div>
               <TrendingUp className="h-8 w-8 text-orange opacity-80" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Prämien</p>
+                <p className="text-2xl font-bold text-green-600">{bonusStats.totalAmount.toFixed(2)} €</p>
+                <p className="text-xs text-gray-500">{bonusStats.totalCount} verdient</p>
+              </div>
+              <Euro className="h-8 w-8 text-green-600 opacity-80" />
             </div>
           </CardContent>
         </Card>

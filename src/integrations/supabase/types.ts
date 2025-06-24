@@ -150,6 +150,7 @@ export type Database = {
           anweisungen: Json
           app_store_link: string | null
           auftragsnummer: string
+          bonus_amount: number | null
           created_at: string
           google_play_link: string | null
           id: string
@@ -165,6 +166,7 @@ export type Database = {
           anweisungen?: Json
           app_store_link?: string | null
           auftragsnummer: string
+          bonus_amount?: number | null
           created_at?: string
           google_play_link?: string | null
           id?: string
@@ -180,6 +182,7 @@ export type Database = {
           anweisungen?: Json
           app_store_link?: string | null
           auftragsnummer?: string
+          bonus_amount?: number | null
           created_at?: string
           google_play_link?: string | null
           id?: string
@@ -745,6 +748,44 @@ export type Database = {
           status?: string
         }
         Relationships: []
+      }
+      user_bonuses: {
+        Row: {
+          assignment_id: string
+          awarded_at: string
+          bonus_amount: number
+          created_at: string
+          id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          assignment_id: string
+          awarded_at?: string
+          bonus_amount: number
+          created_at?: string
+          id?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          assignment_id?: string
+          awarded_at?: string
+          bonus_amount?: number
+          created_at?: string
+          id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_bonuses_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: true
+            referencedRelation: "auftrag_assignments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
