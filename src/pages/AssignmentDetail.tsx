@@ -247,26 +247,6 @@ const AssignmentDetail = () => {
               </CardContent>
             </Card>
 
-            {/* Debug Access Data Section - Always show for debugging */}
-            <Card className="border-red-200 bg-red-50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-red-700">
-                  <Key className="h-5 w-5" />
-                  DEBUG: Access Data Status
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-sm space-y-2 text-red-700">
-                  <p><strong>hasAccessData:</strong> {hasAccessData ? 'TRUE' : 'FALSE'}</p>
-                  <p><strong>ident_code:</strong> "{assignmentData.ident_code}" (type: {typeof assignmentData.ident_code})</p>
-                  <p><strong>ident_link:</strong> "{assignmentData.ident_link}" (type: {typeof assignmentData.ident_link})</p>
-                  <p><strong>access_email:</strong> "{assignmentData.access_email}" (type: {typeof assignmentData.access_email})</p>
-                  <p><strong>access_password:</strong> "{assignmentData.access_password}" (type: {typeof assignmentData.access_password})</p>
-                  <p><strong>access_phone:</strong> "{assignmentData.access_phone}" (type: {typeof assignmentData.access_phone})</p>
-                </div>
-              </CardContent>
-            </Card>
-
             {/* Zugangsdaten */}
             {hasAccessData && (
               <Card>
