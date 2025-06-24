@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -47,7 +46,8 @@ const VALID_STATUSES = [
   'cancelled',
   'interessiert',
   'abgelehnt',
-  'mailbox'
+  'mailbox',
+  'infos_angefragt'
 ] as const;
 
 type ValidStatus = typeof VALID_STATUSES[number];
@@ -125,6 +125,8 @@ const AppointmentListView = ({
         return 'bg-red-400';
       case 'mailbox':
         return 'bg-yellow-600';
+      case 'infos_angefragt':
+        return 'bg-purple-500';
       default:
         return 'bg-yellow-500';
     }
@@ -142,6 +144,8 @@ const AppointmentListView = ({
         return 'Abgelehnt';
       case 'mailbox':
         return 'Mailbox';
+      case 'infos_angefragt':
+        return 'Infos angefragt';
       default:
         return 'Ausstehend';
     }
@@ -360,6 +364,7 @@ const AppointmentListView = ({
                     <SelectItem value="interessiert">Interessiert</SelectItem>
                     <SelectItem value="abgelehnt">Abgelehnt</SelectItem>
                     <SelectItem value="mailbox">Mailbox</SelectItem>
+                    <SelectItem value="infos_angefragt">Infos angefragt</SelectItem>
                     <SelectItem value="cancelled">Abgesagt</SelectItem>
                   </SelectContent>
                 </Select>

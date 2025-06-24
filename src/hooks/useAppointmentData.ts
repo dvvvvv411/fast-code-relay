@@ -38,7 +38,8 @@ const VALID_STATUSES = [
   'cancelled',
   'interessiert',
   'abgelehnt',
-  'mailbox'
+  'mailbox',
+  'infos_angefragt'
 ] as const;
 
 type ValidStatus = typeof VALID_STATUSES[number];

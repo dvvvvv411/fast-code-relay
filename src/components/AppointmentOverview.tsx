@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -159,7 +158,7 @@ const AppointmentOverview = () => {
 
       if (emailError) throw emailError;
 
-      // Mark token as email sent and update appointment status
+      // Mark token as email sent and update appointment status to 'infos_angefragt'
       await Promise.all([
         supabase
           .from('contract_request_tokens')
@@ -167,7 +166,7 @@ const AppointmentOverview = () => {
           .eq('token', tokenData),
         supabase
           .from('appointments')
-          .update({ status: 'Infos angefragt' })
+          .update({ status: 'infos_angefragt' })
           .eq('id', appointment.id)
       ]);
 
