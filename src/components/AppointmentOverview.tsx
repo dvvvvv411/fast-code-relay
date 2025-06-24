@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -130,11 +131,15 @@ const AppointmentOverview = () => {
     setSendingContractEmails(prev => new Set(prev).add(appointment.id));
 
     try {
+      console.log('🚀 Starting contract info send process for appointment:', appointment.id);
+      
       // Generate a secure token for the contract form
       const { data: tokenData, error: tokenError } = await supabase
         .rpc('generate_secure_token');
 
       if (tokenError) throw tokenError;
+
+      console.log('🔑 Generated secure token:', tokenData);
 
       // Insert the token into contract_request_tokens table
       const { error: insertError } = await supabase
@@ -147,6 +152,8 @@ const AppointmentOverview = () => {
 
       if (insertError) throw insertError;
 
+      console.log('💾 Token saved to database');
+
       // Send the contract email directly
       const { error: emailError } = await supabase.functions.invoke('send-contract-email', {
         body: {
@@ -158,8 +165,10 @@ const AppointmentOverview = () => {
 
       if (emailError) throw emailError;
 
+      console.log('📧 Contract email sent successfully');
+
       // Mark token as email sent and update appointment status to 'infos_angefragt'
-      await Promise.all([
+      const [tokenUpdateResult, statusUpdateResult] = await Promise.all([
         supabase
           .from('contract_request_tokens')
           .update({ email_sent: true })
@@ -170,12 +179,24 @@ const AppointmentOverview = () => {
           .eq('id', appointment.id)
       ]);
 
+      if (tokenUpdateResult.error) {
+        console.error('❌ Error updating token:', tokenUpdateResult.error);
+        throw tokenUpdateResult.error;
+      }
+
+      if (statusUpdateResult.error) {
+        console.error('❌ Error updating appointment status:', statusUpdateResult.error);
+        throw statusUpdateResult.error;
+      }
+
+      console.log('✅ Status updated to infos_angefragt successfully');
+
       toast.success(`Arbeitsvertrag-E-Mail erfolgreich an ${appointment.recipient.first_name} ${appointment.recipient.last_name} gesendet`);
       
       // Refresh appointments to show updated status
       await fetchAppointments();
     } catch (error) {
-      console.error('Error sending contract email:', error);
+      console.error('❌ Error sending contract email:', error);
       toast.error('Fehler beim Senden der Arbeitsvertrag-E-Mail');
     } finally {
       // Remove appointment ID from loading set
