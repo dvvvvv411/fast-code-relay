@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -180,7 +181,7 @@ const EvaluationForm = ({ assignmentId, questions, onEvaluationComplete }: Evalu
 
             {/* Optional Text Feedback */}
             <Textarea
-              placeholder="Optionales Feedback zu dieser Frage..."
+              placeholder="Detailliertes Feedback zu dieser Frage..."
               value={evaluations[question.id]?.feedback || ''}
               onChange={(e) => handleFeedbackChange(question.id, e.target.value)}
               className="min-h-[80px]"
