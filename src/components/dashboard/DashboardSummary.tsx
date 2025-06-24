@@ -202,7 +202,7 @@ const DashboardSummary = () => {
                 ? "Erkunden Sie die verfügbaren Aufträge im Aufgaben-Tab und starten Sie Ihre erste App-Testing Session."
                 : completionRate >= 80 
                 ? `Mit einer Erfolgsquote von ${completionRate}% gehören Sie zu unseren Top-Testern! Machen Sie weiter so.`
-                : `Sie haben bereits ${completedAssignments} Aufträge abgeschlossen. Jeder Test hilft, Apps zu verbessern!`}
+                : `Sie haben bereits ${completedAssignments} ${completedAssignments === 1 ? 'Aufgabe' : 'Aufgaben'} abgeschlossen. Jeder Test hilft, Apps zu verbessern!`}
             </p>
           </div>
         </CardContent>
