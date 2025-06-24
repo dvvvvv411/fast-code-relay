@@ -69,7 +69,10 @@ export const useUserBonusStats = (userId?: string) => {
         throw error;
       }
 
-      const totalAmount = data.reduce((sum, bonus) => sum + bonus.bonus_amount, 0);
+      // Only count paid bonuses for total amount
+      const totalAmount = data
+        .filter(bonus => bonus.status === 'paid')
+        .reduce((sum, bonus) => sum + bonus.bonus_amount, 0);
       const paidAmount = data
         .filter(bonus => bonus.status === 'paid')
         .reduce((sum, bonus) => sum + bonus.bonus_amount, 0);

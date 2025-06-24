@@ -30,7 +30,7 @@ const BonusesTab = () => {
         return (
           <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
             <CheckCircle className="h-3 w-3 mr-1" />
-            Ausgezahlt
+            Verfügbar
           </Badge>
         );
       case 'pending':
@@ -72,9 +72,9 @@ const BonusesTab = () => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Ausgezahlt</p>
+                <p className="text-sm text-gray-600">zur Auszahlung verfügbar</p>
                 <p className="text-2xl font-bold text-green-600">{Math.round(stats.paidAmount)} €</p>
-                <p className="text-xs text-gray-500">Bereits erhalten</p>
+                <p className="text-xs text-gray-500">Zur Auszahlung verfügbar</p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-600 opacity-80" />
             </div>
@@ -171,8 +171,8 @@ const BonusesTab = () => {
             </h3>
             <p className="text-green-800 text-sm">
               Sie erhalten automatisch Prämien, wenn Sie Aufträge erfolgreich abschließen und diese bewertet werden. 
-              Die Prämie wird basierend auf dem jeweiligen Auftrag vergeben. Ausstehende Prämien werden in der Regel 
-              innerhalb von 7 Werktagen ausgezahlt.
+              Die Prämie wird basierend auf dem jeweiligen Auftrag vergeben. Prämien werden automatisch zur Auszahlung 
+              freigegeben und können jederzeit abgerufen werden.
             </p>
           </div>
         </CardContent>
