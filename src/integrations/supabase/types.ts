@@ -490,27 +490,39 @@ export type Database = {
       }
       evaluations: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
           assignment_id: string
           created_at: string
           id: string
           question_id: string
+          rejection_reason: string | null
           star_rating: number
+          status: string
           text_feedback: string | null
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
           assignment_id: string
           created_at?: string
           id?: string
           question_id: string
+          rejection_reason?: string | null
           star_rating: number
+          status?: string
           text_feedback?: string | null
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
           assignment_id?: string
           created_at?: string
           id?: string
           question_id?: string
+          rejection_reason?: string | null
           star_rating?: number
+          status?: string
           text_feedback?: string | null
         }
         Relationships: [
