@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +12,7 @@ import AdminNavbar from './AdminNavbar';
 import AppointmentOverview from './AppointmentOverview';
 import AppointmentRecipients from './AppointmentRecipients';
 import EmploymentContractManager from './EmploymentContractManager';
+import FeedbackManager from './FeedbackManager';
 import { useSMS } from '@/context/SMSContext';
 import { MessageSquare } from 'lucide-react';
 
