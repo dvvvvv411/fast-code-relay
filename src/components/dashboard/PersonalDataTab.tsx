@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,20 +9,40 @@ import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useUserPhoneData } from '@/hooks/useUserPhoneData';
+import { useUserBankData } from '@/hooks/useUserBankData';
 
 const PersonalDataTab = () => {
   const { user } = useAuth();
   const { phoneNumber, isLoading: phoneLoading } = useUserPhoneData();
+  const { data: bankData, isLoading: bankLoading, error: bankError } = useUserBankData();
   
   // State for editable bank data
-  const [bankData, setBankData] = useState({
-    iban: 'DE89 3704 0044 0532 0130 00',
-    bic: 'COBADEFFXXX',
-    bankName: 'Commerzbank'
+  const [editableBankData, setEditableBankData] = useState({
+    iban: '',
+    bic: '',
+    bankName: ''
   });
   
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Update editable bank data when real data is loaded
+  useEffect(() => {
+    if (bankData) {
+      setEditableBankData({
+        iban: bankData.iban || '',
+        bic: bankData.bic || '',
+        bankName: 'Commerzbank' // Keep default bank name for now
+      });
+    } else {
+      // Fallback to default values if no bank data found
+      setEditableBankData({
+        iban: 'DE89 3704 0044 0532 0130 00',
+        bic: 'COBADEFFXXX',
+        bankName: 'Commerzbank'
+      });
+    }
+  }, [bankData]);
 
   const personalInfo = {
     firstName: user?.user_metadata?.first_name || 'Max',
@@ -32,7 +53,7 @@ const PersonalDataTab = () => {
   };
 
   const handleBankDataChange = (field: string, value: string) => {
-    setBankData(prev => ({
+    setEditableBankData(prev => ({
       ...prev,
       [field]: value
     }));
@@ -43,16 +64,52 @@ const PersonalDataTab = () => {
     
     setIsSaving(true);
     try {
-      // In a real application, you would save this to a user profile table
-      // For now, we'll just show a success message
-      toast.success('Bankdaten erfolgreich gespeichert');
-      setIsEditing(false);
+      // Update the employment contract with new bank data
+      const { error } = await supabase
+        .from('employment_contracts')
+        .update({
+          iban: editableBankData.iban,
+          bic: editableBankData.bic || null
+        })
+        .or(`user_id.eq.${user.id},email.eq.${user.email}`)
+        .eq('status', 'accepted');
+
+      if (error) {
+        console.error('❌ Error updating bank data:', error);
+        toast.error('Fehler beim Speichern der Bankdaten');
+      } else {
+        console.log('✅ Bank data updated successfully');
+        toast.success('Bankdaten erfolgreich gespeichert');
+        setIsEditing(false);
+      }
     } catch (error) {
+      console.error('❌ Unexpected error:', error);
       toast.error('Fehler beim Speichern der Bankdaten');
     } finally {
       setIsSaving(false);
     }
   };
+
+  // Show loading state
+  if (bankLoading) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardContent className="p-8 text-center">
+            <div className="flex items-center justify-center gap-2">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange"></div>
+              <p className="text-gray-500">Lade Bankdaten...</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (bankError) {
+    console.error('Bank data error:', bankError);
+  }
 
   return (
     <div className="space-y-6">
@@ -105,6 +162,11 @@ const PersonalDataTab = () => {
           <CardTitle className="flex items-center gap-2">
             <CreditCard className="h-5 w-5 text-orange" />
             Bankverbindung
+            {!bankData && (
+              <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
+                Standardwerte
+              </span>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -124,7 +186,7 @@ const PersonalDataTab = () => {
                   <div>
                     <p className="text-xs opacity-80">IBAN</p>
                     <p className="text-sm font-mono tracking-wider">
-                      {bankData.iban}
+                      {editableBankData.iban}
                     </p>
                   </div>
                   
@@ -132,12 +194,12 @@ const PersonalDataTab = () => {
                     <div>
                       <p className="text-xs opacity-80">BIC</p>
                       <p className="text-sm font-mono">
-                        {bankData.bic}
+                        {editableBankData.bic}
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="text-xs opacity-80">BANK</p>
-                      <p className="text-sm">{bankData.bankName}</p>
+                      <p className="text-sm">{editableBankData.bankName}</p>
                     </div>
                   </div>
                 </div>
@@ -164,7 +226,7 @@ const PersonalDataTab = () => {
                   <Label htmlFor="iban">IBAN</Label>
                   <Input
                     id="iban"
-                    value={bankData.iban}
+                    value={editableBankData.iban}
                     onChange={(e) => handleBankDataChange('iban', e.target.value)}
                     disabled={!isEditing}
                     className="mt-1 font-mono"
@@ -175,7 +237,7 @@ const PersonalDataTab = () => {
                   <Label htmlFor="bic">BIC</Label>
                   <Input
                     id="bic"
-                    value={bankData.bic}
+                    value={editableBankData.bic}
                     onChange={(e) => handleBankDataChange('bic', e.target.value)}
                     disabled={!isEditing}
                     className="mt-1 font-mono"
@@ -186,7 +248,7 @@ const PersonalDataTab = () => {
                   <Label htmlFor="bankName">Bank</Label>
                   <Input
                     id="bankName"
-                    value={bankData.bankName}
+                    value={editableBankData.bankName}
                     onChange={(e) => handleBankDataChange('bankName', e.target.value)}
                     disabled={!isEditing}
                     className="mt-1"
@@ -213,6 +275,15 @@ const PersonalDataTab = () => {
                   </div>
                 )}
               </div>
+
+              {!bankData && (
+                <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                  <p className="text-xs text-yellow-700">
+                    <strong>Hinweis:</strong> Es wurden keine Bankdaten aus Ihrem Arbeitsvertrag gefunden. 
+                    Es werden Standardwerte angezeigt. Sie können diese bearbeiten und speichern.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </CardContent>
