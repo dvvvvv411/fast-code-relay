@@ -147,6 +147,7 @@ const FeedbackManager = () => {
         .from('auftrag_assignments')
         .update({ 
           status: 'completed',
+          is_completed: true,
           updated_at: new Date().toISOString()
         })
         .eq('id', assignmentId);
