@@ -11,10 +11,11 @@ import PersonalDataTab from '@/components/dashboard/PersonalDataTab';
 import EvaluationsTab from '@/components/dashboard/EvaluationsTab';
 import AssignmentsTab from '@/components/dashboard/AssignmentsTab';
 import BonusesTab from '@/components/dashboard/BonusesTab';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 const UserDashboard = () => {
   const { user, isLoading, isAdmin, signOut } = useAuth();
+  const [activeTab, setActiveTab] = useState('dashboard');
   
   // Enhanced logging for debugging user dashboard access
   useEffect(() => {
@@ -52,6 +53,23 @@ const UserDashboard = () => {
 
   // Allow both regular users AND admins to access the dashboard
   console.log('✅ Dashboard - Access granted for user:', user.email, '(Admin status:', isAdmin, ')');
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'dashboard':
+        return <DashboardSummary />;
+      case 'assignments':
+        return <AssignmentsTab />;
+      case 'evaluations':
+        return <EvaluationsTab />;
+      case 'bonuses':
+        return <BonusesTab />;
+      case 'personal':
+        return <PersonalDataTab />;
+      default:
+        return <DashboardSummary />;
+    }
+  };
   
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -84,7 +102,7 @@ const UserDashboard = () => {
           </Button>
         </div>
 
-        <Tabs defaultValue="dashboard" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-5 lg:w-4/5 mx-auto bg-white border border-gray-200 rounded-lg p-1">
             <TabsTrigger 
               value="dashboard" 
@@ -123,25 +141,9 @@ const UserDashboard = () => {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="dashboard" className="space-y-6">
-            <DashboardSummary />
-          </TabsContent>
-
-          <TabsContent value="assignments" className="space-y-6">
-            <AssignmentsTab />
-          </TabsContent>
-
-          <TabsContent value="evaluations" className="space-y-6">
-            <EvaluationsTab />
-          </TabsContent>
-
-          <TabsContent value="bonuses" className="space-y-6">
-            <BonusesTab />
-          </TabsContent>
-
-          <TabsContent value="personal" className="space-y-6">
-            <PersonalDataTab />
-          </TabsContent>
+          <div className="space-y-6">
+            {renderTabContent()}
+          </div>
         </Tabs>
       </div>
       <Footer />
