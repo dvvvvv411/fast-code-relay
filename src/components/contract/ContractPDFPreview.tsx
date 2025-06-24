@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, Download, ExternalLink, AlertCircle } from 'lucide-react';
+import { FileText, Download, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 const ContractPDFPreview = () => {
@@ -53,12 +53,6 @@ const ContractPDFPreview = () => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-    }
-  };
-
-  const handleOpenNewTab = () => {
-    if (pdfUrl) {
-      window.open(pdfUrl, '_blank');
     }
   };
 
@@ -114,17 +108,9 @@ const ContractPDFPreview = () => {
 
         <div className="flex gap-2">
           <Button
-            onClick={handleOpenNewTab}
-            variant="outline"
-            className="flex-1"
-          >
-            <ExternalLink className="h-4 w-4 mr-2" />
-            In neuem Tab öffnen
-          </Button>
-          <Button
             onClick={handleDownload}
             variant="outline"
-            className="flex-1"
+            className="w-full"
           >
             <Download className="h-4 w-4 mr-2" />
             Herunterladen
