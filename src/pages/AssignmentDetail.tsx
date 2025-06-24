@@ -390,68 +390,6 @@ const AssignmentDetail = () => {
                 </CardContent>
               </Card>
             )}
-
-            {/* Instructions and Evaluation Grid - Side by Side */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Anweisungen */}
-              {data.anweisungen && data.anweisungen.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <FileText className="h-5 w-5 text-orange-500" />
-                      Anweisungen
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-6">
-                      {data.anweisungen.map((instruction: any, index) => (
-                        <div key={instruction.id}>
-                          <div>
-                            <h3 className="font-semibold mb-3 flex items-center gap-2">
-                              {instruction.icon && getIconComponent(instruction.icon) && (
-                                (() => {
-                                  const IconComponent = getIconComponent(instruction.icon);
-                                  return <IconComponent className="h-4 w-4" />;
-                                })()
-                              )}
-                              {instruction.title}
-                            </h3>
-                            <p className="text-gray-700">{instruction.content}</p>
-                          </div>
-                          {index < data.anweisungen.length - 1 && <hr className="mt-6" />}
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Bewertungsform */}
-              {evaluationQuestions.length > 0 && !assignmentData.is_evaluated && (
-                <div>
-                  <EvaluationForm
-                    assignmentId={assignmentData.id}
-                    questions={evaluationQuestions}
-                    onEvaluationComplete={handleEvaluationComplete}
-                  />
-                </div>
-              )}
-
-              {/* Bewertung abgeschlossen */}
-              {assignmentData.is_evaluated && (
-                <Card className="border-green-200 bg-green-50">
-                  <CardContent className="p-6 text-center">
-                    <div className="flex items-center justify-center gap-2 text-green-700">
-                      <FileText className="h-5 w-5" />
-                      <p className="font-medium">Vielen Dank für Ihre Bewertung!</p>
-                    </div>
-                    <p className="text-sm text-green-600 mt-2">
-                      Ihre Bewertung wurde erfolgreich eingereicht.
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
           </div>
 
           {/* Right Column - Tools and Support */}
@@ -490,6 +428,70 @@ const AssignmentDetail = () => {
               assignmentId={assignmentData.id}
               workerName={`${assignmentData.worker_first_name} ${assignmentData.worker_last_name}`}
             />
+          </div>
+        </div>
+
+        {/* Full Width Instructions and Evaluation Section */}
+        <div className="mt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Anweisungen */}
+            {data.anweisungen && data.anweisungen.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-orange-500" />
+                    Anweisungen
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    {data.anweisungen.map((instruction: any, index) => (
+                      <div key={instruction.id}>
+                        <div>
+                          <h3 className="font-semibold mb-3 flex items-center gap-2">
+                            {instruction.icon && getIconComponent(instruction.icon) && (
+                              (() => {
+                                const IconComponent = getIconComponent(instruction.icon);
+                                return <IconComponent className="h-4 w-4" />;
+                              })()
+                            )}
+                            {instruction.title}
+                          </h3>
+                          <p className="text-gray-700">{instruction.content}</p>
+                        </div>
+                        {index < data.anweisungen.length - 1 && <hr className="mt-6" />}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Bewertungsform */}
+            {evaluationQuestions.length > 0 && !assignmentData.is_evaluated && (
+              <div>
+                <EvaluationForm
+                  assignmentId={assignmentData.id}
+                  questions={evaluationQuestions}
+                  onEvaluationComplete={handleEvaluationComplete}
+                />
+              </div>
+            )}
+
+            {/* Bewertung abgeschlossen */}
+            {assignmentData.is_evaluated && (
+              <Card className="border-green-200 bg-green-50">
+                <CardContent className="p-6 text-center">
+                  <div className="flex items-center justify-center gap-2 text-green-700">
+                    <FileText className="h-5 w-5" />
+                    <p className="font-medium">Vielen Dank für Ihre Bewertung!</p>
+                  </div>
+                  <p className="text-sm text-green-600 mt-2">
+                    Ihre Bewertung wurde erfolgreich eingereicht.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>
