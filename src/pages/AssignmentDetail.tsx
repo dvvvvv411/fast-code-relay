@@ -188,9 +188,9 @@ const AssignmentDetail = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
           {/* Left Column - Main Content */}
-          <div className="xl:col-span-4 space-y-6">
+          <div className="xl:col-span-3 space-y-6">
             {/* Auftragsinformationen */}
             <Card>
               <CardHeader>
@@ -337,8 +337,8 @@ const AssignmentDetail = () => {
               </Card>
             )}
 
-            {/* Instructions and Evaluation Grid - Side by Side but now taking full width of the left column */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Instructions and Evaluation Grid - Side by Side */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Anweisungen */}
               {data.anweisungen && data.anweisungen.length > 0 && (
                 <Card>
