@@ -16,9 +16,9 @@ const DashboardSummary = () => {
   const lastName = user?.user_metadata?.last_name;
   const { data: activityStreak = 0, isLoading: streakLoading } = useUserActivityStreak(firstName, lastName);
 
-  // Calculate stats
+  // Calculate stats using status field consistently
   const totalAssignments = assignments.length;
-  const completedAssignments = assignments.filter(assignment => assignment.is_completed).length;
+  const completedAssignments = assignments.filter(assignment => assignment.status === 'completed').length;
   const evaluatedAssignments = assignments.filter(assignment => assignment.is_evaluated).length;
   const completionRate = totalAssignments > 0 ? Math.round((completedAssignments / totalAssignments) * 100) : 0;
 
@@ -154,7 +154,7 @@ const DashboardSummary = () => {
                 <div key={assignment.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div className="flex items-center gap-3">
                     <div className={`w-3 h-3 rounded-full ${
-                      assignment.is_completed ? 'bg-green-500' : 'bg-orange animate-pulse'
+                      assignment.status === 'completed' ? 'bg-green-500' : 'bg-orange animate-pulse'
                     }`}></div>
                     <div>
                       <p className="font-medium text-gray-900">{assignment.auftrag.title}</p>
@@ -162,7 +162,7 @@ const DashboardSummary = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {assignment.is_completed && (
+                    {assignment.status === 'completed' && (
                       <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">
                         Abgeschlossen
                       </Badge>

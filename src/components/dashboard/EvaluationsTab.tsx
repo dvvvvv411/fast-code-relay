@@ -15,10 +15,10 @@ const EvaluationsTab = () => {
     assignment.is_evaluated && assignment.assigned_user_id
   );
   
-  // Calculate stats only for assignments with user profiles
+  // Calculate stats only for assignments with user profiles - using status consistently
   const profileAssignments = assignments.filter(assignment => assignment.assigned_user_id);
   const totalEvaluations = evaluatedAssignments.length;
-  const completedAssignments = profileAssignments.filter(assignment => assignment.is_completed).length;
+  const completedAssignments = profileAssignments.filter(assignment => assignment.status === 'completed').length;
   const averageRating = 4.2; // This would be calculated from actual evaluation data
 
   if (isLoading) {
