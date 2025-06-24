@@ -1,9 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, FileText, Smartphone, Download, Target, Key, Phone, Eye, ExternalLink, RefreshCw } from 'lucide-react';
+import { ArrowLeft, FileText, Smartphone, Download, Target, Key, Phone, Eye, ExternalLink, RefreshCw, Check } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSMS } from '@/context/SMSContext';
 import EvaluationForm from '@/components/EvaluationForm';
@@ -461,14 +460,20 @@ const AssignmentDetail = () => {
             {/* Bewertung abgeschlossen */}
             {assignmentData.is_evaluated && (
               <Card className="border-green-200 bg-green-50">
-                <CardContent className="p-6 text-center">
-                  <div className="flex items-center justify-center gap-2 text-green-700">
-                    <FileText className="h-5 w-5" />
-                    <p className="font-medium">Vielen Dank für Ihre Bewertung!</p>
+                <CardContent className="p-8 text-center">
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                      <Check className="h-8 w-8 text-green-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold text-green-800 mb-2">
+                        Vielen Dank für Ihre Bewertung!
+                      </h3>
+                      <p className="text-green-700">
+                        Ihre Bewertung wurde erfolgreich eingereicht und wird nun bearbeitet.
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-sm text-green-600 mt-2">
-                    Ihre Bewertung wurde erfolgreich eingereicht.
-                  </p>
                 </CardContent>
               </Card>
             )}
