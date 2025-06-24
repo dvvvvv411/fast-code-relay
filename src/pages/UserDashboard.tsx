@@ -1,4 +1,3 @@
-
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -93,11 +92,11 @@ const UserDashboard = () => {
               <span className="hidden sm:inline">Übersicht</span>
             </TabsTrigger>
             <TabsTrigger 
-              value="personal" 
+              value="assignments"
               className="flex items-center gap-2 data-[state=active]:bg-orange data-[state=active]:text-white transition-all"
             >
-              <User className="h-4 w-4" />
-              <span className="hidden sm:inline">Persönliche Daten</span>
+              <Target className="h-4 w-4" />
+              <span className="hidden sm:inline">Aufgaben</span>
             </TabsTrigger>
             <TabsTrigger 
               value="evaluations" 
@@ -107,11 +106,11 @@ const UserDashboard = () => {
               <span className="hidden sm:inline">Bewertungen</span>
             </TabsTrigger>
             <TabsTrigger 
-              value="assignments"
+              value="personal" 
               className="flex items-center gap-2 data-[state=active]:bg-orange data-[state=active]:text-white transition-all"
             >
-              <Target className="h-4 w-4" />
-              <span className="hidden sm:inline">Aufgaben</span>
+              <User className="h-4 w-4" />
+              <span className="hidden sm:inline">Persönliche Daten</span>
             </TabsTrigger>
           </TabsList>
 
@@ -119,16 +118,16 @@ const UserDashboard = () => {
             <DashboardSummary />
           </TabsContent>
 
-          <TabsContent value="personal" className="space-y-6">
-            <PersonalDataTab />
+          <TabsContent value="assignments" className="space-y-6">
+            <AssignmentsTab />
           </TabsContent>
 
           <TabsContent value="evaluations" className="space-y-6">
             <EvaluationsTab />
           </TabsContent>
 
-          <TabsContent value="assignments" className="space-y-6">
-            <AssignmentsTab />
+          <TabsContent value="personal" className="space-y-6">
+            <PersonalDataTab />
           </TabsContent>
         </Tabs>
       </div>
