@@ -72,7 +72,7 @@ const BonusesTab = () => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">zur Auszahlung verfügbar</p>
+                <p className="text-sm text-gray-600">Verfügbar</p>
                 <p className="text-2xl font-bold text-green-600">{Math.round(stats.paidAmount)} €</p>
                 <p className="text-xs text-gray-500">Zur Auszahlung verfügbar</p>
               </div>
