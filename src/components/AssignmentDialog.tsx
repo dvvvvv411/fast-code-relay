@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { UserPlus, Copy, CheckCircle } from 'lucide-react';
 import UserSelect from './UserSelect';
+import { useUsers } from '@/hooks/useUsers';
 
 interface AssignmentDialogProps {
   isOpen: boolean;
@@ -41,6 +41,21 @@ const AssignmentDialog = ({ isOpen, onClose, auftragId, auftragTitle, onAssignme
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [assignmentUrl, setAssignmentUrl] = useState<string | null>(null);
   const { toast } = useToast();
+  const { data: users = [] } = useUsers();
+
+  // Auto-fill worker name fields when a user is selected
+  useEffect(() => {
+    if (formData.assigned_user_id) {
+      const selectedUser = users.find(user => user.id === formData.assigned_user_id);
+      if (selectedUser && selectedUser.first_name && selectedUser.last_name) {
+        setFormData(prev => ({
+          ...prev,
+          worker_first_name: selectedUser.first_name || '',
+          worker_last_name: selectedUser.last_name || ''
+        }));
+      }
+    }
+  }, [formData.assigned_user_id, users]);
 
   useEffect(() => {
     if (isOpen) {
@@ -233,7 +248,7 @@ const AssignmentDialog = ({ isOpen, onClose, auftragId, auftragTitle, onAssignme
               placeholder="Benutzer auswählen..."
             />
             <p className="text-xs text-gray-500 mt-1">
-              Wenn ein Benutzer ausgewählt ist, kann dieser seine Aufträge im Dashboard einsehen.
+              Wenn ein Benutzer ausgewählt ist, werden die Namensfelder automatisch ausgefüllt.
             </p>
           </div>
 
