@@ -1,3 +1,5 @@
+
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +14,6 @@ import AppointmentOverview from './AppointmentOverview';
 import AppointmentRecipients from './AppointmentRecipients';
 import EmploymentContractManager from './EmploymentContractManager';
 import FeedbackManager from './FeedbackManager';
-import EvaluationApprovalTable from './EvaluationApprovalTable';
 import { useSMS } from '@/context/SMSContext';
 import { MessageSquare } from 'lucide-react';
 
@@ -34,10 +35,6 @@ const AdminPanel = () => {
         return <EmployeeOverview />;
       case 'auftraege':
         return <AuftraegeManager />;
-      case 'evaluations':
-        return <EvaluationApprovalTable />;
-      case 'feedback':
-        return <FeedbackManager />;
       case 'support':
         return <SupportTickets />;
       case 'livechat':
@@ -48,6 +45,8 @@ const AdminPanel = () => {
         return <AppointmentRecipients />;
       case 'arbeitsvertrag':
         return <EmploymentContractManager />;
+      case 'feedback':
+        return <FeedbackManager />;
       default:
         return <AllRequestsList />;
     }
