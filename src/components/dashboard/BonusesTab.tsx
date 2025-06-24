@@ -60,7 +60,7 @@ const BonusesTab = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Gesamtprämien</p>
-                <p className="text-2xl font-bold text-orange">{stats.totalAmount.toFixed(2)} €</p>
+                <p className="text-2xl font-bold text-orange">{Math.round(stats.totalAmount)} €</p>
                 <p className="text-xs text-gray-500">{stats.totalCount} Prämien</p>
               </div>
               <Gift className="h-8 w-8 text-orange opacity-80" />
@@ -73,7 +73,7 @@ const BonusesTab = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Ausgezahlt</p>
-                <p className="text-2xl font-bold text-green-600">{stats.paidAmount.toFixed(2)} €</p>
+                <p className="text-2xl font-bold text-green-600">{Math.round(stats.paidAmount)} €</p>
                 <p className="text-xs text-gray-500">Bereits erhalten</p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-600 opacity-80" />
@@ -86,7 +86,7 @@ const BonusesTab = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Ausstehend</p>
-                <p className="text-2xl font-bold text-blue-600">{stats.pendingAmount.toFixed(2)} €</p>
+                <p className="text-2xl font-bold text-blue-600">{Math.round(stats.pendingAmount)} €</p>
                 <p className="text-xs text-gray-500">In Bearbeitung</p>
               </div>
               <TrendingUp className="h-8 w-8 text-blue-600 opacity-80" />
@@ -135,7 +135,7 @@ const BonusesTab = () => {
                     <div className="flex flex-col items-end gap-2">
                       <div className="flex items-center gap-2">
                         <p className="text-xl font-bold text-green-600">
-                          {bonus.bonus_amount.toFixed(2)} €
+                          {Math.round(bonus.bonus_amount)} €
                         </p>
                         {getStatusBadge(bonus.status)}
                       </div>

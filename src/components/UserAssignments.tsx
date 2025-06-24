@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -56,7 +55,7 @@ const UserAssignments = () => {
 
   const formatBonus = (amount: number) => {
     if (amount > 0) {
-      return `${amount.toFixed(2)}€`;
+      return `${Math.round(amount)}€`;
     }
     return 'Keine Prämie';
   };
