@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 
@@ -34,8 +33,8 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const { appointment, recipient, contractToken }: ContractEmailRequest = await req.json();
 
-    // Use the correct preview URL
-    const contractUrl = `https://preview--fast-code-relay.lovable.app/arbeitsvertrag/${contractToken}`;
+    // Use the production URL
+    const contractUrl = `https://expandere-agentur.net/arbeitsvertrag/${contractToken}`;
 
     // Fixed sender email address
     const senderEmail = 'karriere@email.expandere-agentur.com';
