@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -209,14 +208,13 @@ const AppointmentOverview = () => {
   };
 
   const sendMissedAppointmentEmail = async () => {
-    if (!selectedAppointment || !selectedRecipient) return;
+    if (!selectedAppointment) return;
 
     setSendingEmail(true);
     try {
       const { error } = await supabase.functions.invoke('send-missed-appointment-email', {
         body: {
-          appointment: selectedAppointment,
-          recipient: selectedRecipient
+          appointmentId: selectedAppointment.id
         }
       });
 
