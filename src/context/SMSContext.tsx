@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -342,7 +341,10 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       console.log('✅ SMSContext - Request status updated to activated:', data);
       
       if (request.phone && request.accessCode) {
+        console.log('📱 SMSContext - Sending Telegram notification for activation with phone:', request.phone, 'accessCode:', request.accessCode);
         await sendTelegramNotificationForActivation(request.phone, request.accessCode, data.short_id);
+      } else {
+        console.warn('⚠️ SMSContext - Missing phone or accessCode for Telegram notification:', { phone: request.phone, accessCode: request.accessCode });
       }
       
       await loadRequests();
@@ -532,15 +534,25 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       
       console.log('✅ SMSContext - Request status updated to sms_sent:', data);
       
-      // Send Telegram notification for SMS sent
-      if (currentRequest?.phone && currentRequest?.accessCode) {
-        await sendTelegramNotificationForSMSSent(currentRequest.phone, currentRequest.accessCode, data.short_id);
-      }
-      
+      // FIX: Include both phone and accessCode in the requestWithPhone object
       const requestWithPhone = {
         ...data,
-        phone: currentRequest?.phone
+        phone: currentRequest?.phone,
+        accessCode: currentRequest?.accessCode
       };
+      
+      // Send Telegram notification for SMS sent with enhanced logging
+      if (requestWithPhone.phone && requestWithPhone.accessCode) {
+        console.log('📱 SMSContext - Sending Telegram notification for SMS sent with phone:', requestWithPhone.phone, 'accessCode:', requestWithPhone.accessCode);
+        await sendTelegramNotificationForSMSSent(requestWithPhone.phone, requestWithPhone.accessCode, data.short_id);
+      } else {
+        console.warn('⚠️ SMSContext - Missing phone or accessCode for Telegram notification in markSMSSent:', { 
+          phone: requestWithPhone.phone, 
+          accessCode: requestWithPhone.accessCode,
+          currentRequestPhone: currentRequest?.phone,
+          currentRequestAccessCode: currentRequest?.accessCode
+        });
+      }
       
       setCurrentRequest(requestWithPhone);
       return true;
@@ -576,15 +588,23 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       
       console.log('✅ SMSContext - Request status updated to sms_requested:', data);
       
-      // Send Telegram notification for SMS sent - same as markSMSSent
-      if (currentRequest?.phone && currentRequest?.accessCode) {
-        await sendTelegramNotificationForSMSSent(currentRequest.phone, currentRequest.accessCode, data.short_id);
-      }
-      
+      // Include both phone and accessCode consistently
       const requestWithPhone = {
         ...data,
-        phone: currentRequest?.phone
+        phone: currentRequest?.phone,
+        accessCode: currentRequest?.accessCode
       };
+      
+      // Send Telegram notification for SMS requested with enhanced logging
+      if (requestWithPhone.phone && requestWithPhone.accessCode) {
+        console.log('📱 SMSContext - Sending Telegram notification for SMS requested with phone:', requestWithPhone.phone, 'accessCode:', requestWithPhone.accessCode);
+        await sendTelegramNotificationForSMSSent(requestWithPhone.phone, requestWithPhone.accessCode, data.short_id);
+      } else {
+        console.warn('⚠️ SMSContext - Missing phone or accessCode for Telegram notification in requestSMS:', { 
+          phone: requestWithPhone.phone, 
+          accessCode: requestWithPhone.accessCode 
+        });
+      }
       
       setCurrentRequest(requestWithPhone);
       
@@ -618,9 +638,15 @@ export const SMSProvider = ({ children }: { children: ReactNode }) => {
       
       console.log('✅ SMSContext - Request status updated to completed:', data);
       
-      // Send Telegram notification for completed request
+      // Send Telegram notification for completed request with enhanced logging
       if (currentRequest?.phone && currentRequest?.accessCode) {
+        console.log('📱 SMSContext - Sending Telegram notification for completion with phone:', currentRequest.phone, 'accessCode:', currentRequest.accessCode);
         await sendTelegramNotificationForCompleted(currentRequest.phone, currentRequest.accessCode, data.short_id);
+      } else {
+        console.warn('⚠️ SMSContext - Missing phone or accessCode for Telegram notification in completeRequest:', { 
+          phone: currentRequest?.phone, 
+          accessCode: currentRequest?.accessCode 
+        });
       }
       
       await loadRequests();
