@@ -1,8 +1,5 @@
-
-
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import PhoneNumberManager from './PhoneNumberManager';
 import AuftraegeManager from './AuftraegeManager';
 import AllRequestsList from './AllRequestsList';
@@ -16,10 +13,11 @@ import EmploymentContractManager from './EmploymentContractManager';
 import FeedbackManager from './FeedbackManager';
 import { useSMS } from '@/context/SMSContext';
 import { MessageSquare } from 'lucide-react';
+import { usePersistedAdminTab } from '@/hooks/usePersistedAdminTab';
 
 const AdminPanel = () => {
   const { requests } = useSMS();
-  const [activeTab, setActiveTab] = useState('requests');
+  const [activeTab, setActiveTab] = usePersistedAdminTab();
 
   const requestsArray = Object.values(requests);
   const pendingCount = requestsArray.filter(r => r.status === 'pending').length;
