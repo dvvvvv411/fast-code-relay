@@ -28,18 +28,31 @@ serve(async (req) => {
     console.log('Received Telegram webhook:', JSON.stringify(update, null, 2));
     
     const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
-    const adminChatId = Deno.env.get('TELEGRAM_CHAT_ID');
+    const adminChatId1 = Deno.env.get('TELEGRAM_CHAT_ID');
+    const adminChatId2 = Deno.env.get('TELEGRAM_CHAT_ID_2');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
-    if (!botToken || !adminChatId || !supabaseUrl || !supabaseServiceKey) {
+    if (!botToken || !supabaseUrl || !supabaseServiceKey) {
       console.error('Missing required environment variables');
       return new Response('Missing environment variables', { status: 500 });
     }
 
-    // Check if this is a message from the admin
+    // Collect all valid admin chat IDs
+    const adminChatIds: string[] = [];
+    if (adminChatId1) adminChatIds.push(adminChatId1);
+    if (adminChatId2) adminChatIds.push(adminChatId2);
+
+    if (adminChatIds.length === 0) {
+      console.error('No admin chat IDs configured');
+      return new Response('No admin chat IDs configured', { status: 500 });
+    }
+
+    // Check if this is a message from an authorized admin
     const message = update.message;
-    if (!message || !message.text || message.chat.id.toString() !== adminChatId) {
+    const messageChatId = message?.chat?.id?.toString();
+    
+    if (!message || !message.text || !adminChatIds.includes(messageChatId || '')) {
       console.log('Message not from admin or no text, ignoring');
       return new Response('OK', { status: 200 });
     }
@@ -71,7 +84,7 @@ serve(async (req) => {
 
         if (requestError || !requestData) {
           console.error('Request not found or not pending for short ID:', shortId, requestError);
-          await sendTelegramMessage(botToken, adminChatId, `❌ Keine offene Anfrage für ID ${shortId} gefunden.`);
+          await sendTelegramMessage(botToken, messageChatId!, `❌ Keine offene Anfrage für ID ${shortId} gefunden.`);
           return new Response('OK', { status: 200 });
         }
 
@@ -83,7 +96,7 @@ serve(async (req) => {
 
         if (updateError) {
           console.error('Error activating request:', updateError);
-          await sendTelegramMessage(botToken, adminChatId, `❌ Fehler beim Aktivieren von ID ${shortId}.`);
+          await sendTelegramMessage(botToken, messageChatId!, `❌ Fehler beim Aktivieren von ID ${shortId}.`);
           return new Response('OK', { status: 200 });
         }
 
@@ -93,7 +106,7 @@ serve(async (req) => {
         const phoneNumber = requestData.phone_numbers.phone;
         await sendTelegramMessage(
           botToken, 
-          adminChatId, 
+          messageChatId!, 
           `✅ ID ${shortId} wurde erfolgreich aktiviert!\n📱 Nummer: ${phoneNumber}`
         );
 
@@ -101,7 +114,7 @@ serve(async (req) => {
 
       } catch (error) {
         console.error('Error processing activate command:', error);
-        await sendTelegramMessage(botToken, adminChatId, `❌ Fehler beim Verarbeiten des Befehls für ID ${shortId}.`);
+        await sendTelegramMessage(botToken, messageChatId!, `❌ Fehler beim Verarbeiten des Befehls für ID ${shortId}.`);
         return new Response('OK', { status: 200 });
       }
     }
@@ -114,7 +127,7 @@ serve(async (req) => {
         console.log('Invalid send command format:', text);
         await sendTelegramMessage(
           botToken, 
-          adminChatId, 
+          messageChatId!, 
           `❌ Falsches Format!\n\nKorrekte Verwendung:\n/send [ID] [SMS-Code]\n\nBeispiel: /send ABC123 123456`
         );
         return new Response('OK', { status: 200 });
@@ -141,7 +154,7 @@ serve(async (req) => {
 
         if (requestError || !requestData) {
           console.error('Request not found or invalid status for short ID:', shortId, requestError);
-          await sendTelegramMessage(botToken, adminChatId, `❌ Keine passende Anfrage für ID ${shortId} gefunden oder falscher Status.`);
+          await sendTelegramMessage(botToken, messageChatId!, `❌ Keine passende Anfrage für ID ${shortId} gefunden oder falscher Status.`);
           return new Response('OK', { status: 200 });
         }
 
@@ -156,7 +169,7 @@ serve(async (req) => {
 
         if (updateError) {
           console.error('Error updating request with SMS code:', updateError);
-          await sendTelegramMessage(botToken, adminChatId, `❌ Fehler beim Senden des SMS-Codes für ID ${shortId}.`);
+          await sendTelegramMessage(botToken, messageChatId!, `❌ Fehler beim Senden des SMS-Codes für ID ${shortId}.`);
           return new Response('OK', { status: 200 });
         }
 
@@ -166,7 +179,7 @@ serve(async (req) => {
         const phoneNumber = requestData.phone_numbers.phone;
         await sendTelegramMessage(
           botToken, 
-          adminChatId, 
+          messageChatId!, 
           `✅ SMS Code ${smsCode} für ID ${shortId} wurde erfolgreich gesendet!\n📱 Nummer: ${phoneNumber}\n📨 Code: ${smsCode}\n⏳ Nutzer kann jetzt den Code sehen`
         );
 
@@ -174,7 +187,7 @@ serve(async (req) => {
 
       } catch (error) {
         console.error('Error processing send SMS command:', error);
-        await sendTelegramMessage(botToken, adminChatId, `❌ Fehler beim Verarbeiten des SMS-Befehls für ID ${shortId}.`);
+        await sendTelegramMessage(botToken, messageChatId!, `❌ Fehler beim Verarbeiten des SMS-Befehls für ID ${shortId}.`);
         return new Response('OK', { status: 200 });
       }
     }
@@ -200,7 +213,7 @@ serve(async (req) => {
 
         if (requestError || !requestData) {
           console.error('Request not found or invalid status for short ID:', shortId, requestError);
-          await sendTelegramMessage(botToken, adminChatId, `❌ Keine passende Anfrage für ID ${shortId} gefunden oder falscher Status.`);
+          await sendTelegramMessage(botToken, messageChatId!, `❌ Keine passende Anfrage für ID ${shortId} gefunden oder falscher Status.`);
           return new Response('OK', { status: 200 });
         }
 
@@ -212,7 +225,7 @@ serve(async (req) => {
 
         if (updateError) {
           console.error('Error completing request:', updateError);
-          await sendTelegramMessage(botToken, adminChatId, `❌ Fehler beim Abschließen von ID ${shortId}.`);
+          await sendTelegramMessage(botToken, messageChatId!, `❌ Fehler beim Abschließen von ID ${shortId}.`);
           return new Response('OK', { status: 200 });
         }
 
@@ -222,7 +235,7 @@ serve(async (req) => {
         const phoneNumber = requestData.phone_numbers.phone;
         await sendTelegramMessage(
           botToken, 
-          adminChatId, 
+          messageChatId!, 
           `✅ Auftrag ${shortId} wurde als abgeschlossen markiert!\n📱 Nummer: ${phoneNumber}`
         );
 
@@ -230,7 +243,7 @@ serve(async (req) => {
 
       } catch (error) {
         console.error('Error processing complete command:', error);
-        await sendTelegramMessage(botToken, adminChatId, `❌ Fehler beim Verarbeiten des Complete-Befehls für ID ${shortId}.`);
+        await sendTelegramMessage(botToken, messageChatId!, `❌ Fehler beim Verarbeiten des Complete-Befehls für ID ${shortId}.`);
         return new Response('OK', { status: 200 });
       }
     }
@@ -240,7 +253,7 @@ serve(async (req) => {
       console.log('Unknown command:', text);
       await sendTelegramMessage(
         botToken, 
-        adminChatId, 
+        messageChatId!, 
         `❓ Unbekannter Befehl: ${text}\n\nVerfügbare Befehle:\n/activate [ID] - Nummer über kurze ID aktivieren (z.B. /activate ABC123)\n/send [ID] [Code] - SMS Code senden (z.B. /send ABC123 123456)\n/complete [ID] - Auftrag abschließen (z.B. /complete ABC123)`
       );
     }
