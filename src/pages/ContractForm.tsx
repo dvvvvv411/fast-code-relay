@@ -406,8 +406,8 @@ const ContractForm = () => {
         {/* Centered Company Logo */}
         <div className="mb-8 text-center">
           <img 
-            src="https://ulbgpsjexsgcpivphrxq.supabase.co/storage/v1/object/public/branding/logo_dark_1741580695335.png" 
-            alt="Company Logo"
+            src="/lovable-uploads/ab9fdce3-d657-4e7a-95ec-2f7a14a95cf2.png" 
+            alt="Expandere Logo"
             className="w-60 h-60 mx-auto object-contain"
           />
         </div>
