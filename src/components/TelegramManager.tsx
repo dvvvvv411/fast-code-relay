@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, MessageCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, MessageCircle, TestTube, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -24,6 +24,7 @@ interface TelegramChatId {
 const TelegramManager = () => {
   const [chatIds, setChatIds] = useState<TelegramChatId[]>([]);
   const [loading, setLoading] = useState(true);
+  const [testing, setTesting] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -193,6 +194,33 @@ const TelegramManager = () => {
     }
   };
 
+  const testConnection = async () => {
+    setTesting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('test-telegram-reminder');
+      
+      if (error) throw error;
+
+      if (data?.success) {
+        toast({
+          title: 'Test erfolgreich',
+          description: `Test-Nachrichten wurden an ${data.successCount}/${data.totalChatIds} Chat IDs gesendet.`
+        });
+      } else {
+        throw new Error(data?.error || 'Test fehlgeschlagen');
+      }
+    } catch (error: any) {
+      console.error('Error testing connection:', error);
+      toast({
+        title: 'Test fehlgeschlagen',
+        description: error.message || 'Verbindung konnte nicht getestet werden.',
+        variant: 'destructive'
+      });
+    } finally {
+      setTesting(false);
+    }
+  };
+
   if (loading) {
     return <div className="flex justify-center p-8">Lade Telegram Chat IDs...</div>;
   }
@@ -207,14 +235,28 @@ const TelegramManager = () => {
           </p>
         </div>
         
-        <Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Chat ID hinzufügen
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
+        <div className="flex space-x-2">
+          <Button 
+            variant="outline" 
+            onClick={testConnection}
+            disabled={testing || chatIds.length === 0}
+          >
+            {testing ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <TestTube className="h-4 w-4 mr-2" />
+            )}
+            Verbindung testen
+          </Button>
+          
+           <Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
+             <DialogTrigger asChild>
+               <Button>
+                 <Plus className="h-4 w-4 mr-2" />
+                 Chat ID hinzufügen
+               </Button>
+             </DialogTrigger>
+             <DialogContent>
             <DialogHeader>
               <DialogTitle>
                 {editingId ? 'Chat ID bearbeiten' : 'Neue Chat ID hinzufügen'}
@@ -273,8 +315,9 @@ const TelegramManager = () => {
                 </Button>
               </div>
             </form>
-          </DialogContent>
-        </Dialog>
+           </DialogContent>
+         </Dialog>
+        </div>
       </div>
 
       <div className="grid gap-4">
