@@ -32,21 +32,41 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const telegramBotToken = Deno.env.get('TELEGRAM_REMINDER_BOT_TOKEN');
-    const telegramChatIds = Deno.env.get('TELEGRAM_REMINDER_CHAT_ID');
     
-    if (!telegramBotToken || !telegramChatIds) {
-      console.error('Missing Telegram credentials for reminders');
+    if (!telegramBotToken) {
+      console.error('Missing Telegram bot token for reminders');
       return new Response(
-        JSON.stringify({ error: 'Missing Telegram credentials' }),
+        JSON.stringify({ error: 'Missing Telegram bot token' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Parse chat IDs (comma-separated)
-    const chatIdArray = telegramChatIds.split(',').map(id => id.trim()).filter(id => id.length > 0);
-    console.log(`📱 Configured chat IDs:`, chatIdArray);
-
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Fetch active chat IDs from database
+    const { data: chatIds, error: chatError } = await supabase
+      .from('telegram_chat_ids')
+      .select('chat_id, name')
+      .eq('is_active', true);
+
+    if (chatError) {
+      console.error('Error fetching Telegram chat IDs:', chatError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to fetch chat IDs' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!chatIds || chatIds.length === 0) {
+      console.error('No active Telegram chat IDs found');
+      return new Response(
+        JSON.stringify({ error: 'No active chat IDs configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`📱 Configured chat IDs:`, chatIds.map(c => `${c.name} (${c.chat_id})`));
+
 
     // Calculate the time 30 minutes from now
     const now = new Date();
@@ -120,12 +140,12 @@ serve(async (req) => {
             })}\n\n` +
             `⏰ Der Termin beginnt in ca. 30 Minuten!`;
 
-          console.log(`📤 Sending reminder for appointment ${appointment.id} to ${chatIdArray.length} chat(s)`);
+          console.log(`📤 Sending reminder for appointment ${appointment.id} to ${chatIds.length} chat(s)`);
 
           let messageSentSuccessfully = false;
 
           // Send message to all configured chat IDs
-          for (const chatId of chatIdArray) {
+          for (const chat of chatIds) {
             try {
               const telegramResponse = await fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
                 method: 'POST',
@@ -133,20 +153,20 @@ serve(async (req) => {
                   'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                  chat_id: chatId,
+                  chat_id: chat.chat_id,
                   text: message,
                 }),
               });
 
               if (telegramResponse.ok) {
-                console.log(`✅ Reminder sent successfully to chat ID: ${chatId}`);
+                console.log(`✅ Reminder sent successfully to ${chat.name} (${chat.chat_id})`);
                 messageSentSuccessfully = true;
               } else {
                 const errorText = await telegramResponse.text();
-                console.error(`❌ Failed to send to chat ID ${chatId}:`, errorText);
+                console.error(`❌ Failed to send to ${chat.name} (${chat.chat_id}):`, errorText);
               }
             } catch (error) {
-              console.error(`❌ Error sending to chat ID ${chatId}:`, error);
+              console.error(`❌ Error sending to ${chat.name} (${chat.chat_id}):`, error);
             }
           }
 
@@ -181,8 +201,8 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         remindersSent,
-        chatIds: chatIdArray.length,
-        message: `Sent ${remindersSent} appointment reminders to ${chatIdArray.length} chat(s)`
+        chatIds: chatIds.length,
+        message: `Sent ${remindersSent} appointment reminders to ${chatIds.length} chat(s)`
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
