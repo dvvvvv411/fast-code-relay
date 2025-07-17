@@ -11,6 +11,7 @@ import AppointmentOverview from './AppointmentOverview';
 import AppointmentRecipients from './AppointmentRecipients';
 import EmploymentContractManager from './EmploymentContractManager';
 import FeedbackManager from './FeedbackManager';
+import TelegramManager from './TelegramManager';
 import { useSMS } from '@/context/SMSContext';
 import { MessageSquare } from 'lucide-react';
 import { usePersistedAdminTab } from '@/hooks/usePersistedAdminTab';
@@ -45,6 +46,8 @@ const AdminPanel = () => {
         return <EmploymentContractManager />;
       case 'feedback':
         return <FeedbackManager />;
+      case 'telegram':
+        return <TelegramManager />;
       default:
         return <AllRequestsList />;
     }

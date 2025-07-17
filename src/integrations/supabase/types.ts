@@ -757,6 +757,36 @@ export type Database = {
         }
         Relationships: []
       }
+      telegram_chat_ids: {
+        Row: {
+          chat_id: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          chat_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          chat_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_bonuses: {
         Row: {
           assignment_id: string

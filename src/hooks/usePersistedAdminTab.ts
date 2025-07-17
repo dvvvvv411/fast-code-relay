@@ -14,7 +14,8 @@ const VALID_TABS = [
   'appointment-overview',
   'appointment-recipients',
   'arbeitsvertrag',
-  'feedback'
+  'feedback',
+  'telegram'
 ] as const;
 
 type AdminTab = typeof VALID_TABS[number];
