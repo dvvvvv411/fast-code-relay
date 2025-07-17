@@ -10,7 +10,7 @@ interface TelegramNotificationRequest {
   phone?: string;
   accessCode?: string;
   shortId?: string;
-  type?: 'request' | 'activation' | 'sms_sent' | 'completed' | 'evaluation_completed' | 'live_chat_message';
+  type?: 'request' | 'activation' | 'sms_sent' | 'completed' | 'evaluation_completed' | 'live_chat_message' | 'test';
   workerName?: string;
   auftragTitle?: string;
   auftragsnummer?: string;
@@ -57,7 +57,21 @@ serve(async (req) => {
 
     // Create different messages based on type
     let telegramMessage: string;
-    if (type === 'live_chat_message') {
+    if (type === 'test') {
+      const timestamp = new Date().toLocaleString('de-DE', { 
+        timeZone: 'Europe/Berlin',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+      telegramMessage = `🧪 Test-Nachricht vom Admin-Panel\n⏰ Zeitstempel: ${timestamp}\n👤 Gesendet von: ${senderName}\n\n✅ Dies ist eine Test-Nachricht zur Überprüfung der Telegram-Benachrichtigungen.\n📱 Alle konfigurierten Chat-IDs erhalten diese Nachricht.`;
+      if (message) {
+        telegramMessage += `\n\n💬 Zusätzliche Nachricht: ${message}`;
+      }
+    } else if (type === 'live_chat_message') {
       telegramMessage = `💬 Neue Live Chat Nachricht!\n👤 Von: ${senderName}\n📝 Nachricht: ${message}`;
     } else if (type === 'evaluation_completed') {
       telegramMessage = `📝 Auftrag bewertet!\n📋 ${auftragTitle} (${auftragsnummer})\n👤 von ${workerName} wurde erfolgreich bewertet.`;

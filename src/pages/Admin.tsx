@@ -3,15 +3,19 @@ import Header from '@/components/Header';
 import AdminPanel from '@/components/AdminPanel';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Loader, LogOut, Shield } from 'lucide-react';
+import { Loader, LogOut, Shield, Send } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 import { Toaster } from "@/components/ui/toaster";
-import { useEffect } from 'react';
+import { useToast } from "@/hooks/use-toast";
+import { useEffect, useState } from 'react';
 import { useSMS } from '@/context/SMSContext';
+import { supabase } from '@/integrations/supabase/client';
 
 const Admin = () => {
   const { user, isLoading, isAdmin, signOut } = useAuth();
   const { requests } = useSMS();
+  const { toast } = useToast();
+  const [isTestingTelegram, setIsTestingTelegram] = useState(false);
   
   // Enhanced logging for debugging admin access
   useEffect(() => {
@@ -42,6 +46,35 @@ const Admin = () => {
   const handleSignOut = async () => {
     console.log('🚪 Admin signing out');
     await signOut();
+  };
+
+  const handleTestTelegram = async () => {
+    setIsTestingTelegram(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-telegram-notification', {
+        body: {
+          type: 'test',
+          message: 'Dies ist eine Test-Nachricht vom Admin-Panel',
+          senderName: user?.email || 'Admin'
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Telegram Test erfolgreich",
+        description: `Test-Nachricht wurde an ${data?.sentTo || 'alle'} von ${data?.totalChats || 'unbekannt'} Chat(s) gesendet.`,
+      });
+    } catch (error) {
+      console.error('Fehler beim Senden der Test-Nachricht:', error);
+      toast({
+        title: "Telegram Test fehlgeschlagen",
+        description: error.message || "Es ist ein Fehler beim Senden der Test-Nachricht aufgetreten.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsTestingTelegram(false);
+    }
   };
   
   // Show loading while authentication state is being determined
@@ -111,6 +144,19 @@ const Admin = () => {
             <p className="text-sm text-gray-600">Angemeldet als Administrator: {user.email}</p>
           </div>
           <div className="flex gap-2">
+            <Button 
+              variant="outline"
+              onClick={handleTestTelegram}
+              disabled={isTestingTelegram}
+              className="flex items-center gap-2"
+            >
+              {isTestingTelegram ? (
+                <Loader className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+              Test Telegram
+            </Button>
             <Button 
               variant="outline"
               onClick={() => window.location.href = '/dashboard'}
