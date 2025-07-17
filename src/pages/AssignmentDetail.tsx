@@ -24,6 +24,7 @@ interface AssignmentData {
   access_email: string | null;
   access_password: string | null;
   access_phone: string | null;
+  anmeldename: string | null;
   is_completed: boolean;
   is_evaluated: boolean;
   auftraege: {
@@ -187,7 +188,8 @@ const AssignmentDetail = () => {
     assignmentData.ident_link || 
     assignmentData.access_email || 
     assignmentData.access_password || 
-    assignmentData.access_phone
+    assignmentData.access_phone ||
+    assignmentData.anmeldename
   );
   
   console.log('🔍 hasAccessData evaluation:');
@@ -308,6 +310,14 @@ const AssignmentDetail = () => {
                         <p className="text-gray-700 flex items-center gap-2">
                           <Phone className="h-4 w-4" />
                           {assignmentData.access_phone}
+                        </p>
+                      </div>
+                    )}
+                    {assignmentData.anmeldename && (
+                      <div>
+                        <h3 className="font-semibold mb-2">Anmeldename:</h3>
+                        <p className="text-gray-700 font-mono bg-gray-100 px-3 py-1 rounded">
+                          {assignmentData.anmeldename}
                         </p>
                       </div>
                     )}
