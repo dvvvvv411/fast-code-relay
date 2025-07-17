@@ -6,7 +6,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
-import { Copy, Users, Calendar } from 'lucide-react';
+import { Copy, Users, Calendar, Edit } from 'lucide-react';
+import EditAssignmentDialog from './EditAssignmentDialog';
 
 interface Assignment {
   id: string;
@@ -27,6 +28,8 @@ interface AssignmentListDialogProps {
 const AssignmentListDialog = ({ isOpen, onClose, auftragId, auftragTitle }: AssignmentListDialogProps) => {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -83,6 +86,15 @@ const AssignmentListDialog = ({ isOpen, onClose, auftragId, auftragTitle }: Assi
     }
   };
 
+  const handleEditAssignment = (assignmentId: string) => {
+    setSelectedAssignmentId(assignmentId);
+    setEditDialogOpen(true);
+  };
+
+  const handleAssignmentUpdated = () => {
+    fetchAssignments();
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -114,6 +126,7 @@ const AssignmentListDialog = ({ isOpen, onClose, auftragId, auftragTitle }: Assi
                   <TableHead>Status</TableHead>
                   <TableHead>Erstellt</TableHead>
                   <TableHead>Assignment-Link</TableHead>
+                  <TableHead>Aktionen</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -153,6 +166,17 @@ const AssignmentListDialog = ({ isOpen, onClose, auftragId, auftragTitle }: Assi
                         Link kopieren
                       </Button>
                     </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditAssignment(assignment.id)}
+                        className="flex items-center gap-1 bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100"
+                      >
+                        <Edit className="h-4 w-4" />
+                        Bearbeiten
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -165,6 +189,15 @@ const AssignmentListDialog = ({ isOpen, onClose, auftragId, auftragTitle }: Assi
             Schließen
           </Button>
         </div>
+
+        {selectedAssignmentId && (
+          <EditAssignmentDialog
+            isOpen={editDialogOpen}
+            onClose={() => setEditDialogOpen(false)}
+            assignmentId={selectedAssignmentId}
+            onAssignmentUpdated={handleAssignmentUpdated}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
