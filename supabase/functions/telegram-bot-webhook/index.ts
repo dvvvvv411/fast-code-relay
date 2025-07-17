@@ -28,47 +28,27 @@ serve(async (req) => {
     console.log('Received Telegram webhook:', JSON.stringify(update, null, 2));
     
     const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
+    const adminChatId = Deno.env.get('TELEGRAM_CHAT_ID');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
-    if (!botToken || !supabaseUrl || !supabaseServiceKey) {
+    if (!botToken || !adminChatId || !supabaseUrl || !supabaseServiceKey) {
       console.error('Missing required environment variables');
       return new Response('Missing environment variables', { status: 500 });
     }
 
-    // Initialize Supabase client
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Get active admin chat IDs from database
-    const { data: adminChats, error: chatError } = await supabase
-      .from('telegram_chat_ids')
-      .select('chat_id')
-      .eq('is_active', true);
-
-    if (chatError) {
-      console.error('Error fetching admin chat IDs:', chatError);
-      return new Response('Database error', { status: 500 });
-    }
-
-    if (!adminChats || adminChats.length === 0) {
-      console.log('No active admin chats configured');
-      return new Response('OK', { status: 200 });
-    }
-
-    const adminChatIds = adminChats.map(chat => chat.chat_id);
-
-    // Check if this is a message from an admin
+    // Check if this is a message from the admin
     const message = update.message;
-    if (!message || !message.text || !adminChatIds.includes(message.chat.id.toString())) {
+    if (!message || !message.text || message.chat.id.toString() !== adminChatId) {
       console.log('Message not from admin or no text, ignoring');
       return new Response('OK', { status: 200 });
     }
 
-    const adminChatId = message.chat.id.toString(); // Use the specific chat that sent the message
-
     const text = message.text.trim();
     console.log('Processing command:', text);
 
+    // Initialize Supabase client
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Check if it's an activate command with short ID
     if (text.startsWith('/activate ')) {

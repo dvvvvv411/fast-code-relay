@@ -16,54 +16,19 @@ serve(async (req) => {
     console.log('🧪 Test Telegram reminder function triggered');
     
     const telegramBotToken = Deno.env.get('TELEGRAM_REMINDER_BOT_TOKEN');
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const telegramChatIds = Deno.env.get('TELEGRAM_REMINDER_CHAT_ID');
     
-    if (!telegramBotToken) {
-      console.error('Missing Telegram bot token for reminders');
+    if (!telegramBotToken || !telegramChatIds) {
+      console.error('Missing Telegram credentials for reminders');
       return new Response(
-        JSON.stringify({ error: 'Missing Telegram bot token' }),
+        JSON.stringify({ error: 'Missing Telegram credentials' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    if (!supabaseUrl || !supabaseServiceKey) {
-      console.error('Missing Supabase credentials');
-      return new Response(
-        JSON.stringify({ error: 'Missing Supabase credentials' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Initialize Supabase client
-    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.49.8');
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Fetch active chat IDs from database
-    console.log('📱 Fetching active Telegram chat IDs from database...');
-    const { data: chatData, error: chatError } = await supabase
-      .from('telegram_chat_ids')
-      .select('chat_id, name')
-      .eq('is_active', true);
-
-    if (chatError) {
-      console.error('Error fetching chat IDs:', chatError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to fetch chat IDs' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    if (!chatData || chatData.length === 0) {
-      console.log('📱 No active chat IDs found in database');
-      return new Response(
-        JSON.stringify({ error: 'No active chat IDs configured' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const chatIdArray = chatData.map(chat => chat.chat_id);
-    console.log(`📱 Found ${chatIdArray.length} active chat IDs:`, chatData.map(chat => `${chat.name} (${chat.chat_id})`));
+    // Parse chat IDs (comma-separated)
+    const chatIdArray = telegramChatIds.split(',').map(id => id.trim()).filter(id => id.length > 0);
+    console.log(`📱 Found ${chatIdArray.length} chat IDs:`, chatIdArray);
 
     if (chatIdArray.length === 0) {
       return new Response(
