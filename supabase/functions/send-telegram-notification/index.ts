@@ -28,15 +28,32 @@ serve(async (req) => {
     const { phone, accessCode, shortId, type = 'request', workerName, auftragTitle, auftragsnummer, message, senderName }: TelegramNotificationRequest = await req.json();
     
     const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
-    const chatId = Deno.env.get('TELEGRAM_CHAT_ID');
+    const chatId1 = Deno.env.get('TELEGRAM_CHAT_ID');
+    const chatId2 = Deno.env.get('TELEGRAM_CHAT_ID_2');
     
-    if (!botToken || !chatId) {
-      console.error('Missing Telegram credentials');
+    if (!botToken) {
+      console.error('Missing Telegram bot token');
       return new Response(
-        JSON.stringify({ error: 'Missing Telegram credentials' }),
+        JSON.stringify({ error: 'Missing Telegram bot token' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Collect all valid chat IDs
+    const chatIds: string[] = [];
+    if (chatId1) chatIds.push(chatId1);
+    if (chatId2) chatIds.push(chatId2);
+    
+    if (chatIds.length === 0) {
+      console.error('No chat IDs configured');
+      return new Response(
+        JSON.stringify({ error: 'No chat IDs configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`📱 Sending to ${chatIds.length} chat ID(s): ${chatIds.join(', ')}`);
+    
 
     // Create different messages based on type
     let telegramMessage: string;
@@ -70,31 +87,65 @@ serve(async (req) => {
     
     console.log(`Sending Telegram notification (${type}):`, { phone, accessCode, shortId, workerName, auftragTitle, auftragsnummer, message, senderName });
     
-    const telegramResponse = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text: telegramMessage,
-      }),
-    });
+    let successfulSends = 0;
+    const results: any[] = [];
+    const errors: string[] = [];
 
-    if (!telegramResponse.ok) {
-      const errorText = await telegramResponse.text();
-      console.error('Telegram API error:', errorText);
+    // Send message to all configured chat IDs
+    for (const chatId of chatIds) {
+      try {
+        const telegramResponse = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            chat_id: chatId,
+            text: telegramMessage,
+          }),
+        });
+
+        if (telegramResponse.ok) {
+          const result = await telegramResponse.json();
+          results.push({ chatId, success: true, result });
+          successfulSends++;
+          console.log(`✅ Telegram notification (${type}) sent successfully to chat ID: ${chatId}`);
+        } else {
+          const errorText = await telegramResponse.text();
+          console.error(`❌ Failed to send to chat ID ${chatId}:`, errorText);
+          errors.push(`Chat ID ${chatId}: ${errorText}`);
+          results.push({ chatId, success: false, error: errorText });
+        }
+      } catch (error) {
+        console.error(`❌ Error sending to chat ID ${chatId}:`, error);
+        errors.push(`Chat ID ${chatId}: ${error.message}`);
+        results.push({ chatId, success: false, error: error.message });
+      }
+    }
+
+    // Return success if at least one message was sent
+    if (successfulSends > 0) {
+      console.log(`📤 Telegram notification (${type}) sent to ${successfulSends}/${chatIds.length} chat(s)`);
+    } else {
+      console.error(`❌ Failed to send Telegram notification (${type}) to any chat`);
       return new Response(
-        JSON.stringify({ error: 'Failed to send Telegram message' }),
+        JSON.stringify({ 
+          error: 'Failed to send to any chat IDs', 
+          details: errors,
+          results 
+        }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const result = await telegramResponse.json();
-    console.log(`Telegram notification (${type}) sent successfully:`, result);
-
     return new Response(
-      JSON.stringify({ success: true, result }),
+      JSON.stringify({ 
+        success: true, 
+        sentTo: successfulSends,
+        totalChats: chatIds.length,
+        results,
+        errors: errors.length > 0 ? errors : undefined
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

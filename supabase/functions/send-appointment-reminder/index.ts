@@ -71,10 +71,7 @@ serve(async (req) => {
       `)
       .eq('status', 'confirmed')
       .eq('appointment_date', reminderTime.toISOString().split('T')[0])
-      .not('id', 'in', `(
-        SELECT appointment_id 
-        FROM appointment_reminders
-      )`);
+      .not('id', 'in', '(SELECT appointment_id FROM appointment_reminders)');
 
     if (appointmentsError) {
       console.error('Error fetching appointments:', appointmentsError);
