@@ -59,6 +59,19 @@ const AssignmentDialog = ({ isOpen, onClose, auftragId, auftragTitle, onAssignme
     }
   }, [formData.assigned_user_id, users]);
 
+  // Auto-fill phone number field when a phone number is selected
+  useEffect(() => {
+    if (formData.phone_number_id) {
+      const selectedPhoneNumber = phoneNumbers.find(phone => phone.id === formData.phone_number_id);
+      if (selectedPhoneNumber) {
+        setFormData(prev => ({
+          ...prev,
+          access_phone: selectedPhoneNumber.phone
+        }));
+      }
+    }
+  }, [formData.phone_number_id, phoneNumbers]);
+
   useEffect(() => {
     if (isOpen) {
       fetchPhoneNumbers();
